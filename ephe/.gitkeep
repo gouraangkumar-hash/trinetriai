@@ -1,0 +1,2 @@
+# Place Swiss Ephemeris data files (*.se1) here for maximum precision.
+# If left empty, the engine automatically uses Swiss Ephemeris built-in Moshier analytical mode (0.1 arcsec accuracy).

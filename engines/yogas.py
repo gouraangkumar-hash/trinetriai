@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from pydantic import BaseModel, Field
 
 from core.constants import PlanetEnum, ZODIAC_SIGNS
+from engines.parashari import VargaChartEngine, VargaType
 from schemas.models import UnifiedChartData
 
 
@@ -383,30 +384,157 @@ class YogaDetectorEngine:
                             )
                         )
 
-        # E. Neechabhanga Raja Yoga
+        # E. Comprehensive 7-Rule Classical Neechabhanga Raja Yoga (BPHS & Phaladeepika)
+        kendra_houses = {1, 4, 7, 10}
+        moon_sign = planet_signs[PlanetEnum.MOON]
+
+        def is_kendra_from_moon(sign_id: int) -> bool:
+            return (((sign_id - moon_sign) % 12) + 1) in kendra_houses
+
+        # Map each zodiac sign to the planet that gets exalted in it
+        sign_exalted_planet: Dict[int, PlanetEnum] = {}
+        for p, s in EXALTATION_SIGNS.items():
+            if p not in (PlanetEnum.RAHU, PlanetEnum.KETU):
+                sign_exalted_planet[s] = p
+
         for p_name, deb_sign in DEBILITATION_SIGNS.items():
             if p_name in (PlanetEnum.RAHU, PlanetEnum.KETU):
                 continue
-            if planet_signs.get(p_name) == deb_sign:
-                disp_lord = ZODIAC_SIGNS[deb_sign]["lord"]
-                disp_h_lagna = planet_houses[disp_lord]
-                disp_sign = planet_signs[disp_lord]
-                disp_from_moon = ((disp_sign - planet_signs[PlanetEnum.MOON]) % 12) + 1
-                if disp_h_lagna in (1, 4, 7, 10) or disp_from_moon in (1, 4, 7, 10):
-                    results.append(
-                        YogaItem(
-                            id=f"neechabhanga_{p_name.value.lower()}",
-                            name=f"Neechabhanga Raja Yoga ({p_name.value})",
-                            sanskrit_name="नीचभंग राजयोग",
-                            nature=YogaNature.RAJA,
-                            category="Transformative Raja Yoga",
-                            intensity="Strong",
-                            planets_involved=[p_name.value, disp_lord.value],
-                            houses_involved=[planet_houses[p_name], disp_h_lagna],
-                            description=f"{p_name.value} debilitated in {ZODIAC_SIGNS[deb_sign]['sanskrit_name']}, but its dispositor ({disp_lord.value}) is in Kendra.",
-                            classical_effects="Overcomes early setbacks, transforming liabilities into extraordinary perseverance and success.",
-                        )
+            if planet_signs.get(p_name) != deb_sign:
+                continue
+
+            rules_met: List[str] = []
+            involved_planets: Set[PlanetEnum] = {p_name}
+            involved_houses: Set[int] = {planet_houses[p_name]}
+
+            disp_lord = ZODIAC_SIGNS[deb_sign]["lord"]
+            disp_h = planet_houses.get(disp_lord)
+            disp_s = planet_signs.get(disp_lord)
+
+            # Rule 1: Dispositor of debilitated planet is in Kendra from Lagna or Moon
+            if disp_h in kendra_houses:
+                rules_met.append(f"Dispositor {disp_lord.value} in {disp_h}th house Kendra from Lagna")
+                involved_planets.add(disp_lord)
+                involved_houses.add(disp_h)
+            elif disp_s and is_kendra_from_moon(disp_s):
+                rules_met.append(f"Dispositor {disp_lord.value} in Kendra from Chandra Lagna (Moon)")
+                involved_planets.add(disp_lord)
+                if disp_h:
+                    involved_houses.add(disp_h)
+
+            # Rule 2: Planet that gets exalted in the debilitation sign is in Kendra from Lagna or Moon
+            exalted_p = sign_exalted_planet.get(deb_sign)
+            if exalted_p and exalted_p != p_name:
+                ex_h = planet_houses.get(exalted_p)
+                ex_s = planet_signs.get(exalted_p)
+                if ex_h in kendra_houses:
+                    rules_met.append(f"Planet exalted in {ZODIAC_SIGNS[deb_sign]['sanskrit_name']} ({exalted_p.value}) in {ex_h}th house Kendra from Lagna")
+                    involved_planets.add(exalted_p)
+                    involved_houses.add(ex_h)
+                elif ex_s and is_kendra_from_moon(ex_s):
+                    rules_met.append(f"Planet exalted in {ZODIAC_SIGNS[deb_sign]['sanskrit_name']} ({exalted_p.value}) in Kendra from Chandra Lagna (Moon)")
+                    involved_planets.add(exalted_p)
+                    if ex_h:
+                        involved_houses.add(ex_h)
+
+            # Rule 3: Lord of the planet's exaltation sign is in Kendra from Lagna or Moon
+            exalt_sign = EXALTATION_SIGNS[p_name]
+            exalt_sign_lord = ZODIAC_SIGNS[exalt_sign]["lord"]
+            ex_lord_h = planet_houses.get(exalt_sign_lord)
+            ex_lord_s = planet_signs.get(exalt_sign_lord)
+            if ex_lord_h in kendra_houses:
+                rules_met.append(f"Lord of {p_name.value}'s exaltation sign ({exalt_sign_lord.value}) in {ex_lord_h}th house Kendra from Lagna")
+                involved_planets.add(exalt_sign_lord)
+                involved_houses.add(ex_lord_h)
+            elif ex_lord_s and is_kendra_from_moon(ex_lord_s):
+                rules_met.append(f"Lord of {p_name.value}'s exaltation sign ({exalt_sign_lord.value}) in Kendra from Chandra Lagna (Moon)")
+                involved_planets.add(exalt_sign_lord)
+                if ex_lord_h:
+                    involved_houses.add(ex_lord_h)
+
+            # Rule 4: Debilitated planet is aspected by or conjunct its dispositor
+            if disp_s == deb_sign:
+                rules_met.append(f"{p_name.value} is conjunct its Rashi dispositor ({disp_lord.value}) in {ZODIAC_SIGNS[deb_sign]['sanskrit_name']}")
+                involved_planets.add(disp_lord)
+            elif disp_s is not None:
+                diff_signs = (deb_sign - disp_s) % 12
+                is_aspected = False
+                if diff_signs == 6:
+                    is_aspected = True
+                elif disp_lord == PlanetEnum.MARS and diff_signs in (3, 7):
+                    is_aspected = True
+                elif disp_lord == PlanetEnum.JUPITER and diff_signs in (4, 8):
+                    is_aspected = True
+                elif disp_lord == PlanetEnum.SATURN and diff_signs in (2, 9):
+                    is_aspected = True
+
+                if is_aspected:
+                    rules_met.append(f"{p_name.value} is directly aspected by its Rashi dispositor ({disp_lord.value})")
+                    involved_planets.add(disp_lord)
+                    if disp_h:
+                        involved_houses.add(disp_h)
+
+            # Rule 5: Neecha-Ucha Conjunction (Debilitated planet sits with planet exalted in same sign)
+            if exalted_p and exalted_p != p_name and planet_signs.get(exalted_p) == deb_sign:
+                rules_met.append(f"Neecha-Ucha Conjunction: {p_name.value} is conjunct exalted {exalted_p.value} in {ZODIAC_SIGNS[deb_sign]['sanskrit_name']}")
+                involved_planets.add(exalted_p)
+                if planet_houses.get(exalted_p):
+                    involved_houses.add(planet_houses[exalted_p])
+
+            # Rule 6: Navamsha Cancellation (Exalted in D9 or Own sign in D9)
+            if p_name in chart.planets:
+                d9_point = VargaChartEngine.calculate_point_varga(
+                    longitude=chart.planets[p_name].longitude,
+                    varga=VargaType.D9,
+                    planet=p_name,
+                    is_ascendant=False,
+                )
+                if d9_point.sign_id == EXALTATION_SIGNS.get(p_name):
+                    rules_met.append(f"Ucha Navamsha: {p_name.value} is exalted in D9 Navamsha ({d9_point.sign_name})")
+                elif d9_point.sign_id in OWN_SIGNS.get(p_name, []):
+                    rules_met.append(f"Swa-Navamsha: {p_name.value} occupies own sign in D9 Navamsha ({d9_point.sign_name})")
+
+            # Rule 7: Debilitated planet itself occupies Kendra from Lagna or Moon
+            p_h = planet_houses.get(p_name)
+            if p_h in kendra_houses:
+                rules_met.append(f"{p_name.value} itself occupies Kendra ({p_h}th house) from Lagna, gaining directional Kendra force")
+            elif is_kendra_from_moon(deb_sign):
+                rules_met.append(f"{p_name.value} itself occupies a Kendra house from Chandra Lagna (Moon)")
+
+            unique_rules = list(dict.fromkeys(rules_met))
+
+            if unique_rules:
+                cnt = len(unique_rules)
+                is_raja = cnt >= 2
+                yoga_name = f"Neechabhanga Raja Yoga ({p_name.value})" if is_raja else f"Neechabhanga ({p_name.value})"
+                intensity = "Strong" if is_raja else "Moderate"
+
+                rule_bullets = " • ".join(unique_rules)
+                desc = (
+                    f"{p_name.value} debilitated in {ZODIAC_SIGNS[deb_sign]['sanskrit_name']} ({ZODIAC_SIGNS[deb_sign]['english_name']}), "
+                    f"cancelled by {cnt} classical BPHS/Phaladeepika rule(s): {rule_bullets}."
+                )
+                effects = (
+                    "Converts early limitations and intense trials into extraordinary resilience, perseverance, "
+                    "and eventual executive triumph or kingly status (Neechabhanga Raja Yoga)."
+                    if is_raja
+                    else "Cancels structural debility, enabling steady recovery and solid success through personal discipline."
+                )
+
+                results.append(
+                    YogaItem(
+                        id=f"neechabhanga_{p_name.value.lower()}",
+                        name=yoga_name,
+                        sanskrit_name="नीचभंग राजयोग" if is_raja else "नीचभंग",
+                        nature=YogaNature.RAJA,
+                        category="Transformative Raja Yoga",
+                        intensity=intensity,
+                        planets_involved=[p.value for p in involved_planets],
+                        houses_involved=sorted(list(involved_houses)),
+                        description=desc,
+                        classical_effects=effects,
                     )
+                )
 
         # F. Vipareeta Raja Yogas
         l6 = house_lords[6]

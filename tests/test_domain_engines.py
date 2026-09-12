@@ -305,4 +305,36 @@ class TestYogaEngine:
         assert kuja.cancellation_reason is not None
         assert "Vrishchika" in kuja.cancellation_reason
 
+    def test_neechabhanga_7_rules_multi_cancellation(self) -> None:
+        """Validates 7-rule Neechabhanga Raja Yoga detection on Sun in Libra chart."""
+        engine = EphemerisEngine()
+        inp = BirthInput(
+            year=1995,
+            month=10,
+            day=24,
+            hour=14,
+            minute=30,
+            second=0.0,
+            location=GeoLocationModel(
+                latitude=26.9124,
+                longitude=75.7873,
+                city="Jaipur",
+                country="India",
+                timezone_str="Asia/Kolkata",
+            ),
+            ayanamsha=AyanamshaType.LAHIRI,
+            node_type=NodeType.TRUE,
+            house_system=HouseSystemType.PLACIDUS,
+        )
+        chart = engine.calculate_chart(inp)
+        report = YogaDetectorEngine.evaluate(chart)
+        nb_sun = next((y for y in report.yogas if y.id == "neechabhanga_sun"), None)
+        assert nb_sun is not None
+        assert "Neechabhanga Raja Yoga" in nb_sun.name
+        assert nb_sun.intensity == "Strong"
+        assert nb_sun.nature == YogaNature.RAJA
+        assert "Venus" in nb_sun.planets_involved
+        assert "Dispositor" in nb_sun.description
+
+
 

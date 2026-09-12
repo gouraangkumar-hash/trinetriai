@@ -214,7 +214,7 @@ def _render_south_sav_svg(
         f'<g transform="translate(215, 215)">'
         f'<rect width="370" height="370" rx="12" fill="{bg_color}" stroke="{pill_stroke}" stroke-width="1.2" />'
         f'<text x="185" y="45" fill="{outer_border}" font-family="Cinzel, serif" font-size="17" font-weight="900" text-anchor="middle" letter-spacing="1">SARVASHTAKAVARGA</text>'
-        f'<text x="185" y="68" fill="{text_muted}" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="0.5">BPHS MACRO-ZODIAC BINDUS</text>'
+        f'<text x="185" y="68" fill="{text_muted}" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="0.5">BPHS 337 BINDUS</text>'
         f'<line x1="40" y1="85" x2="330" y2="85" stroke="{frame_color}" stroke-width="1" />'
         # Total Bindus
         f'<text x="185" y="145" fill="{text_primary}" font-family="JetBrains Mono, monospace" font-size="44" font-weight="900" text-anchor="middle">337</text>'

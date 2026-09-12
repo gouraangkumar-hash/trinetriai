@@ -23,6 +23,7 @@ from engines.parashari import (
     VargaType,
     VimshottariDashaEngine,
 )
+from engines.yogas import YogaDetectorEngine, YogaNature
 from schemas.models import BirthInput, GeoLocationModel
 
 
@@ -259,3 +260,49 @@ class TestJaiminiEngine:
 
         # Gemini (3, Dual) aspects Virgo (6), Sagittarius (9), Pisces (12)
         assert aspects.sign_aspects_map[3] == [6, 9, 12]
+
+
+# =========================================================================
+# 5. Classical Yogas & Doshas Engine Tests
+# =========================================================================
+
+class TestYogaEngine:
+    def test_yoga_evaluation_structure(self, reference_chart) -> None:
+        """Validates complete evaluation report, counts, and active status."""
+        report = YogaDetectorEngine.evaluate(reference_chart)
+        assert report.summary.total_yogas > 0
+        assert report.summary.auspicious_count > 0
+        assert len(report.yogas) == report.summary.total_yogas
+
+    def test_pancha_mahapurusha_malavya(self, reference_chart) -> None:
+        """Validates Malavya Mahapurusha detection (Venus in Libra 10th house Kendra)."""
+        report = YogaDetectorEngine.evaluate(reference_chart)
+        malavya = next((y for y in report.yogas if y.id == "mahapurusha_venus"), None)
+        assert malavya is not None
+        assert malavya.nature == YogaNature.MAHAPURUSHA
+        assert malavya.is_active is True
+        assert "Venus" in malavya.planets_involved
+
+    def test_budhaditya_and_amala_yogas(self, reference_chart) -> None:
+        """Validates Budhaditya and Amala Yogas in reference chart."""
+        report = YogaDetectorEngine.evaluate(reference_chart)
+        budhaditya = next((y for y in report.yogas if y.id == "budhaditya_yoga"), None)
+        assert budhaditya is not None
+        assert "Sun" in budhaditya.planets_involved
+        assert "Mercury" in budhaditya.planets_involved
+
+        amala = next((y for y in report.yogas if y.id == "amala_yoga"), None)
+        assert amala is not None
+        assert amala.nature == YogaNature.RAJA
+
+    def test_kuja_dosha_cancellation_apavada(self, reference_chart) -> None:
+        """Validates Kuja Dosha detection with classical cancellation rule applied."""
+        report = YogaDetectorEngine.evaluate(reference_chart)
+        kuja = next((y for y in report.yogas if y.id == "kuja_dosha"), None)
+        assert kuja is not None
+        assert kuja.is_cancelled is True
+        assert "Cancelled" in kuja.intensity or kuja.intensity == "Cancelled"
+        assert kuja.cancellation_reason is not None
+        assert "Vrishchika" in kuja.cancellation_reason
+
+

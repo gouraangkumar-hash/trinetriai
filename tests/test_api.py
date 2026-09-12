@@ -54,6 +54,12 @@ def test_calculate_endpoint_default():
     assert len(data["arudha_padas"]) == 12
     assert len(data["mahadashas"]) == 9
     assert "dasha_summary" in data
+    assert "yogas_summary" in data
+    assert "yogas_list" in data
+    assert data["yogas_summary"]["total_yogas"] > 0
+    assert any(y["id"] == "mahapurusha_venus" for y in data["yogas_list"])
+
+
 
 
 def test_calculate_endpoint_south_indian_dark_mode():

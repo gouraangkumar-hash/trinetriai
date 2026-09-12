@@ -59,6 +59,7 @@
       <button class="tab-btn" data-tab="dasha">Vimshottari Dasha</button>
       <button class="tab-btn" data-tab="kp">KP Matrix & Cusps</button>
       <button class="tab-btn" data-tab="jaimini">Jaimini Sutras</button>
+      <button class="tab-btn" data-tab="yogas">Yogas & Doshas</button>
     </div>
   </nav>
 
@@ -136,6 +137,17 @@
         <div id="strip-dasha-dates" class="dasha-dates">
           Calculating timeline...
         </div>
+      </div>
+
+      <!-- Active Yogas & Formations Summary Strip Banner -->
+      <div class="active-yogas-strip" onclick="document.querySelector('.tab-btn[data-tab=\'yogas\']').click()" style="cursor: pointer;" title="Click to view full Yogas & Doshas analysis">
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+          <span style="font-size: 0.825rem; font-weight: 700; text-transform: uppercase; color: var(--accent-primary);">✦ Classical Yogas:</span>
+          <span id="strip-yogas-summary" style="font-size: 0.85rem; color: var(--text-primary); font-weight: 600;">Evaluating chart formations...</span>
+        </div>
+        <span style="font-size: 0.8rem; font-weight: 600; color: var(--accent-primary); display: flex; align-items: center; gap: 0.25rem;">
+          View All Yogas →
+        </span>
       </div>
 
       <!-- Planetary Positions & Sub-Lords Table Card -->
@@ -362,6 +374,57 @@
         <div class="arudha-grid" id="arudha-grid-container">
           <!-- Rendered via app.js -->
         </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- TAB 6: Yogas & Doshas Scanner                                       -->
+    <!-- ------------------------------------------------------------------- -->
+    <section id="tab-yogas" class="tab-content">
+      <!-- Top Summary Stat Bar -->
+      <div class="yogas-summary-grid">
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-number" id="stat-total-yogas">-</span>
+          <span class="yoga-stat-label">Total Formations</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-number" id="stat-raja-yogas" style="color: var(--accent-primary);">-</span>
+          <span class="yoga-stat-label">Raja & Mahapurusha</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-number" id="stat-dhana-yogas">-</span>
+          <span class="yoga-stat-label">Dhana & Prosperity</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-number" id="stat-doshas" style="color: #E05638;">-</span>
+          <span class="yoga-stat-label">Active Doshas</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-val" id="stat-sade-sati" style="font-size: 0.925rem; font-weight: 700; color: var(--text-primary);">-</span>
+          <span class="yoga-stat-label">Shani Sade Sati</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-val" id="stat-kuja-dosha" style="font-size: 0.925rem; font-weight: 700;">-</span>
+          <span class="yoga-stat-label">Kuja / Manglik</span>
+        </div>
+      </div>
+
+      <!-- Filter Buttons Bar -->
+      <div class="card" style="padding: 0.85rem 1.25rem; margin-bottom: 1.25rem;">
+        <div class="yoga-filter-bar">
+          <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-right: 0.5rem;">Filter:</span>
+          <button class="action-pill yoga-filter-pill active" data-filter="all">All Formations</button>
+          <button class="action-pill yoga-filter-pill" data-filter="Raja">Raja Yogas</button>
+          <button class="action-pill yoga-filter-pill" data-filter="Mahapurusha">Mahapurusha</button>
+          <button class="action-pill yoga-filter-pill" data-filter="Dhana">Dhana & Wealth</button>
+          <button class="action-pill yoga-filter-pill" data-filter="Auspicious">Solar & Lunar</button>
+          <button class="action-pill yoga-filter-pill" data-filter="Dosha">Doshas & Afflictions</button>
+        </div>
+      </div>
+
+      <!-- Yogas Dynamic Cards Grid -->
+      <div class="yogas-cards-grid" id="yogas-cards-container">
+        <!-- Rendered via app.js -->
       </div>
     </section>
 

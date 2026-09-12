@@ -34,6 +34,7 @@ from engines.parashari import (
     VargaType,
     VimshottariDashaEngine,
 )
+from engines.yogas import YogaDetectorEngine
 from schemas.models import BirthInput, GeoLocationModel, UnifiedChartData
 from visualizers.north_indian_svg import generate_north_indian_svg
 from visualizers.south_indian_svg import generate_south_indian_svg
@@ -148,6 +149,9 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     # Vimshottari Dashas
     moon_lon = chart.planets[PlanetEnum.MOON].longitude
     dashas = VimshottariDashaEngine.generate_dasha_tree(chart.utc_datetime, moon_lon)
+
+    # Classical Yogas & Doshas Evaluation
+    yogas_report = YogaDetectorEngine.evaluate(chart, sign_mode=req.sign_mode)
 
     # 1. Primary Angles Summary
     asc_sign = chart.angles.ascendant_sign
@@ -454,6 +458,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "arudha_padas": arudha_padas,
         "dasha_summary": dasha_summary,
         "mahadashas": mahadashas,
+        "yogas_summary": yogas_report.summary.model_dump(),
+        "yogas_list": [y.model_dump() for y in yogas_report.yogas],
     }
 
 

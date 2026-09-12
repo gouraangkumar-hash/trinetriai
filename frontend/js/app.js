@@ -26,6 +26,7 @@ const state = {
   theme_mode: "light", // "light" | "dark"
   selected_varga: "D1",
   active_tab: "kundali",
+  active_yoga_filter: "all",
   currentData: null,
 };
 
@@ -197,12 +198,14 @@ function renderAll() {
   renderKundaliChart();
   renderAngles();
   renderActiveDashaStrip();
+  renderYogasOverviewStrip();
   renderPlanetsTable();
   renderTelemetry();
   renderVargasWorkspace();
   renderDashasWorkspace();
   renderKPWorkspace();
   renderJaiminiWorkspace();
+  renderYogasWorkspace();
 }
 
 function renderHeaderCapsule() {
@@ -558,6 +561,126 @@ function renderJaiminiWorkspace() {
   }
 }
 
+function renderYogasOverviewStrip() {
+  const d = state.currentData;
+  const el = document.getElementById("strip-yogas-summary");
+  if (!el || !d || !d.yogas_summary) return;
+  const s = d.yogas_summary;
+  const totalRaja = (s.raja_count || 0) + (s.mahapurusha_count || 0);
+  el.innerHTML = `<strong>${s.total_yogas}</strong> Formations Active &bull; <strong>${totalRaja}</strong> Raja/Mahapurusha &bull; <strong>${s.dhana_count}</strong> Dhana &bull; Sade Sati: <strong>${s.sade_sati_status}</strong> &bull; Kuja: <strong>${s.kuja_dosha_status}</strong>`;
+}
+
+function renderYogasWorkspace() {
+  const d = state.currentData;
+  if (!d) return;
+
+  const s = d.yogas_summary;
+  if (s) {
+    const totalEl = document.getElementById("stat-total-yogas");
+    if (totalEl) totalEl.textContent = s.total_yogas;
+
+    const rajaEl = document.getElementById("stat-raja-yogas");
+    if (rajaEl) rajaEl.textContent = (s.raja_count || 0) + (s.mahapurusha_count || 0);
+
+    const dhanaEl = document.getElementById("stat-dhana-yogas");
+    if (dhanaEl) dhanaEl.textContent = s.dhana_count;
+
+    const doshasEl = document.getElementById("stat-doshas");
+    if (doshasEl) doshasEl.textContent = s.doshas_count;
+
+    const sadeEl = document.getElementById("stat-sade-sati");
+    if (sadeEl) sadeEl.textContent = s.sade_sati_status;
+
+    const kujaEl = document.getElementById("stat-kuja-dosha");
+    if (kujaEl) {
+      kujaEl.textContent = s.kuja_dosha_status;
+      if (s.kuja_dosha_status.includes("Active")) {
+        kujaEl.style.color = "#E05638";
+      } else if (s.kuja_dosha_status.includes("Cancelled")) {
+        kujaEl.style.color = "var(--accent-primary)";
+      } else {
+        kujaEl.style.color = "var(--text-primary)";
+      }
+    }
+  }
+
+  const container = document.getElementById("yogas-cards-container");
+  if (!container || !d.yogas_list) return;
+
+  const filter = state.active_yoga_filter || "all";
+  const list = d.yogas_list.filter((y) => {
+    if (filter === "all") return true;
+    if (filter === "Raja") return y.nature === "Raja" || y.category === "Raja";
+    if (filter === "Mahapurusha") return y.nature === "Mahapurusha" || y.category === "Mahapurusha";
+    if (filter === "Dhana") return y.nature === "Dhana" || y.category === "Dhana";
+    if (filter === "Auspicious") return y.nature === "Auspicious" || y.category === "Solar" || y.category === "Lunar" || y.category === "Auspicious";
+    if (filter === "Dosha") return y.nature === "Dosha" || y.category === "Dosha";
+    return true;
+  });
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; font-weight: 600;">No formations found under this filter</p>
+        <p style="font-size: 0.85rem; margin-top: 0.35rem;">Select "All Formations" to view all evaluated classical yogas and doshas.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list
+    .map((y) => {
+      const natureLower = (y.nature || "neutral").toLowerCase();
+      const cardClass = y.is_cancelled ? "cancelled" : natureLower;
+      const badgeClass = y.is_cancelled ? "cancelled" : natureLower;
+      const badgeText = y.is_cancelled ? "Cancelled (Apavada)" : `${y.nature} (${y.intensity})`;
+
+      // Participating planets formatted
+      const planetsHtml = (y.planets_involved || []).map((p) => {
+        const glyph = PLANET_GLYPHS[p] || "✧";
+        return `<span class="yoga-tag">${glyph} ${p}</span>`;
+      }).join("");
+
+      // Participating houses formatted
+      const housesHtml = (y.houses_involved || []).map((h) => {
+        return `<span class="yoga-tag">House ${h}</span>`;
+      }).join("");
+
+      // Cancellation callout
+      const cancellationHtml = (y.is_cancelled && y.cancellation_reason)
+        ? `<div class="cancellation-callout">
+             🛡️ <strong>Apavada (Cancellation):</strong> ${y.cancellation_reason}
+           </div>`
+        : "";
+
+      return `
+        <div class="yoga-card ${cardClass}">
+          <div class="yoga-card-header">
+            <div class="yoga-title-wrap">
+              <span class="yoga-title">${y.name}</span>
+              <span class="yoga-sanskrit">${y.sanskrit_name} &bull; ${y.category}</span>
+            </div>
+            <span class="yoga-nature-badge ${badgeClass}">${badgeText}</span>
+          </div>
+
+          <div class="yoga-meta-row">
+            ${planetsHtml}
+            ${housesHtml}
+          </div>
+
+          <p class="yoga-description">${y.description}</p>
+
+          <div class="yoga-effects">
+            <strong>Classical BPHS Phala:</strong> ${y.classical_effects}
+          </div>
+
+          ${cancellationHtml}
+        </div>
+      `;
+    })
+    .join("");
+}
+
 // =============================================================================
 // Slide-Over Drawer Controller
 // =============================================================================
@@ -792,6 +915,8 @@ document.addEventListener("DOMContentLoaded", () => {
         renderKPWorkspace();
       } else if (tabId === "jaimini") {
         renderJaiminiWorkspace();
+      } else if (tabId === "yogas") {
+        renderYogasWorkspace();
       }
     });
   });
@@ -807,6 +932,16 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".varga-pill-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       selectVarga(btn.dataset.varga);
+    });
+  });
+
+  // 3b. Yogas & Doshas Category Filter Pills
+  document.querySelectorAll(".yoga-filter-pill").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".yoga-filter-pill").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.active_yoga_filter = btn.dataset.filter;
+      renderYogasWorkspace();
     });
   });
 

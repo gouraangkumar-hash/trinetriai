@@ -337,6 +337,49 @@ class TestYogaEngine:
         assert "Venus" in nb_sun.planets_involved
         assert "Dispositor" in nb_sun.description
 
+    def test_shani_sade_sati_card_both_active_and_inactive(self, reference_chart) -> None:
+        """Validates that Shani Sade Sati info card is reliably generated for both active and clear charts."""
+        # 1. Inactive case (reference chart: Moon in Gemini, Saturn in Aquarius -> 9th from Moon)
+        rep = YogaDetectorEngine.evaluate(reference_chart)
+        sade = next((y for y in rep.yogas if y.id == "sade_sati"), None)
+        assert sade is not None
+        assert sade.is_active is False
+        assert sade.is_cancelled is True
+        assert "Inactive" in sade.intensity
+        assert "9th house from natal Moon" in sade.description
+        assert sade.cancellation_reason is not None
+        assert rep.summary.sade_sati_status == "Inactive"
+
+        # 2. Active 1st phase case (Nov 5 1995: Moon in Pisces, Saturn in Aquarius -> 12th from Moon)
+        engine = EphemerisEngine()
+        inp_active = BirthInput(
+            year=1995,
+            month=11,
+            day=5,
+            hour=12,
+            minute=0,
+            second=0.0,
+            location=GeoLocationModel(
+                latitude=26.9124,
+                longitude=75.7873,
+                city="Jaipur",
+                country="India",
+                timezone_str="Asia/Kolkata",
+            ),
+            ayanamsha=AyanamshaType.LAHIRI,
+            node_type=NodeType.TRUE,
+            house_system=HouseSystemType.PLACIDUS,
+        )
+        chart_active = engine.calculate_chart(inp_active)
+        rep_active = YogaDetectorEngine.evaluate(chart_active)
+        sade_active = next((y for y in rep_active.yogas if y.id == "sade_sati"), None)
+        assert sade_active is not None
+        assert sade_active.is_active is True
+        assert sade_active.is_cancelled is False
+        assert sade_active.intensity == "Rising (12th)"
+        assert "12th house from natal Moon" in sade_active.description
+        assert rep_active.summary.sade_sati_status == "Rising (12th)"
+
 
 # =========================================================================
 # 6. Classical Ashtakavarga Engine Tests

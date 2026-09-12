@@ -591,7 +591,16 @@ function renderYogasWorkspace() {
     if (doshasEl) doshasEl.textContent = s.doshas_count;
 
     const sadeEl = document.getElementById("stat-sade-sati");
-    if (sadeEl) sadeEl.textContent = s.sade_sati_status;
+    if (sadeEl) {
+      sadeEl.textContent = s.sade_sati_status;
+      if (s.sade_sati_status.includes("Rising") || s.sade_sati_status.includes("Peak") || s.sade_sati_status.includes("Setting") || s.sade_sati_status.includes("Dhaiya") || s.sade_sati_status.includes("Phase")) {
+        sadeEl.style.color = "#E05638";
+      } else if (s.sade_sati_status.includes("Inactive") || s.sade_sati_status.includes("Clear")) {
+        sadeEl.style.color = "var(--accent-primary)";
+      } else {
+        sadeEl.style.color = "var(--text-primary)";
+      }
+    }
 
     const kujaEl = document.getElementById("stat-kuja-dosha");
     if (kujaEl) {
@@ -616,7 +625,7 @@ function renderYogasWorkspace() {
     if (filter === "Mahapurusha") return y.nature === "Mahapurusha" || y.category === "Mahapurusha";
     if (filter === "Dhana") return y.nature === "Dhana" || y.category === "Dhana";
     if (filter === "Auspicious") return y.nature === "Auspicious" || y.category === "Solar" || y.category === "Lunar" || y.category === "Auspicious";
-    if (filter === "Dosha") return y.nature === "Dosha" || y.category === "Dosha";
+    if (filter === "Dosha") return y.nature === "Dosha" || y.category === "Dosha" || y.id === "sade_sati";
     return true;
   });
 
@@ -633,9 +642,21 @@ function renderYogasWorkspace() {
   container.innerHTML = list
     .map((y) => {
       const natureLower = (y.nature || "neutral").toLowerCase();
-      const cardClass = y.is_cancelled ? "cancelled" : natureLower;
-      const badgeClass = y.is_cancelled ? "cancelled" : natureLower;
-      const badgeText = y.is_cancelled ? "Cancelled (Apavada)" : `${y.nature} (${y.intensity})`;
+      let cardClass = y.is_cancelled ? "cancelled" : natureLower;
+      let badgeClass = y.is_cancelled ? "cancelled" : natureLower;
+      let badgeText = y.is_cancelled ? "Cancelled (Apavada)" : `${y.nature} (${y.intensity})`;
+
+      if (y.id === "sade_sati") {
+        if (!y.is_active || y.is_cancelled) {
+          badgeText = "Inactive (Clear)";
+          badgeClass = "auspicious";
+          cardClass = "cancelled";
+        } else {
+          badgeText = `Dosha (${y.intensity})`;
+          badgeClass = "dosha";
+          cardClass = "dosha";
+        }
+      }
 
       // Participating planets formatted
       const planetsHtml = (y.planets_involved || []).map((p) => {
@@ -651,7 +672,7 @@ function renderYogasWorkspace() {
       // Cancellation callout
       const cancellationHtml = (y.is_cancelled && y.cancellation_reason)
         ? `<div class="cancellation-callout">
-             🛡️ <strong>Apavada (Cancellation):</strong> ${y.cancellation_reason}
+             ${y.id === "sade_sati" ? "✨" : "🛡️"} <strong>${y.id === "sade_sati" ? "Transit Assessment" : "Apavada (Cancellation)"}:</strong> ${y.cancellation_reason}
            </div>`
         : "";
 

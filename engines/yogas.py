@@ -1134,42 +1134,90 @@ class YogaDetectorEngine:
                 )
             )
 
-        # Sade Sati Tracker
+        # Sade Sati & Dhaiya Tracker
         saturn_sign = planet_signs[PlanetEnum.SATURN]
         sat_from_moon = ((saturn_sign - moon_sign) % 12) + 1
-        sade_sati_phase = None
+        sat_sign_info = ZODIAC_SIGNS[saturn_sign]
+        moon_sign_info = ZODIAC_SIGNS[moon_sign]
+        sat_name = f"{sat_sign_info['sanskrit_name']} ({sat_sign_info['english_name']})"
+        moon_name = f"{moon_sign_info['sanskrit_name']} ({moon_sign_info['english_name']})"
+
+        sade_sati_name = None
+        sade_sati_intensity = None
         sade_sati_desc = None
 
         if sat_from_moon == 12:
-            sade_sati_phase = "1st Phase (Rising / Aardha)"
-            sade_sati_desc = "Saturn in 12th from Moon: restructuring finances, foreign matters, and inner discipline."
+            sade_sati_name = "Shani Sade Sati — 1st Phase (Rising / Aardha)"
+            sade_sati_intensity = "Rising (12th)"
+            sade_sati_desc = (
+                f"Saturn in {sat_name} is transiting the 12th house from natal Moon ({moon_name}). "
+                "Marks the inception of the 7.5-year cycle, testing expenses, foreign matters, sleep patterns, and inward detachment."
+            )
         elif sat_from_moon == 1:
-            sade_sati_phase = "2nd Phase (Peak / Janma Shani)"
-            sade_sati_desc = "Saturn in natal Moon sign: pivotal personal metamorphosis, heavy responsibilities, and perseverance."
+            sade_sati_name = "Shani Sade Sati — 2nd Phase (Peak / Janma Shani)"
+            sade_sati_intensity = "Peak (Janma)"
+            sade_sati_desc = (
+                f"Saturn in {sat_name} transits directly over natal Moon ({moon_name}). "
+                "The core peak phase of the 7.5-year cycle, demanding immense mental resilience, emotional maturity, and personal responsibility."
+            )
         elif sat_from_moon == 2:
-            sade_sati_phase = "3rd Phase (Setting / Antya)"
-            sade_sati_desc = "Saturn in 2nd from Moon: consolidation of family, savings, speech, and transition to stability."
+            sade_sati_name = "Shani Sade Sati — 3rd Phase (Setting / Antya)"
+            sade_sati_intensity = "Setting (2nd)"
+            sade_sati_desc = (
+                f"Saturn in {sat_name} is transiting the 2nd house from natal Moon ({moon_name}). "
+                "The concluding phase of the 7.5-year cycle, restructuring family matters, financial assets, speech, and transition to stability."
+            )
         elif sat_from_moon == 4:
-            sade_sati_phase = "Dhaiya (Kantaka Shani / 4th)"
-            sade_sati_desc = "Saturn in 4th from Moon: focus on domestic foundation, peace of mind, and property obligations."
+            sade_sati_name = "Shani Dhaiya — Kantaka Shani (4th House)"
+            sade_sati_intensity = "Dhaiya (4th)"
+            sade_sati_desc = (
+                f"Saturn in {sat_name} is transiting the 4th house from natal Moon ({moon_name}). "
+                "A 2.5-year minor cycle impacting domestic peace, home environment, property, and maternal welfare."
+            )
         elif sat_from_moon == 8:
-            sade_sati_phase = "Dhaiya (Ashtama Shani / 8th)"
-            sade_sati_desc = "Saturn in 8th from Moon: sudden transformative events, deep psychological endurance, and patience."
+            sade_sati_name = "Shani Dhaiya — Ashtama Shani (8th House)"
+            sade_sati_intensity = "Dhaiya (8th)"
+            sade_sati_desc = (
+                f"Saturn in {sat_name} is transiting the 8th house from natal Moon ({moon_name}). "
+                "A 2.5-year minor cycle testing deep psychological resilience, sudden transformations, longevity, and patience."
+            )
 
-        if sade_sati_phase:
+        if sade_sati_name:
             results.append(
                 YogaItem(
                     id="sade_sati",
-                    name=f"Shani Sade Sati / Dhaiya ({sade_sati_phase})",
+                    name=sade_sati_name,
                     sanskrit_name="शनि साढ़े साती / ढैय्या",
-                    nature=YogaNature.NEUTRAL,
-                    category="Transit Influence",
+                    nature=YogaNature.DOSHA,
+                    category="Dosha",
                     is_active=True,
-                    intensity=sade_sati_phase,
+                    is_cancelled=False,
+                    intensity=sade_sati_intensity,
                     planets_involved=["Saturn", "Moon"],
-                    houses_involved=[planet_houses[PlanetEnum.SATURN]],
+                    houses_involved=[planet_houses[PlanetEnum.SATURN], planet_houses[PlanetEnum.MOON]],
                     description=sade_sati_desc,
-                    classical_effects="A profound cosmic calibration cycle that removes illusions, disciplines the ego, and rewards steady, persistent effort.",
+                    classical_effects="A profound cosmic calibration cycle governed by Saturn. Demands ego discipline, endurance, accountability, and yields enduring maturity and spiritual grounding.",
+                )
+            )
+        else:
+            results.append(
+                YogaItem(
+                    id="sade_sati",
+                    name="Shani Sade Sati & Dhaiya (Inactive)",
+                    sanskrit_name="शनि साढ़े साती एवं ढैय्या",
+                    nature=YogaNature.DOSHA,
+                    category="Dosha",
+                    is_active=False,
+                    is_cancelled=True,
+                    intensity="Inactive (Clear)",
+                    planets_involved=["Saturn", "Moon"],
+                    houses_involved=[planet_houses[PlanetEnum.SATURN], planet_houses[PlanetEnum.MOON]],
+                    description=(
+                        f"Saturn in {sat_name} is located in the {sat_from_moon}th house from natal Moon ({moon_name}). "
+                        "The native is completely free from the 7.5-year Sade Sati (12th, 1st, 2nd) and 2.5-year Dhaiya (4th, 8th)."
+                    ),
+                    cancellation_reason=f"Saturn is in {sat_from_moon}th house from Moon — safely outside the 12th, 1st, 2nd, 4th, and 8th transit impact zones.",
+                    classical_effects="No severe Saturnian pressure upon the lunar mind. Emotional equilibrium, psychological clarity, and unhindered focus on personal growth.",
                 )
             )
 

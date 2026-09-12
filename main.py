@@ -37,6 +37,7 @@ from engines.parashari import (
 )
 from engines.yogas import YogaDetectorEngine
 from schemas.models import BirthInput, GeoLocationModel, UnifiedChartData
+from visualizers.ashtakavarga_svg import generate_ashtakavarga_svg
 from visualizers.north_indian_svg import generate_north_indian_svg
 from visualizers.south_indian_svg import generate_south_indian_svg
 
@@ -445,10 +446,20 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             theme_mode=req.theme_mode,
         )
 
+    # 8. Render Sarvashtakavarga (SAV) Visual Chart
+    sav_chart_svg = generate_ashtakavarga_svg(
+        chart=chart,
+        av_report=ashtakavarga_report,
+        chart_style=req.chart_style,
+        sign_mode=req.sign_mode,
+        theme_mode=req.theme_mode,
+    )
+
     return {
         "status": "success",
         "summary": summary,
         "chart_svg": svg_str,
+        "sav_chart_svg": sav_chart_svg,
         "selected_varga": req.selected_varga,
         "chart_style": req.chart_style,
         "sign_mode": req.sign_mode,

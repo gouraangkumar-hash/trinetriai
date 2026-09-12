@@ -709,6 +709,12 @@ function renderAshtakavargaWorkspace() {
   const benefEl = document.getElementById("av-stat-benefic-count");
   if (benefEl) benefEl.textContent = `${s.benefic_signs_count} / 12 (${Math.round((s.benefic_signs_count / 12) * 100)}%)`;
 
+  // 1b. Render Sarvashtakavarga (SAV) Visual Kundali SVG
+  const svgContainer = document.getElementById("sav-chart-svg");
+  if (svgContainer && d.sav_chart_svg) {
+    svgContainer.innerHTML = d.sav_chart_svg;
+  }
+
   // 2. Render Master SAV Matrix Table
   const headerRow = document.getElementById("sav-matrix-header-row");
   const matrixBody = document.getElementById("sav-matrix-body");

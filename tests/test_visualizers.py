@@ -4,8 +4,10 @@ import pytest
 
 from core.constants import AyanamshaType, HouseSystemType, NodeType
 from core.ephemeris import EphemerisEngine
+from engines.ashtakavarga import AshtakavargaEngine
 from engines.parashari import VargaChartEngine, VargaType
 from schemas.models import BirthInput, GeoLocationModel
+from visualizers.ashtakavarga_svg import generate_ashtakavarga_svg
 from visualizers.north_indian_svg import generate_north_indian_svg
 from visualizers.south_indian_svg import generate_south_indian_svg
 
@@ -89,3 +91,34 @@ class TestVisualizers:
         svg_south_dark = generate_south_indian_svg(reference_chart, title="D1 Rashi", theme_mode="dark")
         assert svg_south_dark.startswith("<svg")
         assert "</svg>" in svg_south_dark
+
+    def test_ashtakavarga_svg_north_and_south(self, reference_chart) -> None:
+        """Validates generation of Sarvashtakavarga (SAV) visual charts."""
+        av_report = AshtakavargaEngine.evaluate(reference_chart)
+
+        # North Indian Light
+        svg_north = generate_ashtakavarga_svg(reference_chart, av_report, chart_style="north", theme_mode="light")
+        assert svg_north.startswith("<svg")
+        assert "</svg>" in svg_north
+        assert "SARVASHTAKAVARGA" in svg_north
+        assert "337" in svg_north
+        assert "LAGNA" in svg_north
+
+        # North Indian Dark
+        svg_north_dark = generate_ashtakavarga_svg(reference_chart, av_report, chart_style="north", theme_mode="dark")
+        assert svg_north_dark.startswith("<svg")
+        assert "</svg>" in svg_north_dark
+
+        # South Indian Light
+        svg_south = generate_ashtakavarga_svg(reference_chart, av_report, chart_style="south", theme_mode="light")
+        assert svg_south.startswith("<svg")
+        assert "</svg>" in svg_south
+        assert "SARVASHTAKAVARGA" in svg_south
+        assert "337" in svg_south
+        assert "LAGNA" in svg_south
+
+        # South Indian Dark & English Sign Names
+        svg_south_dark = generate_ashtakavarga_svg(reference_chart, av_report, chart_style="south", sign_mode="english", theme_mode="dark")
+        assert svg_south_dark.startswith("<svg")
+        assert "</svg>" in svg_south_dark
+        assert "Pisces" in svg_south_dark

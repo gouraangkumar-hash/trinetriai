@@ -62,6 +62,9 @@ def test_calculate_endpoint_default():
     assert data["ashtakavarga"]["summary"]["total_bindus"] == 337
     assert len(data["ashtakavarga"]["sarvashtakavarga"]) == 12
     assert "Jupiter" in data["ashtakavarga"]["bhinna"]
+    assert "sav_chart_svg" in data
+    assert "<svg" in data["sav_chart_svg"]
+    assert "SARVASHTAKAVARGA" in data["sav_chart_svg"]
 
 
 
@@ -94,6 +97,9 @@ def test_calculate_endpoint_south_indian_dark_mode():
     assert data["chart_style"] == "south"
     assert data["theme_mode"] == "dark"
     assert "<svg" in data["chart_svg"]
+    assert "sav_chart_svg" in data
+    assert "<svg" in data["sav_chart_svg"]
+    assert "SARVASHTAKAVARGA" in data["sav_chart_svg"]
 
 
 def test_vargas_endpoint():

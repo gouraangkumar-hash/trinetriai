@@ -58,6 +58,11 @@ def test_calculate_endpoint_default():
     assert "yogas_list" in data
     assert data["yogas_summary"]["total_yogas"] > 0
     assert any(y["id"] == "mahapurusha_venus" for y in data["yogas_list"])
+    assert "ashtakavarga" in data
+    assert data["ashtakavarga"]["summary"]["total_bindus"] == 337
+    assert len(data["ashtakavarga"]["sarvashtakavarga"]) == 12
+    assert "Jupiter" in data["ashtakavarga"]["bhinna"]
+
 
 
 

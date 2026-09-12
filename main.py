@@ -27,6 +27,7 @@ from core.constants import (
 )
 from core.ephemeris import EphemerisEngine
 from core.geo import GeoResolver, to_utc_datetime
+from engines.ashtakavarga import AshtakavargaEngine
 from engines.jaimini import JaiminiEngine
 from engines.kp import KPEngine
 from engines.parashari import (
@@ -152,6 +153,9 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
 
     # Classical Yogas & Doshas Evaluation
     yogas_report = YogaDetectorEngine.evaluate(chart, sign_mode=req.sign_mode)
+
+    # Classical Ashtakavarga Evaluation
+    ashtakavarga_report = AshtakavargaEngine.evaluate(chart, sign_mode=req.sign_mode)
 
     # 1. Primary Angles Summary
     asc_sign = chart.angles.ascendant_sign
@@ -460,6 +464,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "mahadashas": mahadashas,
         "yogas_summary": yogas_report.summary.model_dump(),
         "yogas_list": [y.model_dump() for y in yogas_report.yogas],
+        "ashtakavarga": ashtakavarga_report.model_dump(),
     }
 
 

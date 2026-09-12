@@ -27,6 +27,7 @@ const state = {
   selected_varga: "D1",
   active_tab: "kundali",
   active_yoga_filter: "all",
+  selected_bav_planet: "Jupiter",
   currentData: null,
 };
 
@@ -206,6 +207,7 @@ function renderAll() {
   renderKPWorkspace();
   renderJaiminiWorkspace();
   renderYogasWorkspace();
+  renderAshtakavargaWorkspace();
 }
 
 function renderHeaderCapsule() {
@@ -681,6 +683,168 @@ function renderYogasWorkspace() {
     .join("");
 }
 
+function renderAshtakavargaWorkspace() {
+  const d = state.currentData;
+  if (!d || !d.ashtakavarga) return;
+
+  const av = d.ashtakavarga;
+  const s = av.summary;
+
+  // 1. Update Summary Metrics
+  const totalEl = document.getElementById("av-stat-total");
+  if (totalEl) totalEl.textContent = s.total_bindus;
+
+  const avgEl = document.getElementById("av-stat-avg");
+  if (avgEl) avgEl.textContent = s.average_bindus_per_sign.toFixed(1);
+
+  const strSignEl = document.getElementById("av-stat-strongest-sign");
+  if (strSignEl) strSignEl.textContent = `${s.strongest_sign} (${s.strongest_sign_bindus})`;
+
+  const weakSignEl = document.getElementById("av-stat-weakest-sign");
+  if (weakSignEl) weakSignEl.textContent = `${s.weakest_sign} (${s.weakest_sign_bindus})`;
+
+  const strHouseEl = document.getElementById("av-stat-strongest-house");
+  if (strHouseEl) strHouseEl.textContent = `House ${s.strongest_house} (${s.strongest_house_bindus}b)`;
+
+  const benefEl = document.getElementById("av-stat-benefic-count");
+  if (benefEl) benefEl.textContent = `${s.benefic_signs_count} / 12 (${Math.round((s.benefic_signs_count / 12) * 100)}%)`;
+
+  // 2. Render Master SAV Matrix Table
+  const headerRow = document.getElementById("sav-matrix-header-row");
+  const matrixBody = document.getElementById("sav-matrix-body");
+
+  if (headerRow && matrixBody && av.sarvashtakavarga) {
+    // Header row: Graha | 12 signs | Total
+    headerRow.innerHTML = `
+      <th style="min-width: 110px;">Graha</th>
+      ${av.sarvashtakavarga
+        .map(
+          (sd) => `
+        <th style="min-width: 60px;">
+          <div>${sd.sign_name}</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500;">H${sd.house_from_lagna}</div>
+        </th>
+      `
+        )
+        .join("")}
+      <th style="min-width: 65px;">Total</th>
+    `;
+
+    // 7 Planet Rows
+    const grahas = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
+    let rowsHtml = grahas
+      .map((pName) => {
+        const pReport = av.bhinna[pName];
+        if (!pReport) return "";
+        const glyph = PLANET_GLYPHS[pName] || "";
+        const cellsHtml = pReport.signs
+          .map((sd) => {
+            const b = sd.raw_bindus;
+            let cls = "avg";
+            if (b >= 5) cls = "high";
+            else if (b <= 2) cls = "low";
+            return `<td class="bindu-cell ${cls}">${b}</td>`;
+          })
+          .join("");
+
+        return `
+          <tr>
+            <td><strong>${glyph} ${pName}</strong></td>
+            ${cellsHtml}
+            <td style="font-weight: 700; font-family: var(--font-mono);">${pReport.total_raw_bindus}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    // Total SAV Row
+    const totalCellsHtml = av.sarvashtakavarga
+      .map((sd) => {
+        const tot = sd.total_bindus;
+        let cls = "avg";
+        if (tot >= 30) cls = "high";
+        else if (tot < 26) cls = "low";
+        return `<td class="bindu-cell ${cls}" style="font-weight: 700; font-size: 0.95rem;">${tot}</td>`;
+      })
+      .join("");
+
+    rowsHtml += `
+      <tr class="sav-total-row">
+        <td><strong>SAV Total</strong></td>
+        ${totalCellsHtml}
+        <td style="font-size: 1.05rem; font-weight: 800; font-family: var(--font-serif); color: var(--accent-primary);">${s.total_bindus}</td>
+      </tr>
+    `;
+
+    matrixBody.innerHTML = rowsHtml;
+  }
+
+  // 3. Render Selected Planet BAV & Shodhana
+  const selectedPlanet = state.selected_bav_planet || "Jupiter";
+  const pData = av.bhinna[selectedPlanet];
+  if (!pData) return;
+
+  // Shodya Pinda Strip
+  const pindaStrip = document.getElementById("bav-pinda-strip");
+  if (pindaStrip) {
+    pindaStrip.innerHTML = `
+      <div class="pinda-stat-item">
+        <span class="pinda-stat-val">${pData.total_raw_bindus}</span>
+        <span class="pinda-stat-label">Raw Bindus Total</span>
+      </div>
+      <div class="pinda-stat-item">
+        <span class="pinda-stat-val">${pData.total_trikona_reduced}</span>
+        <span class="pinda-stat-label">Trikona Reduced Total</span>
+      </div>
+      <div class="pinda-stat-item">
+        <span class="pinda-stat-val">${pData.total_ekadhipatya_reduced}</span>
+        <span class="pinda-stat-label">Ekadhipatya Reduced</span>
+      </div>
+      <div class="pinda-stat-item">
+        <span class="pinda-stat-val">${pData.rashi_pinda}</span>
+        <span class="pinda-stat-label">Rashi Pinda</span>
+      </div>
+      <div class="pinda-stat-item">
+        <span class="pinda-stat-val">${pData.graha_pinda}</span>
+        <span class="pinda-stat-label">Graha Pinda</span>
+      </div>
+      <div class="pinda-stat-item">
+        <span class="pinda-stat-val highlight">${pData.yoga_pinda}</span>
+        <span class="pinda-stat-label">Yoga Pinda (Shodya Pinda)</span>
+      </div>
+    `;
+  }
+
+  // 12 Signs BAV Reduction Table
+  const bavBody = document.getElementById("bav-signs-table-body");
+  if (bavBody && pData.signs) {
+    bavBody.innerHTML = pData.signs
+      .map((sd) => {
+        // Sources breakdown chips
+        const sourcesOrder = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Lagna"];
+        const chipsHtml = sourcesOrder
+          .map((src) => {
+            const hasBindu = sd.contributions[src] === 1;
+            const shortName = src.substring(0, 2);
+            return `<span class="contrib-chip ${hasBindu ? "active" : ""}" title="${src}: ${hasBindu ? "Contributed 1 bindu" : "0 bindus"}">${shortName}:${hasBindu ? "1" : "0"}</span>`;
+          })
+          .join("");
+
+        return `
+          <tr>
+            <td><strong>${sd.sign_name}</strong> <span style="font-size: 0.75rem; color: var(--text-muted);">(${sd.sign_sanskrit})</span></td>
+            <td>House ${sd.house_from_lagna}</td>
+            <td style="font-family: var(--font-mono); font-weight: 700;">${sd.raw_bindus}</td>
+            <td style="font-family: var(--font-mono);">${sd.trikona_reduced}</td>
+            <td style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-primary);">${sd.ekadhipatya_reduced}</td>
+            <td><div class="contributor-chips-row">${chipsHtml}</div></td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+}
+
 // =============================================================================
 // Slide-Over Drawer Controller
 // =============================================================================
@@ -917,6 +1081,8 @@ document.addEventListener("DOMContentLoaded", () => {
         renderJaiminiWorkspace();
       } else if (tabId === "yogas") {
         renderYogasWorkspace();
+      } else if (tabId === "ashtakavarga") {
+        renderAshtakavargaWorkspace();
       }
     });
   });
@@ -942,6 +1108,16 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.add("active");
       state.active_yoga_filter = btn.dataset.filter;
       renderYogasWorkspace();
+    });
+  });
+
+  // 3c. Ashtakavarga BAV Planet Selector Pills
+  document.querySelectorAll(".bav-planet-pill").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".bav-planet-pill").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.selected_bav_planet = btn.dataset.planet;
+      renderAshtakavargaWorkspace();
     });
   });
 

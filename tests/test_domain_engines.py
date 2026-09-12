@@ -23,6 +23,7 @@ from engines.parashari import (
     VargaType,
     VimshottariDashaEngine,
 )
+from engines.ashtakavarga import AshtakavargaEngine
 from engines.yogas import YogaDetectorEngine, YogaNature
 from schemas.models import BirthInput, GeoLocationModel
 
@@ -335,6 +336,52 @@ class TestYogaEngine:
         assert nb_sun.nature == YogaNature.RAJA
         assert "Venus" in nb_sun.planets_involved
         assert "Dispositor" in nb_sun.description
+
+
+# =========================================================================
+# 6. Classical Ashtakavarga Engine Tests
+# =========================================================================
+
+class TestAshtakavargaEngine:
+    def test_sav_337_bindus_invariant(self, reference_chart) -> None:
+        """Validates that Sarvashtakavarga (SAV) strictly sums to the classical 337 bindus."""
+        report = AshtakavargaEngine.evaluate(reference_chart)
+        assert report.summary.total_bindus == 337
+        assert sum(sd.total_bindus for sd in report.sarvashtakavarga) == 337
+        assert len(report.sarvashtakavarga) == 12
+
+    def test_all_7_planets_bav_totals(self, reference_chart) -> None:
+        """Validates individual Bhinnashtakavarga (BAV) classical totals for all 7 planets."""
+        report = AshtakavargaEngine.evaluate(reference_chart)
+        expected_totals = {
+            "Sun": 48,
+            "Moon": 49,
+            "Mars": 39,
+            "Mercury": 54,
+            "Jupiter": 56,
+            "Venus": 52,
+            "Saturn": 39,
+        }
+        for planet, expected in expected_totals.items():
+            assert planet in report.bhinna
+            assert report.bhinna[planet].total_raw_bindus == expected
+            assert len(report.bhinna[planet].signs) == 12
+
+        # Sum of all 7 planet BAV totals must equal 337
+        assert sum(report.bhinna[p].total_raw_bindus for p in expected_totals) == 337
+
+    def test_shodhana_and_shodya_pinda_reductions(self, reference_chart) -> None:
+        """Validates Trikona Shodhana, Ekadhipatya Shodhana, and Shodya Pinda calculations."""
+        report = AshtakavargaEngine.evaluate(reference_chart)
+        for planet, p_rep in report.bhinna.items():
+            # Invariant: Reductions can only decrease or maintain bindu totals
+            assert p_rep.total_trikona_reduced <= p_rep.total_raw_bindus
+            assert p_rep.total_ekadhipatya_reduced <= p_rep.total_trikona_reduced
+            # Shodya Pinda
+            assert p_rep.rashi_pinda > 0
+            assert p_rep.graha_pinda >= 0
+            assert p_rep.yoga_pinda == p_rep.rashi_pinda + p_rep.graha_pinda
+
 
 
 

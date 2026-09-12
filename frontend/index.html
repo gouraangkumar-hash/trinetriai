@@ -60,6 +60,7 @@
       <button class="tab-btn" data-tab="kp">KP Matrix & Cusps</button>
       <button class="tab-btn" data-tab="jaimini">Jaimini Sutras</button>
       <button class="tab-btn" data-tab="yogas">Yogas & Doshas</button>
+      <button class="tab-btn" data-tab="ashtakavarga">Ashtakavarga</button>
     </div>
   </nav>
 
@@ -425,6 +426,114 @@
       <!-- Yogas Dynamic Cards Grid -->
       <div class="yogas-cards-grid" id="yogas-cards-container">
         <!-- Rendered via app.js -->
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- TAB 7: Ashtakavarga Matrix & Shodhana                               -->
+    <!-- ------------------------------------------------------------------- -->
+    <section id="tab-ashtakavarga" class="tab-content">
+      <!-- Ashtakavarga Summary Metrics -->
+      <div class="yogas-summary-grid">
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-number" id="av-stat-total">337</span>
+          <span class="yoga-stat-label">Total SAV Bindus</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-number" id="av-stat-avg" style="color: var(--accent-primary);">28.1</span>
+          <span class="yoga-stat-label">Average / Sign</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-val" id="av-stat-strongest-sign" style="font-size: 1.1rem; font-weight: 700; color: var(--accent-primary);">-</span>
+          <span class="yoga-stat-label">Strongest Rashi</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-val" id="av-stat-weakest-sign" style="font-size: 1.1rem; font-weight: 700; color: var(--text-muted);">-</span>
+          <span class="yoga-stat-label">Sensitive Rashi</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-val" id="av-stat-strongest-house" style="font-size: 1.1rem; font-weight: 700; color: var(--accent-primary);">-</span>
+          <span class="yoga-stat-label">Strongest House</span>
+        </div>
+        <div class="yoga-stat-box">
+          <span class="yoga-stat-val" id="av-stat-benefic-count" style="font-size: 1.1rem; font-weight: 700;">-</span>
+          <span class="yoga-stat-label">Signs ≥ 28 Bindus</span>
+        </div>
+      </div>
+
+      <!-- Master Sarvashtakavarga (SAV) Matrix Table Card -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div>
+            <span class="card-title">Sarvashtakavarga (SAV) Master Matrix</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">
+              Total 337 benefic bindus distributed across 12 Rashis from all 8 reference sources (7 Grahas + Lagna)
+            </span>
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center; font-size: 0.75rem; flex-wrap: wrap;">
+            <span style="display: inline-flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; border-radius: 2px; background-color: var(--accent-subtle); border: 1px solid var(--accent-primary);"></span> ≥ 30 High</span>
+            <span style="display: inline-flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; border-radius: 2px; background-color: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);"></span> 26–29 Moderate</span>
+            <span style="display: inline-flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; border-radius: 2px; background-color: rgba(224, 86, 56, 0.15); border: 1px solid #E05638;"></span> &lt; 26 Sensitive</span>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="studio-table sav-matrix-table" id="sav-matrix-table">
+            <thead>
+              <tr id="sav-matrix-header-row">
+                <!-- Injected via app.js -->
+              </tr>
+            </thead>
+            <tbody id="sav-matrix-body">
+              <!-- Injected via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bhinnashtakavarga (BAV) & Shodhana Explorer Card -->
+      <div class="card">
+        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <span class="card-title">Bhinnashtakavarga (BAV) & Shodhana Reductions</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">
+              Inspect individual planetary contributions, Trikona Shodhana, Ekadhipatya Shodhana, and Shodya Pinda
+            </span>
+          </div>
+          <!-- BAV Planet Selector Pills -->
+          <div class="yoga-filter-bar" id="bav-planet-selector-bar">
+            <button class="action-pill bav-planet-pill active" data-planet="Jupiter">♃ Jupiter (56)</button>
+            <button class="action-pill bav-planet-pill" data-planet="Sun">☉ Sun (48)</button>
+            <button class="action-pill bav-planet-pill" data-planet="Moon">☽ Moon (49)</button>
+            <button class="action-pill bav-planet-pill" data-planet="Mars">♂ Mars (39)</button>
+            <button class="action-pill bav-planet-pill" data-planet="Mercury">☿ Mercury (54)</button>
+            <button class="action-pill bav-planet-pill" data-planet="Venus">♀ Venus (52)</button>
+            <button class="action-pill bav-planet-pill" data-planet="Saturn">♄ Saturn (39)</button>
+          </div>
+        </div>
+
+        <!-- Shodya Pinda Highlight Row for Selected Planet -->
+        <div class="shodya-pinda-strip" id="bav-pinda-strip">
+          <!-- Injected via app.js -->
+        </div>
+
+        <!-- BAV 12-Signs Reduction Table -->
+        <div class="table-responsive">
+          <table class="studio-table">
+            <thead>
+              <tr>
+                <th>Rashi Sign</th>
+                <th>House (Lagna)</th>
+                <th>Raw Bindus</th>
+                <th>Trikona Reduced</th>
+                <th>Ekadhipatya Reduced</th>
+                <th>8-Contributor Sources Breakdown</th>
+              </tr>
+            </thead>
+            <tbody id="bav-signs-table-body">
+              <!-- Injected via app.js -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 

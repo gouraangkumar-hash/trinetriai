@@ -1482,6 +1482,134 @@ input, select {
 }
 
 /* =============================================================================
+   Ashtakavarga Matrix & Shodhana Styles
+   ============================================================================= */
+.sav-matrix-table th,
+.sav-matrix-table td {
+  text-align: center;
+  padding: 0.65rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.sav-matrix-table th:first-child,
+.sav-matrix-table td:first-child {
+  text-align: left;
+  padding-left: 1rem;
+  font-weight: 700;
+  position: sticky;
+  left: 0;
+  background-color: var(--bg-surface);
+  z-index: 2;
+  border-right: 2px solid var(--border-subtle);
+}
+
+.sav-matrix-table tr.sav-total-row {
+  background-color: var(--bg-surface-elevated);
+  font-weight: 700;
+  border-top: 2px solid var(--accent-primary);
+  border-bottom: 2px solid var(--accent-primary);
+}
+
+.sav-matrix-table tr.sav-total-row td:first-child {
+  background-color: var(--bg-surface-elevated);
+  color: var(--accent-primary);
+  font-family: var(--font-serif);
+}
+
+.bindu-cell {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.bindu-cell.high {
+  background-color: var(--accent-subtle);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.bindu-cell.avg {
+  color: var(--text-primary);
+}
+
+.bindu-cell.low {
+  background-color: rgba(224, 86, 56, 0.15);
+  color: #B91C1C;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .bindu-cell.low {
+  background-color: rgba(224, 86, 56, 0.25);
+  color: #FCA5A5;
+}
+
+.shodya-pinda-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 1.5rem;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0 1.25rem;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.pinda-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pinda-stat-val {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.pinda-stat-val.highlight {
+  color: var(--accent-primary);
+}
+
+.pinda-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.contributor-chips-row {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.contrib-chip {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.contrib-chip.active {
+  background-color: var(--accent-subtle);
+  border-color: var(--accent-primary);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+/* =============================================================================
    Footer
    ============================================================================= */
 .footer-bar {

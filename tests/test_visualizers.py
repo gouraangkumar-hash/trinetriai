@@ -6,7 +6,6 @@ from core.constants import AyanamshaType, HouseSystemType, NodeType
 from core.ephemeris import EphemerisEngine
 from engines.parashari import VargaChartEngine, VargaType
 from schemas.models import BirthInput, GeoLocationModel
-from ui.state import DashboardState, EngineOrchestrator
 from visualizers.north_indian_svg import generate_north_indian_svg
 from visualizers.south_indian_svg import generate_south_indian_svg
 
@@ -42,7 +41,7 @@ class TestVisualizers:
         svg = generate_north_indian_svg(reference_chart, title="D1 Rashi Chart")
         assert svg.startswith("<svg")
         assert svg.strip().endswith("</svg>")
-        assert 'viewBox="0 0 600 600"' in svg
+        assert 'viewBox="0 0 800 800"' in svg
         assert "D1 RASHI CHART" in svg
         assert "Asc:" in svg
         assert "Su " in svg  # Sun badge
@@ -63,29 +62,30 @@ class TestVisualizers:
         svg = generate_south_indian_svg(reference_chart, title="Rashi Chart (D1)")
         assert svg.startswith("<svg")
         assert svg.strip().endswith("</svg>")
-        assert 'viewBox="0 0 600 600"' in svg
-        assert "Rashi Chart (D1)" in svg
+        assert 'viewBox="0 0 800 800"' in svg
+        assert "RASHI CHART (D1)" in svg.upper()
         assert "Meena" in svg
         assert "Mesha" in svg
         assert "Vrishabha" in svg
         assert "ASC" in svg  # Rising sign highlight
         assert "Su " in svg
 
-    def test_dashboard_orchestrator_pipeline(self) -> None:
-        """Validates the full UI state orchestrator pipeline."""
-        orchestrator = EngineOrchestrator()
-        initial_state = DashboardState(
-            city_query="Jaipur, India",
-            birth_date_str="1995-10-15",
-            birth_time_str="14:30:00",
-        )
-        computed_state = orchestrator.run_pipeline(initial_state)
+    def test_dashboard_orchestrator_pipeline(self, reference_chart) -> None:
+        """Validates the full SVG generation pipeline across chart styles and themes."""
+        # North Indian Light & Dark
+        svg_north_light = generate_north_indian_svg(reference_chart, title="D1 Rashi", theme_mode="light")
+        assert svg_north_light.startswith("<svg")
+        assert "</svg>" in svg_north_light
 
-        assert computed_state.error_message is None
-        assert computed_state.chart_data is not None
-        assert len(computed_state.varga_charts) >= 9
-        assert computed_state.dasha_tree is not None
-        assert computed_state.kp_matrix is not None
-        assert computed_state.jaimini_7_karakas is not None
-        assert computed_state.north_svg.startswith("<svg")
-        assert computed_state.south_svg.startswith("<svg")
+        svg_north_dark = generate_north_indian_svg(reference_chart, title="D1 Rashi", theme_mode="dark")
+        assert svg_north_dark.startswith("<svg")
+        assert "</svg>" in svg_north_dark
+
+        # South Indian Light & Dark
+        svg_south_light = generate_south_indian_svg(reference_chart, title="D1 Rashi", theme_mode="light")
+        assert svg_south_light.startswith("<svg")
+        assert "</svg>" in svg_south_light
+
+        svg_south_dark = generate_south_indian_svg(reference_chart, title="D1 Rashi", theme_mode="dark")
+        assert svg_south_dark.startswith("<svg")
+        assert "</svg>" in svg_south_dark

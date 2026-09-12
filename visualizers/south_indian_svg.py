@@ -1,19 +1,17 @@
-"""South Indian Fixed Grid SVG Chart Visualizer.
+"""Minimalist Architectural South Indian Fixed Grid SVG Visualizer.
 
-Generates a responsive, modern dark-mode SVG string of the traditional
-South Indian 4x4 fixed-sign grid chart layout with rising sign highlights,
-house number tags, planet glyph badges, and central chart summary.
+Generates an expansive, high-contrast SVG on an 800x800 canvas with large typography,
+crisp 200x200 grid cells, center HUD, and high-visibility planet details on Ivory (Light)
+and Deep Espresso (Dark) canvas without blues or flashy colors.
+Supports Sanskrit and English sign name toggling.
 """
 
 from typing import Optional
 
-from core.constants import ZODIAC_SIGNS, PlanetEnum
+from core.constants import PlanetEnum
 from engines.parashari import VargaChart
 from schemas.models import UnifiedChartData
 
-
-# Fixed mapping of Zodiac Sign ID (1 to 12) to (col, row) grid coordinates in 4x4 layout
-# Clockwise from Pisces at (0,0) and Aries at (1,0)
 SOUTH_SIGN_GRID = {
     12: {"col": 0, "row": 0, "name": "Meena", "en": "Pisces"},
     1:  {"col": 1, "row": 0, "name": "Mesha", "en": "Aries"},
@@ -29,53 +27,69 @@ SOUTH_SIGN_GRID = {
     11: {"col": 0, "row": 1, "name": "Kumbha", "en": "Aquarius"},
 }
 
-SHORT_PLANET_NAMES = {
-    PlanetEnum.SUN: "Su",
-    PlanetEnum.MOON: "Mo",
-    PlanetEnum.MARS: "Ma",
-    PlanetEnum.MERCURY: "Me",
-    PlanetEnum.JUPITER: "Ju",
-    PlanetEnum.VENUS: "Ve",
-    PlanetEnum.SATURN: "Sa",
-    PlanetEnum.RAHU: "Ra",
-    PlanetEnum.KETU: "Ke",
-    PlanetEnum.URANUS: "Ur",
-    PlanetEnum.NEPTUNE: "Ne",
-    PlanetEnum.PLUTO: "Pl",
+PLANET_THEMES_DARK = {
+    PlanetEnum.SUN:     {"glyph": "☉", "short": "Su", "color": "#FBBF24", "name": "Sun"},
+    PlanetEnum.MOON:    {"glyph": "☽", "short": "Mo", "color": "#F5F2EB", "name": "Moon"},
+    PlanetEnum.MARS:    {"glyph": "♂", "short": "Ma", "color": "#F87171", "name": "Mars"},
+    PlanetEnum.MERCURY: {"glyph": "☿", "short": "Me", "color": "#34D399", "name": "Mercury"},
+    PlanetEnum.JUPITER: {"glyph": "♃", "short": "Ju", "color": "#FDE047", "name": "Jupiter"},
+    PlanetEnum.VENUS:   {"glyph": "♀", "short": "Ve", "color": "#FCD34D", "name": "Venus"},
+    PlanetEnum.SATURN:  {"glyph": "♄", "short": "Sa", "color": "#D6D3D1", "name": "Saturn"},
+    PlanetEnum.RAHU:    {"glyph": "☊", "short": "Ra", "color": "#D8B4FE", "name": "Rahu"},
+    PlanetEnum.KETU:    {"glyph": "☋", "short": "Ke", "color": "#FB923C", "name": "Ketu"},
+    PlanetEnum.URANUS:  {"glyph": "♅", "short": "Ur", "color": "#2DD4BF", "name": "Uranus"},
+    PlanetEnum.NEPTUNE: {"glyph": "♆", "short": "Ne", "color": "#94A3B8", "name": "Neptune"},
+    PlanetEnum.PLUTO:   {"glyph": "♇", "short": "Pl", "color": "#F472B6", "name": "Pluto"},
+}
+
+PLANET_THEMES_LIGHT = {
+    PlanetEnum.SUN:     {"glyph": "☉", "short": "Su", "color": "#B45309", "name": "Sun"},
+    PlanetEnum.MOON:    {"glyph": "☽", "short": "Mo", "color": "#1C1917", "name": "Moon"},
+    PlanetEnum.MARS:    {"glyph": "♂", "short": "Ma", "color": "#B91C1C", "name": "Mars"},
+    PlanetEnum.MERCURY: {"glyph": "☿", "short": "Me", "color": "#047857", "name": "Mercury"},
+    PlanetEnum.JUPITER: {"glyph": "♃", "short": "Ju", "color": "#CA8A04", "name": "Jupiter"},
+    PlanetEnum.VENUS:   {"glyph": "♀", "short": "Ve", "color": "#92400E", "name": "Venus"},
+    PlanetEnum.SATURN:  {"glyph": "♄", "short": "Sa", "color": "#57534E", "name": "Saturn"},
+    PlanetEnum.RAHU:    {"glyph": "☊", "short": "Ra", "color": "#6B21A8", "name": "Rahu"},
+    PlanetEnum.KETU:    {"glyph": "☋", "short": "Ke", "color": "#C2410C", "name": "Ketu"},
+    PlanetEnum.URANUS:  {"glyph": "♅", "short": "Ur", "color": "#0F766E", "name": "Uranus"},
+    PlanetEnum.NEPTUNE: {"glyph": "♆", "short": "Ne", "color": "#475569", "name": "Neptune"},
+    PlanetEnum.PLUTO:   {"glyph": "♇", "short": "Pl", "color": "#831843", "name": "Pluto"},
 }
 
 
 def generate_south_indian_svg(
     chart: UnifiedChartData,
     varga_chart: Optional[VargaChart] = None,
-    title: str = "Rashi Chart (D1)",
-    width: int = 600,
-    height: int = 600,
+    title: str = "D1 Rashi Chart",
+    width: int = 800,
+    height: int = 800,
+    sign_mode: str = "sanskrit",
+    theme_mode: str = "light",
 ) -> str:
-    """Generates a responsive SVG string representing the South Indian fixed grid chart.
-
-    Args:
-        chart: UnifiedChartData object.
-        varga_chart: Optional VargaChart (e.g. D9 Navamsha) to render instead of D1.
-        title: Title banner in the center.
-        width: Viewport width in pixels.
-        height: Viewport height in pixels.
-
-    Returns:
-        Clean SVG XML string.
-    """
-    cell_w = width / 4.0
-    cell_h = height / 4.0
+    """Generates an Architectural South Indian Fixed Grid SVG."""
+    cell_w = width / 4.0   # 200px
+    cell_h = height / 4.0  # 200px
+    is_dark = (theme_mode == "dark")
+    palette = PLANET_THEMES_DARK if is_dark else PLANET_THEMES_LIGHT
 
     # 1. Determine Ascendant sign ID (1-12)
     if varga_chart is not None:
         asc_sign_id = varga_chart.ascendant.sign_id
         asc_dms = varga_chart.ascendant.dms.formatted
-        asc_sign_name = varga_chart.ascendant.sign_name
+        asc_sign_name = (
+            SOUTH_SIGN_GRID[asc_sign_id]["en"]
+            if sign_mode == "english"
+            else varga_chart.ascendant.sign_name
+        )
     else:
         asc_sign_id = chart.angles.ascendant_sign.id
         asc_dms = chart.angles.ascendant_dms.formatted
-        asc_sign_name = chart.angles.ascendant_sign.sanskrit_name
+        asc_sign_name = (
+            chart.angles.ascendant_sign.english_name
+            if sign_mode == "english"
+            else chart.angles.ascendant_sign.sanskrit_name
+        )
 
     # 2. Group planets by sign ID
     sign_planets: dict[int, list[dict]] = {s: [] for s in range(1, 13)}
@@ -84,185 +98,223 @@ def generate_south_indian_svg(
         for p_name, p_varga in varga_chart.planets.items():
             if p_name in (PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO):
                 continue
-            is_retro = chart.planets[p_name].is_retrograde
-            is_combust = chart.planets[p_name].is_combust
+            theme = palette.get(p_name, {"glyph": "", "short": p_name.value[:2], "color": "#1C1917" if not is_dark else "#F5F2EB", "name": p_name.value})
+            s_name = (
+                SOUTH_SIGN_GRID[p_varga.sign_id]["en"]
+                if sign_mode == "english"
+                else p_varga.sign_name
+            )
+            is_retro = chart.planets[p_name].is_retrograde if chart and p_name in chart.planets else False
             sign_planets[p_varga.sign_id].append({
                 "name": p_name,
-                "short": SHORT_PLANET_NAMES.get(p_name, p_name.value[:2]),
+                "glyph": theme["glyph"],
+                "short": theme["short"],
+                "color": theme["color"],
                 "intra_deg_dms": p_varga.dms.formatted,
                 "intra_deg_str": f"{int(p_varga.intra_sign_degree)}°{int((p_varga.intra_sign_degree%1)*60):02d}'",
                 "is_retro": is_retro,
-                "is_combust": is_combust,
-                "nak_name": chart.planets[p_name].nakshatra.sanskrit_name,
-                "pada": chart.planets[p_name].nakshatra.pada,
-                "sign_name": p_varga.sign_name,
+                "is_combust": False,
+                "nak_name": "",
+                "pada": 0,
+                "sign_name": s_name,
             })
     else:
         for p_name, p_pos in chart.planets.items():
             if p_name in (PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO):
                 continue
+            theme = palette.get(p_name, {"glyph": "", "short": p_name.value[:2], "color": "#1C1917" if not is_dark else "#F5F2EB", "name": p_name.value})
+            s_name = (
+                SOUTH_SIGN_GRID[p_pos.sign.id]["en"]
+                if sign_mode == "english"
+                else p_pos.sign.sanskrit_name
+            )
             sign_planets[p_pos.sign.id].append({
                 "name": p_name,
-                "short": SHORT_PLANET_NAMES.get(p_name, p_name.value[:2]),
+                "glyph": theme["glyph"],
+                "short": theme["short"],
+                "color": theme["color"],
                 "intra_deg_dms": p_pos.sign.dms.formatted,
                 "intra_deg_str": f"{int(p_pos.sign.intra_sign_degree)}°{int((p_pos.sign.intra_sign_degree%1)*60):02d}'",
                 "is_retro": p_pos.is_retrograde,
                 "is_combust": p_pos.is_combust,
                 "nak_name": p_pos.nakshatra.sanskrit_name,
                 "pada": p_pos.nakshatra.pada,
-                "sign_name": p_pos.sign.sanskrit_name,
+                "sign_name": s_name,
             })
+
+    # Theme parameters
+    if is_dark:
+        bg_fill = "url(#southEspressoBg)"
+        bg_border = "#38332E"
+        cell_fill = "#1A1715"
+        cell_stroke = "#2A2622"
+        hud_fill = "url(#southCenterHudDark)"
+        hud_stroke = "#F59E0B"
+        hud_title_color = "#FBBF24"
+        hud_text_color = "#F5F2EB"
+        hud_sub_color = "#A8A29E"
+        hud_jd_color = "#78716C"
+        sign_label_color = "#D6D3D1"
+        house_label_color = "#78716C"
+        asc_fill = "#292524"
+        asc_stroke = "#F59E0B"
+        asc_text = "#FDE68A"
+    else:
+        bg_fill = "url(#southIvoryBg)"
+        bg_border = "#DDD6C9"
+        cell_fill = "#FFFFFF"
+        cell_stroke = "#E7E1D7"
+        hud_fill = "url(#southCenterHudLight)"
+        hud_stroke = "#D97706"
+        hud_title_color = "#B45309"
+        hud_text_color = "#1C1917"
+        hud_sub_color = "#57534E"
+        hud_jd_color = "#78716C"
+        sign_label_color = "#292524"
+        house_label_color = "#78716C"
+        asc_fill = "#FEF3C7"
+        asc_stroke = "#D97706"
+        asc_text = "#92400E"
 
     # 3. Generate SVG elements
     svg_parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
-        f'width="100%" height="100%" class="vedic-chart south-chart rounded-xl shadow-2xl overflow-hidden">',
-        """
+        f'style="width:100%;height:100%;max-width:100%;display:block;" class="vedic-chart south-chart select-none">',
+        f"""
         <defs>
-            <linearGradient id="southBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#0b0f19" />
-                <stop offset="100%" stop-color="#1e293b" />
-            </linearGradient>
-            <linearGradient id="southCenter" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#111827" />
-                <stop offset="100%" stop-color="#0f172a" />
-            </linearGradient>
-            <linearGradient id="goldStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#fbbf24" />
-                <stop offset="100%" stop-color="#d97706" />
-            </linearGradient>
+            <radialGradient id="southEspressoBg" cx="50%" cy="50%" r="70%">
+                <stop offset="0%" stop-color="#1E1B18" />
+                <stop offset="60%" stop-color="#161412" />
+                <stop offset="100%" stop-color="#100E0D" />
+            </radialGradient>
+            <radialGradient id="southOnyxBg" cx="50%" cy="50%" r="70%">
+                <stop offset="0%" stop-color="#1E1B18" />
+                <stop offset="60%" stop-color="#161412" />
+                <stop offset="100%" stop-color="#100E0D" />
+            </radialGradient>
+            <radialGradient id="southIvoryBg" cx="50%" cy="50%" r="70%">
+                <stop offset="0%" stop-color="#FFFDF9" />
+                <stop offset="60%" stop-color="#FAF7F2" />
+                <stop offset="100%" stop-color="#F5F2EB" />
+            </radialGradient>
+            <radialGradient id="southPorcelainBg" cx="50%" cy="50%" r="70%">
+                <stop offset="0%" stop-color="#FFFDF9" />
+                <stop offset="60%" stop-color="#FAF7F2" />
+                <stop offset="100%" stop-color="#F5F2EB" />
+            </radialGradient>
+            <radialGradient id="southCenterHudDark" cx="50%" cy="50%" r="65%">
+                <stop offset="0%" stop-color="#26221E" stop-opacity="0.8" />
+                <stop offset="100%" stop-color="#161412" stop-opacity="0.5" />
+            </radialGradient>
+            <radialGradient id="southCenterHudLight" cx="50%" cy="50%" r="65%">
+                <stop offset="0%" stop-color="#FEF9C3" stop-opacity="0.3" />
+                <stop offset="100%" stop-color="#FAF7F2" stop-opacity="0.1" />
+            </radialGradient>
         </defs>
         """,
-        f'<rect width="{width}" height="{height}" fill="url(#southBg)" rx="16" />',
+        # Canvas Background
+        f'<rect x="0" y="0" width="{width}" height="{height}" rx="16" fill="{bg_fill}" />',
+        f'<rect x="0" y="0" width="{width}" height="{height}" rx="16" fill="none" stroke="{bg_border}" stroke-width="2" />',
     ]
 
-    # Grid outer & cell borders
-    for row in range(4):
-        for col in range(4):
-            # Skip the 2x2 center block
-            if (row in (1, 2)) and (col in (1, 2)):
-                continue
-
-            x = col * cell_w
-            y = row * cell_h
-            svg_parts.append(
-                f'<rect x="{x}" y="{y}" width="{cell_w}" height="{cell_h}" '
-                f'fill="#1e293b" fill-opacity="0.5" stroke="#d4af37" stroke-width="1.5" />'
-            )
-
-    # Central 2x2 Summary Box
-    center_x = cell_w
-    center_y = cell_h
-    center_w = cell_w * 2
-    center_h = cell_h * 2
-    svg_parts.append(
-        f'<rect x="{center_x}" y="{center_y}" width="{center_w}" height="{center_h}" '
-        f'fill="url(#southCenter)" stroke="#d4af37" stroke-width="2" rx="4" />'
-    )
-    svg_parts.append(
-        f'<text x="{center_x + center_w/2}" y="{center_y + 45}" fill="#fbbf24" '
-        f'font-family="system-ui, sans-serif" font-size="16" font-weight="700" text-anchor="middle">{title}</text>'
-    )
-    svg_parts.append(
-        f'<text x="{center_x + center_w/2}" y="{center_y + 85}" fill="#38bdf8" '
-        f'font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">'
-        f'Ascendant: {asc_sign_name} ({asc_dms})</text>'
-    )
-    svg_parts.append(
-        f'<text x="{center_x + center_w/2}" y="{center_y + 120}" fill="#94a3b8" '
-        f'font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">'
-        f'Ayanamsha: {chart.ayanamsha_name.value} {chart.ayanamsha_dms.formatted}</text>'
-    )
-    svg_parts.append(
-        f'<text x="{center_x + center_w/2}" y="{center_y + 155}" fill="#64748b" '
-        f'font-family="ui-monospace, monospace" font-size="11" text-anchor="middle">'
-        f'Birth: {chart.input_data.year}-{chart.input_data.month:02d}-{chart.input_data.day:02d} '
-        f'{chart.input_data.hour:02d}:{chart.input_data.minute:02d}</text>'
-    )
-    if chart.input_data.location.city:
-        svg_parts.append(
-            f'<text x="{center_x + center_w/2}" y="{center_y + 185}" fill="#64748b" '
-            f'font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">'
-            f'Loc: {chart.input_data.location.city}, {chart.input_data.location.country or ""}</text>'
-        )
-
-    # 4. Render Signs and Planets in the 12 Grid Cells
-    for sign_id, grid_info in SOUTH_SIGN_GRID.items():
+    # 4. Draw 12 Fixed Sign Cells
+    for s_id, grid_info in SOUTH_SIGN_GRID.items():
         col = grid_info["col"]
         row = grid_info["row"]
         x = col * cell_w
         y = row * cell_h
-        s_name = grid_info["name"]
-        s_en = grid_info["en"]
 
-        # Calculate house number relative to Ascendant (1 to 12)
-        house_num = ((sign_id - asc_sign_id) % 12) + 1
-        is_asc_sign = (sign_id == asc_sign_id)
+        is_asc = (s_id == asc_sign_id)
+        house_num = ((s_id - asc_sign_id) % 12) + 1
 
-        # Highlight Ascendant cell
-        if is_asc_sign:
-            svg_parts.append(
-                f'<rect x="{x+2}" y="{y+2}" width="{cell_w-4}" height="{cell_h-4}" '
-                f'fill="#0369a1" fill-opacity="0.2" stroke="#38bdf8" stroke-width="2" />'
-            )
-            # Diagonal corner slash for Lagna
-            svg_parts.append(
-                f'<line x1="{x}" y1="{y+35}" x2="{x+35}" y2="{y}" stroke="#38bdf8" stroke-width="2" />'
-            )
-            svg_parts.append(
-                f'<text x="{x+10}" y="{y+18}" fill="#38bdf8" font-family="system-ui, sans-serif" '
-                f'font-size="10" font-weight="800">ASC</text>'
-            )
+        sign_name_str = grid_info["en"] if sign_mode == "english" else grid_info["name"]
 
-        # Sign Label (Top left or top right)
-        sign_label_x = x + (40 if is_asc_sign else 8)
+        # Cell background & border
         svg_parts.append(
-            f'<g class="south-sign-header">'
-            f'<title>{sign_id}. {s_name} ({s_en}) - House {house_num}</title>'
-            f'<text x="{sign_label_x}" y="{y+16}" fill="#94a3b8" font-family="system-ui, sans-serif" '
-            f'font-size="11" font-weight="600">{s_name}</text>'
-            f'<text x="{x + cell_w - 8}" y="{y+16}" fill="#64748b" font-family="system-ui, sans-serif" '
-            f'font-size="10" font-weight="500" text-anchor="end">H{house_num}</text>'
-            f'</g>'
+            f'<rect x="{x}" y="{y}" width="{cell_w}" height="{cell_h}" '
+            f'fill="{cell_fill}" stroke="{cell_stroke}" stroke-width="1.5" />'
         )
 
+        # Subtle corner accent for Ascendant house
+        if is_asc:
+            svg_parts.append(
+                f'<polygon points="{x},{y} {x+36},{y} {x},{y+36}" fill="{hud_stroke}" fill-opacity="0.25" />'
+            )
+
+        # Header bar with Sign Name & House Number
+        svg_parts.append(
+            f'<text x="{x + 10}" y="{y + 20}" fill="{sign_label_color}" font-family="Cinzel, serif" '
+            f'font-size="13" font-weight="800" letter-spacing="0.5">{sign_name_str}</text>'
+            f'<text x="{x + cell_w - 10}" y="{y + 20}" fill="{house_label_color}" font-family="JetBrains Mono, monospace" '
+            f'font-size="12" font-weight="700" text-anchor="end">H{house_num}</text>'
+        )
+
+        # Ascendant indicator badge
+        if is_asc:
+            svg_parts.append(
+                f'<rect x="{x + 10}" y="{y + 28}" width="70" height="20" rx="4" '
+                f'fill="{asc_fill}" stroke="{asc_stroke}" stroke-width="1.2" />'
+                f'<text x="{x + 45}" y="{y + 42}" fill="{asc_text}" font-family="Cinzel, serif" '
+                f'font-size="11" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA</text>'
+            )
+
         # Render Planets in this sign
-        planets_in_sign = sign_planets[sign_id]
-        if planets_in_sign:
-            line_height = 17
-            start_py = y + 36
+        planets = sign_planets[s_id]
+        if planets:
+            p_start_y = y + (54 if is_asc else 40)
+            line_height = 22
 
-            for idx, p in enumerate(planets_in_sign):
-                py = start_py + (idx * line_height)
+            for idx, p in enumerate(planets):
+                if idx >= 6:
+                    break
+                py = p_start_y + (idx * line_height)
+                cx = x + (cell_w / 2.0)
 
-                status_flag = ""
-                flag_color = "#f8fafc"
-                if p["is_retro"] and p["is_combust"]:
-                    status_flag = " (R,C)"
-                    flag_color = "#f87171"
-                elif p["is_retro"]:
-                    status_flag = " (R)"
-                    flag_color = "#f43f5e"
-                elif p["is_combust"]:
-                    status_flag = " (C)"
-                    flag_color = "#fb923c"
-
-                badge_text = f"{p['short']} {p['intra_deg_str']}{status_flag}"
-                tooltip = (
-                    f"{p['name'].value} in {p['sign_name']} ({p['intra_deg_dms']})\n"
-                    f"Nakshatra: {p['nak_name']} Pada {p['pada']}\n"
-                    f"Status: {'Retrograde' if p['is_retro'] else 'Direct'}"
-                    f"{', Combust' if p['is_combust'] else ''}"
-                )
+                retro_str = " (R)" if p["is_retro"] else ""
+                comb_str = " [C]" if p["is_combust"] else ""
+                status_flags = f"{retro_str}{comb_str}"
 
                 svg_parts.append(
-                    f'<g class="planet-glyph cursor-pointer">'
-                    f'<title>{tooltip}</title>'
-                    f'<text x="{x + cell_w/2}" y="{py}" fill="{flag_color}" '
-                    f'font-family="ui-monospace, monospace" font-size="11" font-weight="600" text-anchor="middle">'
-                    f'{badge_text}</text>'
+                    f'<g class="planet-row cursor-pointer">'
+                    f'<text x="{cx - 4}" y="{py}" fill="{p["color"]}" font-family="JetBrains Mono, monospace" '
+                    f'font-size="13" font-weight="800" text-anchor="end" dominant-baseline="central">'
+                    f'{p["short"]} {status_flags}'
+                    f'</text>'
+                    f'<text x="{cx + 4}" y="{py}" fill="{sign_label_color}" font-family="JetBrains Mono, monospace" '
+                    f'font-size="12" font-weight="600" text-anchor="start" dominant-baseline="central">'
+                    f'{p["intra_deg_str"]}'
+                    f'</text>'
                     f'</g>'
                 )
+
+    # 5. Center Luxury 2x2 Telemetry HUD (400x400)
+    hud_x = cell_w
+    hud_y = cell_h
+    hud_w = cell_w * 2
+    hud_h = cell_h * 2
+
+    jd_val = getattr(chart, "julian_day_ut", getattr(chart, "julian_day", 0.0))
+
+    svg_parts.append(
+        f'<rect x="{hud_x}" y="{hud_y}" width="{hud_w}" height="{hud_h}" '
+        f'fill="{hud_fill}" stroke="{hud_stroke}" stroke-width="1.5" />'
+        f'<rect x="{hud_x+8}" y="{hud_y+8}" width="{hud_w-16}" height="{hud_h-16}" '
+        f'fill="none" stroke="{cell_stroke}" stroke-width="1" stroke-dasharray="3,3" />'
+        # Center Content
+        f'<g text-anchor="middle">'
+        f'<text x="{hud_x + hud_w/2}" y="{hud_y + 115}" fill="{hud_title_color}" font-family="Cinzel, serif" '
+        f'font-size="20" font-weight="900" letter-spacing="3">{title.upper()}</text>'
+        f'<line x1="{hud_x + 80}" y1="{hud_y + 135}" x2="{hud_x + hud_w - 80}" y2="{hud_y + 135}" stroke="{hud_stroke}" stroke-width="1.2" stroke-opacity="0.5" />'
+        f'<text x="{hud_x + hud_w/2}" y="{hud_y + 175}" fill="{hud_text_color}" font-family="Cinzel, serif" '
+        f'font-size="14" font-weight="700">ASC: {asc_sign_name.upper()}</text>'
+        f'<text x="{hud_x + hud_w/2}" y="{hud_y + 205}" fill="{hud_title_color}" font-family="JetBrains Mono, monospace" '
+        f'font-size="16" font-weight="800">{asc_dms}</text>'
+        f'<text x="{hud_x + hud_w/2}" y="{hud_y + 250}" fill="{hud_sub_color}" font-family="Inter, sans-serif" '
+        f'font-size="11" font-weight="600" letter-spacing="0.5">SWISS EPHEMERIS LOCAL PRECISION</text>'
+        f'<text x="{hud_x + hud_w/2}" y="{hud_y + 275}" fill="{hud_jd_color}" font-family="JetBrains Mono, monospace" '
+        f'font-size="10">JD {jd_val:.4f}</text>'
+        f'</g>'
+    )
 
     svg_parts.append("</svg>")
     return "\n".join(svg_parts)

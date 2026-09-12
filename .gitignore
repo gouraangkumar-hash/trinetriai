@@ -1,3 +1,7 @@
+.web
+*.db
+assets/external/
+.states
 # Python
 .venv/
 env/
@@ -22,3 +26,7 @@ htmlcov/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Reflex / Next.js Web Build
+.web/
+node_modules/

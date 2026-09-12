@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrinetriAI Vedic Studio — Precision Astrological Intelligence</title>
+  <!-- Google Fonts: Cinzel & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- ======================================================================= -->
+  <!-- Top Navigation Header                                                   -->
+  <!-- ======================================================================= -->
+  <header class="header-bar">
+    <div class="brand-section">
+      <span class="brand-title">TRINETRI AI</span>
+      <span class="precision-badge">DE431 Precision</span>
+    </div>
+
+    <!-- Center Group: Birth Capsule & Scrubber -->
+    <div class="header-center">
+      <!-- Interactive Birth Profile Capsule -->
+      <button id="birth-profile-btn" class="birth-capsule" title="Click to modify birth parameters">
+        <span>📍</span>
+        <span id="birth-capsule-text">Jaipur, India • 15 Oct 1995, 14:30:00 • Lahiri</span>
+        <span class="edit-hint">Edit ✎</span>
+      </button>
+
+      <!-- Time Rectification Scrubber -->
+      <div class="scrubber-group" title="Time Rectification Scrubber">
+        <button id="scrub-minus-1m" class="scrubber-btn">-1m</button>
+        <button id="scrub-minus-15s" class="scrubber-btn">-15s</button>
+        <span id="scrub-display" class="scrubber-display">0s (Exact)</span>
+        <button id="scrub-plus-15s" class="scrubber-btn">+15s</button>
+        <button id="scrub-plus-1m" class="scrubber-btn">+1m</button>
+        <button id="scrub-reset" class="scrubber-btn" title="Reset offset">↺</button>
+      </div>
+    </div>
+
+    <!-- Header Actions & Utilities -->
+    <div class="header-actions">
+      <button id="chart-style-toggle" class="action-pill" title="Toggle Chart Style">North Diamond</button>
+      <button id="sign-mode-toggle" class="action-pill" title="Toggle Sanskrit / English Sign Names">Sanskrit</button>
+      <button id="theme-toggle-btn" class="theme-btn" title="Toggle Dark / Light Mode">🌙</button>
+    </div>
+  </header>
+
+  <!-- ======================================================================= -->
+  <!-- Central Tab Navigation Row                                              -->
+  <!-- ======================================================================= -->
+  <nav class="tab-container">
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="kundali">Overview & Kundali</button>
+      <button class="tab-btn" data-tab="vargas">Divisional Vargas</button>
+      <button class="tab-btn" data-tab="dasha">Vimshottari Dasha</button>
+      <button class="tab-btn" data-tab="kp">KP Matrix & Cusps</button>
+      <button class="tab-btn" data-tab="jaimini">Jaimini Sutras</button>
+    </div>
+  </nav>
+
+  <!-- ======================================================================= -->
+  <!-- Main Workspaces Container                                               -->
+  <!-- ======================================================================= -->
+  <main class="main-wrapper">
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- TAB 1: Overview & Kundali                                           -->
+    <!-- ------------------------------------------------------------------- -->
+    <section id="tab-kundali" class="tab-content active">
+
+      <!-- Overview Hero: Kundali Chart (Left) + 4 Vedic Angles (Right) -->
+      <div class="overview-hero-layout">
+        <!-- Chart Stage Column -->
+        <div class="overview-chart-col">
+          <div class="chart-header-bar">
+            <span id="kundali-chart-title" class="card-title">D1 RASHI CHART</span>
+            <div style="display: flex; gap: 0.35rem;">
+              <button class="action-pill quick-varga-pill active" data-varga="D1">D1</button>
+              <button class="action-pill quick-varga-pill" data-varga="D9">D9</button>
+              <button class="action-pill quick-varga-pill" data-varga="D10">D10</button>
+            </div>
+          </div>
+          <div class="chart-stage-wrapper">
+            <div id="main-chart-svg" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+              <!-- Injected SVG -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Primary Vedic Angles (Right Side of Chart) -->
+        <div class="overview-angles-col">
+          <div class="angle-card">
+            <span class="angle-card-label">Ascendant (Lagna)</span>
+            <span id="angle-asc-sign" class="angle-card-value">Makara</span>
+            <span id="angle-asc-deg" class="angle-card-detail">14° 34' 12"</span>
+            <span id="angle-asc-nak" class="angle-card-detail" style="color: var(--text-muted);">Shravana P2</span>
+          </div>
+
+          <div class="angle-card">
+            <span class="angle-card-label">Chandra Lagna (Moon)</span>
+            <span id="angle-moon-sign" class="angle-card-value">Mithuna</span>
+            <span id="angle-moon-deg" class="angle-card-detail">18° 12' 04"</span>
+            <span id="angle-moon-nak" class="angle-card-detail" style="color: var(--text-muted);">Ardra P4</span>
+          </div>
+
+          <div class="angle-card">
+            <span class="angle-card-label">Surya Lagna (Sun)</span>
+            <span id="angle-sun-sign" class="angle-card-value">Kanya</span>
+            <span id="angle-sun-deg" class="angle-card-detail">27° 43' 57"</span>
+            <span id="angle-sun-nak" class="angle-card-detail" style="color: var(--text-muted);">Chitra P2</span>
+          </div>
+
+          <div class="angle-card">
+            <span class="angle-card-label">Madhya Lagna (MC)</span>
+            <span id="angle-mc-sign" class="angle-card-value">Tula</span>
+            <span id="angle-mc-deg" class="angle-card-detail">22° 08' 45"</span>
+            <span id="angle-mc-nak" class="angle-card-detail" style="color: var(--text-muted);">Vishakha P1</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Vimshottari Timeline Strip Banner -->
+      <div class="active-dasha-strip">
+        <div class="dasha-flow">
+          <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Active Dasha:</span>
+          <span id="strip-dasha-md">-</span>
+          <span class="arrow">→</span>
+          <span id="strip-dasha-ad">-</span>
+          <span class="arrow">→</span>
+          <span id="strip-dasha-pd">-</span>
+        </div>
+        <div id="strip-dasha-dates" class="dasha-dates">
+          Calculating timeline...
+        </div>
+      </div>
+
+      <!-- Planetary Positions & Sub-Lords Table Card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Planetary Positions & KP Sub-Lords</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Sidereal Nirayana Placements</span>
+        </div>
+        <div class="table-responsive">
+          <table class="studio-table">
+            <thead>
+              <tr>
+                <th>Planet</th>
+                <th>Sign</th>
+                <th>Degree</th>
+                <th>Nakshatra</th>
+                <th>Star Lord</th>
+                <th>Sub Lord</th>
+                <th>Sub-Sub Lord</th>
+                <th>Motion</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="overview-planets-table-body">
+              <!-- Rendered via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Astronomical Telemetry Info Box -->
+      <div class="card" style="padding: 1.25rem 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-family: var(--font-mono); font-size: 0.825rem; color: var(--text-secondary);">
+          <span>Julian Day (UT): <strong id="telemetry-jd-ut" style="color: var(--text-primary);">-</strong></span>
+          <span>Julian Day (ET): <strong id="telemetry-jd-et" style="color: var(--text-primary);">-</strong></span>
+          <span>Ayanamsha: <strong id="telemetry-ayanamsha" style="color: var(--text-primary);">-</strong></span>
+          <span>Swiss Ephemeris: <strong style="color: var(--accent-primary);">DE431 High Precision</strong></span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- TAB 2: Divisional Vargas Workspace                                  -->
+    <!-- ------------------------------------------------------------------- -->
+    <section id="tab-vargas" class="tab-content">
+      <!-- Harmonic Pills Navigation -->
+      <div class="varga-buttons-row" id="varga-harmonics-bar">
+        <button class="varga-pill-btn active" data-varga="D1">D1 Rashi</button>
+        <button class="varga-pill-btn" data-varga="D2">D2 Hora</button>
+        <button class="varga-pill-btn" data-varga="D3">D3 Drekkana</button>
+        <button class="varga-pill-btn" data-varga="D7">D7 Saptamsha</button>
+        <button class="varga-pill-btn" data-varga="D9">D9 Navamsha</button>
+        <button class="varga-pill-btn" data-varga="D10">D10 Dashamsha</button>
+        <button class="varga-pill-btn" data-varga="D12">D12 Dvadashamsha</button>
+        <button class="varga-pill-btn" data-varga="D30">D30 Trimsamsha</button>
+        <button class="varga-pill-btn" data-varga="D60">D60 Shashtyamsha</button>
+      </div>
+
+      <!-- Centered Varga Kundali SVG Display -->
+      <div class="chart-stage-container">
+        <div class="chart-header-bar">
+          <span id="varga-chart-title" class="card-title">D1 NATAL RASHI CHART</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">BPHS Harmonic Division</span>
+        </div>
+        <div class="chart-stage-wrapper">
+          <div id="varga-chart-svg" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <!-- Injected SVG -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Reactive Table: Planetary Positions in Selected Varga -->
+      <div class="card">
+        <div class="card-header">
+          <span id="varga-table-title" class="card-title">Placements in Selected Varga</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Updates reactively with harmonic selection</span>
+        </div>
+        <div class="table-responsive">
+          <table class="studio-table">
+            <thead>
+              <tr>
+                <th>Body</th>
+                <th>Varga Sign</th>
+                <th>Intra-Varga Degree</th>
+                <th>Sign Lord</th>
+                <th>House (Relative to Varga Lagna)</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="varga-table-body">
+              <!-- Rendered via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- TAB 3: Vimshottari Dasha Workspace                                  -->
+    <!-- ------------------------------------------------------------------- -->
+    <section id="tab-dasha" class="tab-content">
+      <!-- Active Dasha Timeline Banner -->
+      <div class="active-dasha-strip">
+        <div class="dasha-flow">
+          <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Current Period:</span>
+          <span id="dasha-hero-md">-</span>
+          <span class="arrow">→</span>
+          <span id="dasha-hero-ad">-</span>
+          <span class="arrow">→</span>
+          <span id="dasha-hero-pd">-</span>
+        </div>
+        <div id="dasha-hero-dates" class="dasha-dates">
+          120-Year Solar Cycles
+        </div>
+      </div>
+
+      <!-- 120-Year Mahadashas Card Grid (3-4 cards per row) -->
+      <div class="card-header" style="margin-top: 1rem;">
+        <span class="card-title">120-Year Mahadasha Timeline</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Click any card to inspect all 9 nested Antardashas</span>
+      </div>
+      <div class="dasha-cards-grid" id="dasha-cards-container">
+        <!-- Rendered via app.js with 3-4 cards per row -->
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- TAB 4: KP Matrix & Cusps                                            -->
+    <!-- ------------------------------------------------------------------- -->
+    <section id="tab-kp" class="tab-content">
+      <!-- 12 Placidus House Cusps Card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">12 Placidus House Cusps & KP Sub-Lords</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Krishnamurti Paddhati Cusp Subdivision</span>
+        </div>
+        <div class="table-responsive">
+          <table class="studio-table">
+            <thead>
+              <tr>
+                <th>House</th>
+                <th>Sign</th>
+                <th>Degree</th>
+                <th>Star Lord</th>
+                <th>Sub Lord</th>
+                <th>Sub-Sub Lord</th>
+                <th>Sig A</th>
+                <th>Sig B</th>
+                <th>Sig C</th>
+                <th>Sig D</th>
+              </tr>
+            </thead>
+            <tbody id="cusps-table-body">
+              <!-- Rendered via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4-Fold Significators Card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Planetary 4-Fold Significators Matrix</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Levels A: Star of Occupant, B: Occupant, C: Star of Lord, D: Lord</span>
+        </div>
+        <div class="table-responsive">
+          <table class="studio-table">
+            <thead>
+              <tr>
+                <th>Planet</th>
+                <th>Sign</th>
+                <th>Star Lord</th>
+                <th>Sub Lord</th>
+                <th>Level A (Star of Occ.)</th>
+                <th>Level B (Occ.)</th>
+                <th>Level C (Star of Owner)</th>
+                <th>Level D (Owner)</th>
+              </tr>
+            </thead>
+            <tbody id="kp-planets-table-body">
+              <!-- Rendered via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- TAB 5: Jaimini Sutras Workspace                                     -->
+    <!-- ------------------------------------------------------------------- -->
+    <section id="tab-jaimini" class="tab-content">
+      <!-- 7 Chara Karakas Card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">7 Chara Karakas (Planetary Soul Hierarchy)</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Jaimini Upadesha Sutras</span>
+        </div>
+        <div class="table-responsive">
+          <table class="studio-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Karaka Role</th>
+                <th>Signification</th>
+                <th>Planet</th>
+                <th>Sign</th>
+                <th>Degree</th>
+              </tr>
+            </thead>
+            <tbody id="karakas-table-body">
+              <!-- Rendered via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 12 Arudha Padas Card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">12 Arudha Padas (Manifested World & Illusion)</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Includes BPHS 1st & 7th House Shift Exceptions</span>
+        </div>
+        <div class="arudha-grid" id="arudha-grid-container">
+          <!-- Rendered via app.js -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================================= -->
+  <!-- Slide-Over Planet Inspector Drawer                                      -->
+  <!-- ======================================================================= -->
+  <div id="drawer-backdrop" class="drawer-backdrop">
+    <aside class="inspector-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-group">
+          <span id="drawer-planet-glyph" style="font-size: 1.5rem; color: var(--accent-primary);">☉</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <h3 id="drawer-planet-name" class="drawer-planet-name">Sun</h3>
+              <span id="drawer-vargottama-badge" class="status-badge active" style="display: none;">✦ Vargottama</span>
+            </div>
+            <span id="drawer-planet-pos" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">Kanya 27°43'</span>
+          </div>
+        </div>
+        <button id="drawer-close-btn" class="drawer-close-btn">✕</button>
+      </div>
+
+      <div class="drawer-body">
+        <!-- Astronomical & Vedic Properties -->
+        <div>
+          <h4 class="drawer-section-title">Astronomical & Vedic Properties</h4>
+          <div class="drawer-field-grid">
+            <div class="drawer-field-box" id="box-vargottama">
+              <span class="drawer-field-label">Vargottama (D1 = D9)</span>
+              <p id="drawer-vargottama" class="drawer-field-value" style="font-weight: 700;">-</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Navamsha (D9) Sign</span>
+              <p id="drawer-d9-sign" class="drawer-field-value">-</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Daily Speed</span>
+              <p id="drawer-speed" class="drawer-field-value">0.9856°/d</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Motion State</span>
+              <p id="drawer-motion" class="drawer-field-value">Direct</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Combustion</span>
+              <p id="drawer-combust" class="drawer-field-value">No</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Nakshatra</span>
+              <p id="drawer-nakshatra" class="drawer-field-value">Chitra P2</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- KP Subdivisions -->
+        <div>
+          <h4 class="drawer-section-title">Krishnamurti Paddhati (KP) Lords</h4>
+          <div class="drawer-field-grid">
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Star Lord</span>
+              <p id="drawer-star-lord" class="drawer-field-value">Mars</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Sub Lord</span>
+              <p id="drawer-sub-lord" class="drawer-field-value">Venus</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Sub-Sub Lord</span>
+              <p id="drawer-sub-sub-lord" class="drawer-field-value">Saturn</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Jaimini Karaka</span>
+              <p id="drawer-karaka" class="drawer-field-value">DK (Spouse)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4-Fold Significators -->
+        <div>
+          <h4 class="drawer-section-title">KP 4-Fold Significator Levels</h4>
+          <div class="drawer-field-grid">
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Level A (Star of Occ.)</span>
+              <p id="drawer-sig-a" class="drawer-field-value">-</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Level B (Occupant)</span>
+              <p id="drawer-sig-b" class="drawer-field-value">-</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Level C (Star of Owner)</span>
+              <p id="drawer-sig-c" class="drawer-field-value">-</p>
+            </div>
+            <div class="drawer-field-box">
+              <span class="drawer-field-label">Level D (Owner)</span>
+              <p id="drawer-sig-d" class="drawer-field-value">-</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- Birth Parameters Dialog Modal                                           -->
+  <!-- ======================================================================= -->
+  <div id="birth-modal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Configure Birth Parameters</h3>
+        <button id="modal-close-btn" class="drawer-close-btn">✕</button>
+      </div>
+
+      <form id="birth-params-form" class="modal-body">
+        <!-- City Search with Geocoding -->
+        <div class="form-group">
+          <label class="form-label" for="input-city">Birth Location / City</label>
+          <div class="form-input-row">
+            <input type="text" id="input-city" class="form-input" value="Jaipur, India" placeholder="e.g. Jaipur, India or New York, USA" required>
+            <button type="button" id="btn-geocode" class="btn-secondary" style="white-space: nowrap;">Search 🔍</button>
+          </div>
+          <span id="geocode-feedback" style="font-size: 0.75rem; color: var(--accent-primary); display: none;">Resolving coordinates...</span>
+        </div>
+
+        <!-- Lat, Lon, Timezone -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="input-latitude">Latitude (°N)</label>
+            <input type="number" step="0.0001" id="input-latitude" class="form-input" value="26.9124" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="input-longitude">Longitude (°E)</label>
+            <input type="number" step="0.0001" id="input-longitude" class="form-input" value="75.7873" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-timezone">IANA Timezone</label>
+          <input type="text" id="input-timezone" class="form-input" value="Asia/Kolkata" required>
+        </div>
+
+        <!-- Date & Time Dropdowns -->
+        <div class="form-group">
+          <label class="form-label">Birth Date (Day • Month • Year)</label>
+          <div class="form-select-row">
+            <select id="select-birth-day" class="form-select" style="flex: 1;" title="Day">
+              <!-- populated by JS -->
+            </select>
+            <select id="select-birth-month" class="form-select" style="flex: 1.4;" title="Month">
+              <option value="1">Jan (01)</option>
+              <option value="2">Feb (02)</option>
+              <option value="3">Mar (03)</option>
+              <option value="4">Apr (04)</option>
+              <option value="5">May (05)</option>
+              <option value="6">Jun (06)</option>
+              <option value="7">Jul (07)</option>
+              <option value="8">Aug (08)</option>
+              <option value="9">Sep (09)</option>
+              <option value="10" selected>Oct (10)</option>
+              <option value="11">Nov (11)</option>
+              <option value="12">Dec (12)</option>
+            </select>
+            <select id="select-birth-year" class="form-select" style="flex: 1.2;" title="Year">
+              <!-- populated by JS -->
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Birth Time (Hour • Minute • Second)</label>
+          <div class="form-select-row">
+            <select id="select-birth-hour" class="form-select" style="flex: 1.2;" title="Hour">
+              <!-- populated by JS -->
+            </select>
+            <select id="select-birth-minute" class="form-select" style="flex: 1;" title="Minute">
+              <!-- populated by JS -->
+            </select>
+            <select id="select-birth-second" class="form-select" style="flex: 1;" title="Second">
+              <!-- populated by JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Ayanamsha & Nodes -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="select-ayanamsha">Ayanamsha System</label>
+            <select id="select-ayanamsha" class="form-select">
+              <option value="Lahiri" selected>Lahiri (Chitrapaksha - BPHS)</option>
+              <option value="Krishnamurti">Krishnamurti / KP New</option>
+              <option value="Raman">B.V. Raman</option>
+              <option value="Yukteshwar">Sri Yukteshwar</option>
+              <option value="Fagan-Bradley">Fagan-Bradley (Western Sidereal)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="select-node-type">Lunar Nodes Mode</label>
+            <select id="select-node-type" class="form-select">
+              <option value="True" selected>True Node (Astronomical)</option>
+              <option value="Mean">Mean Node (Mathematical Avg)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">
+          Recalculate Chart ✧
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- Footer                                                                  -->
+  <!-- ======================================================================= -->
+  <footer class="footer-bar">
+    <p>TrinetriAI Vedic Studio • Swiss Ephemeris DE431 • Parashari Shodashavarga • Krishnamurti Paddhati • Jaimini Upadesha Sutras</p>
+  </footer>
+
+  <!-- Application Logic -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

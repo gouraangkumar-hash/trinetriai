@@ -77,6 +77,7 @@ def generate_south_indian_svg(
     if varga_chart is not None:
         asc_sign_id = varga_chart.ascendant.sign_id
         asc_dms = varga_chart.ascendant.dms.formatted
+        asc_intra_deg = varga_chart.ascendant.intra_sign_degree
         asc_sign_name = (
             SOUTH_SIGN_GRID[asc_sign_id]["en"]
             if sign_mode == "english"
@@ -85,11 +86,13 @@ def generate_south_indian_svg(
     else:
         asc_sign_id = chart.angles.ascendant_sign.id
         asc_dms = chart.angles.ascendant_dms.formatted
+        asc_intra_deg = chart.angles.ascendant_sign.intra_sign_degree
         asc_sign_name = (
             chart.angles.ascendant_sign.english_name
             if sign_mode == "english"
             else chart.angles.ascendant_sign.sanskrit_name
         )
+    asc_intra_deg_str = f"{int(asc_intra_deg)}°{int((asc_intra_deg%1)*60):02d}'"
 
     # 2. Group planets by sign ID
     sign_planets: dict[int, list[dict]] = {s: [] for s in range(1, 13)}
@@ -141,6 +144,21 @@ def generate_south_indian_svg(
                 "pada": p_pos.nakshatra.pada,
                 "sign_name": s_name,
             })
+
+    # Always include Ascendant (Lagna) point with exact intra-sign degree
+    sign_planets[asc_sign_id].insert(0, {
+        "name": "Ascendant",
+        "glyph": "✧",
+        "short": "As",
+        "color": "#D97706" if not is_dark else "#F59E0B",
+        "intra_deg_dms": asc_dms,
+        "intra_deg_str": asc_intra_deg_str,
+        "is_retro": False,
+        "is_combust": False,
+        "nak_name": chart.angles.ascendant_nakshatra.sanskrit_name if varga_chart is None else "",
+        "pada": chart.angles.ascendant_nakshatra.pada if varga_chart is None else 0,
+        "sign_name": asc_sign_name,
+    })
 
     # Theme parameters
     if is_dark:
@@ -252,10 +270,10 @@ def generate_south_indian_svg(
         # Ascendant indicator badge
         if is_asc:
             svg_parts.append(
-                f'<rect x="{x + 10}" y="{y + 28}" width="70" height="20" rx="4" '
+                f'<rect x="{x + 10}" y="{y + 28}" width="88" height="20" rx="4" '
                 f'fill="{asc_fill}" stroke="{asc_stroke}" stroke-width="1.2" />'
-                f'<text x="{x + 45}" y="{y + 42}" fill="{asc_text}" font-family="Cinzel, serif" '
-                f'font-size="11" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA</text>'
+                f'<text x="{x + 54}" y="{y + 42}" fill="{asc_text}" font-family="Cinzel, serif" '
+                f'font-size="10" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA {asc_intra_deg_str}</text>'
             )
 
         # Render Planets in this sign

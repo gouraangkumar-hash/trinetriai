@@ -40,7 +40,13 @@ def test_calculate_endpoint_default():
     assert "mc" in data["summary"]
     assert "chart_svg" in data
     assert "<svg" in data["chart_svg"]
-    assert len(data["planets_table"]) >= 9
+    assert len(data["planets_table"]) >= 10
+    asc_row = data["planets_table"][0]
+    assert asc_row["planet"] == "Ascendant (Lagna)"
+    assert asc_row["degree"] == '19° 02\' 52.49"'
+    assert asc_row["sign"] == "Makara"
+    assert asc_row["star_lord"] != ""
+    assert asc_row["sub_lord"] != ""
     assert "planet_details" in data
     # Verify Sun is Vargottama in reference chart (Kanya in D1 and D9)
     sun_detail = data["planet_details"]["Sun"]

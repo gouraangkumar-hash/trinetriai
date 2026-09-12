@@ -48,6 +48,8 @@ class TestVisualizers:
         assert "Asc:" in svg
         assert "Su " in svg  # Sun badge
         assert "Mo " in svg  # Moon badge
+        assert "As " in svg  # Ascendant badge
+        assert "LAGNA 10 • 19°02'" in svg  # House 1 Lagna badge with exact intra-sign degree
         assert "<polygon points=" in svg  # Central Diamond
 
     def test_north_indian_varga_svg(self, reference_chart) -> None:
@@ -58,6 +60,7 @@ class TestVisualizers:
         assert "D9 NAVAMSHA" in svg_d9
         # In D9, Ascendant is Gemini (Mithuna)
         assert "Mith" in svg_d9
+        assert "As " in svg_d9
 
     def test_south_indian_svg_structure(self, reference_chart) -> None:
         """Validates South Indian fixed grid SVG generation."""
@@ -70,6 +73,8 @@ class TestVisualizers:
         assert "Mesha" in svg
         assert "Vrishabha" in svg
         assert "ASC" in svg  # Rising sign highlight
+        assert "LAGNA 19°02'" in svg  # South Indian Lagna indicator badge
+        assert "As " in svg  # Ascendant row in rising sign
         assert "Su " in svg
 
     def test_dashboard_orchestrator_pipeline(self, reference_chart) -> None:

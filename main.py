@@ -263,6 +263,44 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         planets_table.append(p_dict)
         planet_details[p_name.value] = p_dict
 
+    # Calculate Ascendant KP sub-lords and D9 placement
+    asc_kp = KPEngine.resolve_kp_sub(chart.angles.ascendant)
+    asc_d9 = VargaChartEngine.calculate_point_varga(
+        longitude=chart.angles.ascendant,
+        varga=VargaType.D9,
+        is_ascendant=True,
+    )
+    is_asc_vargottama = bool(asc_sign.id == asc_d9.sign_id)
+    asc_d9_sign_name = ZODIAC_SIGNS[asc_d9.sign_id]["english_name"] if req.sign_mode == "english" else asc_d9.sign_name
+    asc_vargottama_status = f"Vargottama (D1 & D9 in {asc_sign_name})" if is_asc_vargottama else f"No (D9 in {asc_d9_sign_name})"
+
+    asc_dict = {
+        "planet": "Ascendant (Lagna)",
+        "sign": asc_sign_name,
+        "sign_id": asc_sign.id,
+        "degree": asc_sign.dms.formatted,
+        "absolute_longitude": round(chart.angles.ascendant, 4),
+        "speed": "-",
+        "nakshatra": f"{asc_nak.sanskrit_name} (Pada {asc_nak.pada})",
+        "star_lord": asc_kp.star_lord.value,
+        "sub_lord": asc_kp.sub_lord.value,
+        "sub_sub_lord": asc_kp.sub_sub_lord.value,
+        "sig_a": "-",
+        "sig_b": "-",
+        "sig_c": "-",
+        "sig_d": "-",
+        "is_retro": False,
+        "is_combust": False,
+        "karaka_role": "Lagna",
+        "is_vargottama": is_asc_vargottama,
+        "vargottama_status": asc_vargottama_status,
+        "d9_sign": asc_d9_sign_name,
+        "d9_degree": asc_d9.dms.formatted,
+    }
+    planets_table.insert(0, asc_dict)
+    planet_details["Ascendant (Lagna)"] = asc_dict
+    planet_details["Ascendant"] = asc_dict
+
     # 3. Varga Table Data for current selected varga
     varga_table = []
     if varga_chart is not None:

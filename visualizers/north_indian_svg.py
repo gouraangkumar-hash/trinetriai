@@ -77,6 +77,7 @@ def generate_north_indian_svg(
     if varga_chart is not None:
         asc_sign_id = varga_chart.ascendant.sign_id
         asc_dms = varga_chart.ascendant.dms.formatted
+        asc_intra_deg = varga_chart.ascendant.intra_sign_degree
         asc_sign_name = (
             ZODIAC_SIGNS[asc_sign_id]["english_name"]
             if sign_mode == "english"
@@ -85,11 +86,13 @@ def generate_north_indian_svg(
     else:
         asc_sign_id = chart.angles.ascendant_sign.id
         asc_dms = chart.angles.ascendant_dms.formatted
+        asc_intra_deg = chart.angles.ascendant_sign.intra_sign_degree
         asc_sign_name = (
             chart.angles.ascendant_sign.english_name
             if sign_mode == "english"
             else chart.angles.ascendant_sign.sanskrit_name
         )
+    asc_intra_deg_str = f"{int(asc_intra_deg)}°{int((asc_intra_deg%1)*60):02d}'"
 
     # 2. Map Houses (1 to 12) to Sign IDs
     house_signs = {h: ((asc_sign_id + h - 2) % 12) + 1 for h in range(1, 13)}
@@ -147,6 +150,21 @@ def generate_north_indian_svg(
                 "pada": p_pos.nakshatra.pada,
                 "sign_name": s_name,
             })
+
+    # Always include Ascendant (Lagna) point with exact intra-sign degree
+    house_planets[1].insert(0, {
+        "name": "Ascendant",
+        "glyph": "✧",
+        "short": "As",
+        "color": "#D97706" if not is_dark else "#F59E0B",
+        "intra_deg_dms": asc_dms,
+        "intra_deg_str": asc_intra_deg_str,
+        "is_retro": False,
+        "is_combust": False,
+        "nak_name": chart.angles.ascendant_nakshatra.sanskrit_name if varga_chart is None else "",
+        "pada": chart.angles.ascendant_nakshatra.pada if varga_chart is None else 0,
+        "sign_name": asc_sign_name,
+    })
 
     # Theme-specific color parameters (Warm Ivory vs Deep Espresso)
     if is_dark:
@@ -252,10 +270,10 @@ def generate_north_indian_svg(
         # If House 1, render subtle luxury Lagna badge
         if h_num == 1:
             svg_parts.append(
-                f'<rect x="360" y="347" width="80" height="26" rx="6" '
+                f'<rect x="342" y="347" width="116" height="26" rx="6" '
                 f'fill="{lagna_bg}" stroke="{lagna_stroke}" stroke-width="1.2" />'
                 f'<text x="400" y="364" fill="{lagna_text}" font-family="Cinzel, serif" '
-                f'font-size="13" font-weight="900" text-anchor="middle" letter-spacing="1">LAGNA {sign_id}</text>'
+                f'font-size="11.5" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA {sign_id} • {asc_intra_deg_str}</text>'
             )
         else:
             svg_parts.append(

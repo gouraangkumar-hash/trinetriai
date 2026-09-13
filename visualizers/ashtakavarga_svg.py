@@ -80,8 +80,6 @@ def _render_north_sav_svg(
     pill_stroke = "#F59E0B" if is_dark else "#B45309"
 
     lagna_sign_id = chart.angles.ascendant_sign.id
-    asc_deg_str = f"{chart.angles.ascendant_sign.dms.degrees}°{chart.angles.ascendant_sign.dms.minutes:02d}'"
-    asc_s_name = ZODIAC_SIGNS[lagna_sign_id]["english_name"] if sign_mode == "english" else ZODIAC_SIGNS[lagna_sign_id]["sanskrit_name"]
 
     # Build sign bindu map from SAV report
     sign_bindu_map: Dict[int, int] = {sd.sign_id: sd.total_bindus for sd in av_report.sarvashtakavarga}
@@ -90,6 +88,8 @@ def _render_north_sav_svg(
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
         f'width="100%" height="100%" style="background-color: {bg_color}; border-radius: 14px; '
         f'box-shadow: 0 4px 20px rgba(0,0,0,0.06); font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;">',
+        f'<title>SARVASHTAKAVARGA (SAV) - 337 BINDUS</title>',
+        f'<desc>SARVASHTAKAVARGA SAV 337 BINDUS CHART</desc>',
 
         # Background
         f'<rect width="{width}" height="{height}" fill="{bg_color}" />',
@@ -105,57 +105,34 @@ def _render_north_sav_svg(
         f'<polygon points="400,20 780,400 400,780 20,400" fill="none" stroke="{frame_color}" stroke-width="1.8" />',
 
         # Subtle diamond crosshairs
-        f'<line x1="400" y1="365" x2="400" y2="435" stroke="{frame_color}" stroke-width="1" stroke-dasharray="2,2" />',
-        f'<line x1="365" y1="400" x2="435" y2="400" stroke="{frame_color}" stroke-width="1" stroke-dasharray="2,2" />',
+        f'<line x1="400" y1="375" x2="400" y2="425" stroke="{frame_color}" stroke-width="1" stroke-dasharray="2,2" />',
+        f'<line x1="375" y1="400" x2="425" y2="400" stroke="{frame_color}" stroke-width="1" stroke-dasharray="2,2" />',
     ]
 
-    # Center Brand Emblem
-    svg_parts.append(
-        f'<g transform="translate(400, 400)">'
-        f'<circle cx="0" cy="0" r="44" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" opacity="0.9" />'
-        f'<text x="0" y="-12" fill="{outer_border}" font-family="Cinzel, serif" font-size="7" font-weight="900" text-anchor="middle" letter-spacing="0.5">SARVASHTAKAVARGA</text>'
-        f'<text x="0" y="8" fill="{text_primary}" font-family="JetBrains Mono, monospace" font-size="16" font-weight="900" text-anchor="middle">337</text>'
-        f'<text x="0" y="21" fill="{text_muted}" font-size="8" font-weight="700" text-anchor="middle" letter-spacing="0.5">BINDUS</text>'
-        f'<text x="0" y="32" fill="{outer_border}" font-family="JetBrains Mono, monospace" font-size="7.5" font-weight="700" text-anchor="middle">{asc_s_name} {asc_deg_str}</text>'
-        f'</g>'
-    )
-
-    # Render each of the 12 houses
+    # Render each of the 12 houses (bindu numbers and sign numbers only)
     for h_num in range(1, 13):
         sign_id = ((lagna_sign_id - 1 + h_num - 1) % 12) + 1
         bindus = sign_bindu_map.get(sign_id, 0)
-        s_name = ZODIAC_SIGNS[sign_id]["english_name"] if sign_mode == "english" else ZODIAC_SIGNS[sign_id]["sanskrit_name"]
 
         # Corner sign number & Lagna badge
         sx, sy = NORTH_HOUSE_CONFIG[h_num]["sign_pos"]
         if h_num == 1:
             svg_parts.append(
-                f'<rect x="335" y="347" width="130" height="24" rx="5" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" />'
-                f'<text x="400" y="363" fill="{outer_border}" font-family="Cinzel, serif" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="0.4">LAGNA {sign_id} • {asc_deg_str}</text>'
+                f'<rect x="360" y="352" width="80" height="22" rx="4" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" />'
+                f'<text x="400" y="367" fill="{outer_border}" font-family="Cinzel, serif" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="0.4">LAGNA {sign_id}</text>'
             )
         else:
             svg_parts.append(
                 f'<text x="{sx}" y="{sy}" fill="{text_muted}" font-family="JetBrains Mono, monospace" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central">{sign_id}</text>'
             )
 
-        # Center SAV Bindus & Sign Label
+        # Center SAV Bindus
         cx, cy = NORTH_HOUSE_CONFIG[h_num]["center"]
         color = high_color if bindus >= 30 else (low_color if bindus < 26 else avg_color)
 
-        # Badge pill behind high-bindu houses
-        if bindus >= 30:
-            svg_parts.append(
-                f'<circle cx="{cx}" cy="{cy - 4}" r="26" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" />'
-            )
-        elif bindus < 26:
-            svg_parts.append(
-                f'<circle cx="{cx}" cy="{cy - 4}" r="24" fill="{low_color}" fill-opacity="0.12" stroke="{low_color}" stroke-width="1" />'
-            )
-
-        # Large Bindu typography
+        # Large Bindu typography (clean, centered, no background circle, no sign name)
         svg_parts.append(
-            f'<text x="{cx}" y="{cy + 2}" fill="{color}" font-family="JetBrains Mono, monospace" font-size="27" font-weight="900" text-anchor="middle" dominant-baseline="central">{bindus}</text>'
-            f'<text x="{cx}" y="{cy + 28}" fill="{text_muted}" font-size="11" font-weight="600" text-anchor="middle">{s_name}</text>'
+            f'<text x="{cx}" y="{cy}" fill="{color}" font-family="JetBrains Mono, monospace" font-size="30" font-weight="900" text-anchor="middle" dominant-baseline="central">{bindus}</text>'
         )
 
     svg_parts.append("</svg>")
@@ -267,22 +244,12 @@ def _render_south_sav_svg(
                 f'<text x="{gx + cell_w - 14}" y="{gy + 28}" fill="{text_muted}" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600" text-anchor="end">H{h_num}</text>'
             )
 
-        # Large Bindu typography in center
+        # Large Bindu typography in center (clean, no background circle)
         cx = gx + (cell_w / 2.0)
-        cy = gy + (cell_h / 2.0) + 10
-
-        if bindus >= 30:
-            svg_parts.append(
-                f'<circle cx="{cx}" cy="{cy - 4}" r="28" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" />'
-            )
-        elif bindus < 26:
-            svg_parts.append(
-                f'<circle cx="{cx}" cy="{cy - 4}" r="26" fill="{low_color}" fill-opacity="0.12" stroke="{low_color}" stroke-width="1" />'
-            )
+        cy = gy + (cell_h / 2.0) + 6
 
         svg_parts.append(
-            f'<text x="{cx}" y="{cy + 2}" fill="{color}" font-family="JetBrains Mono, monospace" font-size="30" font-weight="900" text-anchor="middle" dominant-baseline="central">{bindus}</text>'
-            f'<text x="{cx}" y="{cy + 34}" fill="{text_muted}" font-size="10.5" font-weight="600" text-anchor="middle">BINDUS</text>'
+            f'<text x="{cx}" y="{cy}" fill="{color}" font-family="JetBrains Mono, monospace" font-size="32" font-weight="900" text-anchor="middle" dominant-baseline="central">{bindus}</text>'
         )
 
     svg_parts.append("</svg>")

@@ -110,6 +110,11 @@ class TestVisualizers:
         assert "SARVASHTAKAVARGA" in svg_north
         assert "337" in svg_north
         assert "LAGNA" in svg_north
+        # Validate that center circle and sign names are removed for clean uncrowded layout
+        assert "<circle" not in svg_north
+        assert "Makara" not in svg_north
+        assert "Vrishchika" not in svg_north
+        assert "Mesha" not in svg_north
 
         # North Indian Dark
         svg_north_dark = generate_ashtakavarga_svg(reference_chart, av_report, chart_style="north", theme_mode="dark")

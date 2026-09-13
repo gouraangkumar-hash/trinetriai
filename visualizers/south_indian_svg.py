@@ -61,6 +61,7 @@ PLANET_THEMES_LIGHT = {
 def generate_south_indian_svg(
     chart: UnifiedChartData,
     varga_chart: Optional[VargaChart] = None,
+    transit_chart: Optional[UnifiedChartData] = None,
     title: str = "D1 Rashi Chart",
     width: int = 800,
     height: int = 800,
@@ -159,6 +160,27 @@ def generate_south_indian_svg(
         "pada": chart.angles.ascendant_nakshatra.pada if varga_chart is None else 0,
         "sign_name": asc_sign_name,
     })
+
+    # 2b. Overlay Transit Planets if Gochar is enabled
+    transit_color = "#059669" if not is_dark else "#34D399"
+    transit_badge_bg = "#064E3B" if is_dark else "#ECFDF5"
+    if transit_chart is not None:
+        for p_name, p_pos in transit_chart.planets.items():
+            if p_name in (PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO):
+                continue
+            t_sign_id = p_pos.sign.id
+            t_theme = palette.get(p_name, {"glyph": "", "short": p_name.value[:2]})
+            sign_planets[t_sign_id].append({
+                "name": f"{p_name.value} (Transit)",
+                "glyph": t_theme["glyph"],
+                "short": f"{t_theme['short']}(T)",
+                "color": transit_color,
+                "intra_deg_dms": p_pos.sign.dms.formatted,
+                "intra_deg_str": f"{int(p_pos.sign.intra_sign_degree)}°{int((p_pos.sign.intra_sign_degree%1)*60):02d}'",
+                "is_retro": p_pos.is_retrograde,
+                "is_combust": p_pos.is_combust,
+                "is_transit": True,
+            })
 
     # Theme parameters
     if is_dark:
@@ -270,20 +292,23 @@ def generate_south_indian_svg(
         # Ascendant indicator badge
         if is_asc:
             svg_parts.append(
-                f'<rect x="{x + 10}" y="{y + 28}" width="88" height="20" rx="4" '
+                f'<rect x="{x + 10}" y="{y + 28}" width="62" height="20" rx="4" '
                 f'fill="{asc_fill}" stroke="{asc_stroke}" stroke-width="1.2" />'
-                f'<text x="{x + 54}" y="{y + 42}" fill="{asc_text}" font-family="Cinzel, serif" '
-                f'font-size="10" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA {asc_intra_deg_str}</text>'
+                f'<text x="{x + 41}" y="{y + 42}" fill="{asc_text}" font-family="Cinzel, serif" '
+                f'font-size="10" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA</text>'
             )
 
         # Render Planets in this sign
         planets = sign_planets[s_id]
         if planets:
-            p_start_y = y + (54 if is_asc else 40)
-            line_height = 22
+            p_start_y = y + (52 if is_asc else 38)
+            count = len(planets)
+            line_height = 20 if count <= 4 else (16 if count <= 6 else 13.5)
+            font_size = 13 if count <= 4 else (11 if count <= 6 else 9.5)
+            deg_font_size = 12 if count <= 4 else (10.5 if count <= 6 else 9)
 
             for idx, p in enumerate(planets):
-                if idx >= 6:
+                if idx >= 8:
                     break
                 py = p_start_y + (idx * line_height)
                 cx = x + (cell_w / 2.0)
@@ -291,15 +316,17 @@ def generate_south_indian_svg(
                 retro_str = " (R)" if p["is_retro"] else ""
                 comb_str = " [C]" if p["is_combust"] else ""
                 status_flags = f"{retro_str}{comb_str}"
+                is_tr = p.get("is_transit", False)
+                deg_col = transit_color if is_tr else sign_label_color
 
                 svg_parts.append(
                     f'<g class="planet-row cursor-pointer">'
                     f'<text x="{cx - 4}" y="{py}" fill="{p["color"]}" font-family="JetBrains Mono, monospace" '
-                    f'font-size="13" font-weight="800" text-anchor="end" dominant-baseline="central">'
-                    f'{p["short"]} {status_flags}'
+                    f'font-size="{font_size}" font-weight="{"800" if is_tr else "700"}" text-anchor="end" dominant-baseline="central">'
+                    f'{p["short"]}{status_flags}'
                     f'</text>'
-                    f'<text x="{cx + 4}" y="{py}" fill="{sign_label_color}" font-family="JetBrains Mono, monospace" '
-                    f'font-size="12" font-weight="600" text-anchor="start" dominant-baseline="central">'
+                    f'<text x="{cx + 4}" y="{py}" fill="{deg_col}" font-family="JetBrains Mono, monospace" '
+                    f'font-size="{deg_font_size}" font-weight="{"700" if is_tr else "600"}" text-anchor="start" dominant-baseline="central">'
                     f'{p["intra_deg_str"]}'
                     f'</text>'
                     f'</g>'
@@ -318,7 +345,18 @@ def generate_south_indian_svg(
         f'fill="{hud_fill}" stroke="{hud_stroke}" stroke-width="1.5" />'
         f'<rect x="{hud_x+8}" y="{hud_y+8}" width="{hud_w-16}" height="{hud_h-16}" '
         f'fill="none" stroke="{cell_stroke}" stroke-width="1" stroke-dasharray="3,3" />'
-        # Center Content
+    )
+
+    if transit_chart is not None:
+        svg_parts.append(
+            f'<g transform="translate({hud_x + hud_w/2 - 56}, {hud_y + 35})">'
+            f'<rect width="112" height="22" rx="4" fill="{transit_badge_bg}" stroke="{transit_color}" stroke-width="1.2" />'
+            f'<text x="56" y="15" fill="{transit_color}" font-family="Cinzel, serif" font-size="9.5" font-weight="900" text-anchor="middle" letter-spacing="0.5">✦ GOCHAR ON</text>'
+            f'</g>'
+        )
+
+    # Center Content
+    svg_parts.append(
         f'<g text-anchor="middle">'
         f'<text x="{hud_x + hud_w/2}" y="{hud_y + 115}" fill="{hud_title_color}" font-family="Cinzel, serif" '
         f'font-size="20" font-weight="900" letter-spacing="3">{title.upper()}</text>'

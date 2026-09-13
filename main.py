@@ -28,6 +28,7 @@ from core.constants import (
 from core.ephemeris import EphemerisEngine
 from core.geo import GeoResolver, to_utc_datetime
 from engines.ashtakavarga import AshtakavargaEngine
+from engines.gochar import GocharEngine
 from engines.jaimini import JaiminiEngine
 from engines.kp import KPEngine
 from engines.parashari import (
@@ -86,6 +87,7 @@ class ChartCalculationRequest(BaseModel):
     sign_mode: str = Field(default="sanskrit")  # "sanskrit" or "english"
     theme_mode: str = Field(default="light")  # "light" or "dark"
     selected_varga: str = Field(default="D1")
+    show_gochar: bool = Field(default=False)
 
 
 class VargaCalculationRequest(BaseModel):
@@ -157,6 +159,10 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
 
     # Classical Ashtakavarga Evaluation
     ashtakavarga_report = AshtakavargaEngine.evaluate(chart, sign_mode=req.sign_mode)
+
+    # Classical Gochar (Real-Time Planetary Transits) Evaluation
+    gochar_report = GocharEngine.evaluate(chart, ashtakavarga_report, sign_mode=req.sign_mode)
+    transit_overlay = gochar_report.transit_chart if req.show_gochar else None
 
     # 1. Primary Angles Summary
     asc_sign = chart.angles.ascendant_sign
@@ -504,6 +510,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         svg_str = generate_north_indian_svg(
             chart=chart,
             varga_chart=varga_chart,
+            transit_chart=transit_overlay,
             title=varga_title,
             sign_mode=req.sign_mode,
             theme_mode=req.theme_mode,
@@ -512,6 +519,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         svg_str = generate_south_indian_svg(
             chart=chart,
             varga_chart=varga_chart,
+            transit_chart=transit_overlay,
             title=varga_title,
             sign_mode=req.sign_mode,
             theme_mode=req.theme_mode,
@@ -535,6 +543,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "chart_style": req.chart_style,
         "sign_mode": req.sign_mode,
         "theme_mode": req.theme_mode,
+        "show_gochar": req.show_gochar,
         "planets_table": planets_table,
         "planet_details": planet_details,
         "varga_table": varga_table,
@@ -547,6 +556,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "yogas_summary": yogas_report.summary.model_dump(),
         "yogas_list": [y.model_dump() for y in yogas_report.yogas],
         "ashtakavarga": ashtakavarga_report.model_dump(),
+        "gochar": gochar_report.model_dump(),
     }
 
 

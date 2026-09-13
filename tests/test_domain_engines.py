@@ -24,6 +24,7 @@ from engines.parashari import (
     VimshottariDashaEngine,
 )
 from engines.ashtakavarga import AshtakavargaEngine
+from engines.gochar import GocharEngine
 from engines.yogas import YogaDetectorEngine, YogaNature
 from schemas.models import BirthInput, GeoLocationModel
 
@@ -474,6 +475,71 @@ class TestAshtakavargaEngine:
         assert rep_minus_5m.lagna_kaksha.active_kaksha_number == 5
         assert rep_minus_5m.lagna_kaksha.active_kaksha_lord == "Venus"
         assert rep_minus_5m.lagna_kaksha.active_kaksha_lord_sanskrit == "Shukra"
+
+
+# =========================================================================
+# 7. Classical Gochar (Planetary Transits) Engine Tests
+# =========================================================================
+
+class TestGocharEngine:
+    def test_gochar_evaluation(self, reference_chart) -> None:
+        """Validates real-time Gochar evaluation for 9 classical Grahas."""
+        av_report = AshtakavargaEngine.evaluate(reference_chart)
+        gochar_report = GocharEngine.evaluate(reference_chart, av_report)
+
+        assert gochar_report.summary is not None
+        s = gochar_report.summary
+        assert s.transit_utc != ""
+        assert s.transit_date_formatted != ""
+        assert s.natal_moon_sign == "Mithuna"
+        assert s.natal_lagna_sign == "Makara"
+        assert s.benefic_count >= 0
+        assert s.challenging_count >= 0
+        assert s.benefic_count + s.challenging_count == 9  # All 9 classical Grahas (Sun..Ketu)
+
+        # 9 Transits
+        assert len(gochar_report.transits) == 9
+        planet_names = [t.planet for t in gochar_report.transits]
+        for expected in ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]:
+            assert expected in planet_names
+
+        for t in gochar_report.transits:
+            assert 1 <= t.sign_id <= 12
+            assert 1 <= t.house_from_lagna <= 12
+            assert 1 <= t.house_from_moon <= 12
+            assert t.sav_bindus > 0
+            assert t.kaksha_lord != ""
+            assert t.transit_phala != ""
+            assert t.glyph != ""
+
+        # Transit chart is populated
+        assert gochar_report.transit_chart is not None
+        assert len(gochar_report.transit_chart.planets) >= 9
+
+    def test_gochar_deterministic_positions(self, reference_chart) -> None:
+        """Validates Gochar calculations for a fixed historic transit date."""
+        av_report = AshtakavargaEngine.evaluate(reference_chart)
+        fixed_dt = datetime(2024, 6, 1, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
+        gochar_report = GocharEngine.evaluate(reference_chart, av_report, transit_dt=fixed_dt)
+
+        # On 2024-06-01:
+        # Jupiter was in Taurus (Vrishabha, sign 2)
+        # Saturn was in Aquarius (Kumbha, sign 11)
+        # Rahu was in Pisces (Meena, sign 12)
+        transits_by_planet = {t.planet: t for t in gochar_report.transits}
+
+        assert transits_by_planet["Jupiter"].sign_id == 2  # Taurus
+        assert transits_by_planet["Jupiter"].sign_sanskrit == "Vrishabha"
+        # From natal Moon (Mithuna, sign 3): Taurus is house 12
+        assert transits_by_planet["Jupiter"].house_from_moon == 12
+
+        assert transits_by_planet["Saturn"].sign_id == 11  # Aquarius
+        assert transits_by_planet["Saturn"].sign_sanskrit == "Kumbha"
+        # From natal Moon (sign 3): Aquarius is house 9
+        assert transits_by_planet["Saturn"].house_from_moon == 9
+        # House 9 Saturn is challenging per Phaladeepika (benefic in 3, 6, 11)
+        assert transits_by_planet["Saturn"].is_benefic_from_moon is False
+
 
 
 

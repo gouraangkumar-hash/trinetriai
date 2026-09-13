@@ -28,6 +28,7 @@ const state = {
   active_tab: "kundali",
   active_yoga_filter: "all",
   selected_bav_planet: "Jupiter",
+  show_gochar: false,
   currentData: null,
 };
 
@@ -85,6 +86,7 @@ async function calculateChart() {
     sign_mode: state.sign_mode,
     theme_mode: state.theme_mode,
     selected_varga: state.selected_varga,
+    show_gochar: state.show_gochar,
   };
 
   try {
@@ -139,6 +141,7 @@ async function selectVarga(varga) {
       sign_mode: state.sign_mode,
       theme_mode: state.theme_mode,
       selected_varga: varga,
+      show_gochar: state.show_gochar,
     },
   };
 
@@ -205,6 +208,7 @@ function renderAll() {
   renderAngles();
   renderActiveDashaStrip();
   renderYogasOverviewStrip();
+  renderGocharWorkspace();
   renderPlanetsTable();
   renderTelemetry();
   renderVargasWorkspace();
@@ -1205,6 +1209,111 @@ function closeBirthModal() {
 }
 
 // =============================================================================
+// Classical Gochar (Real-Time Transits) Workspace
+// =============================================================================
+
+function updateGocharButtonStates() {
+  const btns = document.querySelectorAll(".gochar-pill");
+  btns.forEach((btn) => {
+    btn.classList.toggle("active", state.show_gochar);
+    btn.innerHTML = state.show_gochar ? "✦ Gochar ON" : "✦ Gochar";
+  });
+}
+
+function renderGocharWorkspace() {
+  const d = state.currentData;
+  if (!d || !d.gochar) return;
+  const g = d.gochar;
+  const s = g.summary;
+
+  // Sync button states
+  updateGocharButtonStates();
+
+  // Summary score badges
+  const scoreBadge = document.getElementById("gochar-score-badge");
+  if (scoreBadge) {
+    scoreBadge.innerHTML = `<span style="color: #059669; font-weight: 700;">${s.benefic_count} Benefic</span> &bull; <span style="color: #DC2626; font-weight: 700;">${s.challenging_count} Challenging</span>`;
+  }
+
+  const timeBadge = document.getElementById("gochar-timestamp-badge");
+  if (timeBadge) {
+    timeBadge.textContent = `${s.transit_date_formatted} (UTC)`;
+  }
+
+  // Quick alert pills
+  const sadeVal = document.getElementById("gochar-sade-sati-val");
+  if (sadeVal) {
+    sadeVal.textContent = s.sade_sati_phase;
+    const isNone = s.sade_sati_phase.toLowerCase().includes("none") || s.sade_sati_phase.toLowerCase().includes("no ");
+    sadeVal.className = "gochar-pill-val " + (isNone ? "val-good" : "val-warning");
+  }
+
+  const guruVal = document.getElementById("gochar-guru-val");
+  if (guruVal) {
+    guruVal.textContent = s.guru_gochar_summary;
+    guruVal.className = "gochar-pill-val val-benefic";
+  }
+
+  const nodesVal = document.getElementById("gochar-nodes-val");
+  if (nodesVal) {
+    nodesVal.textContent = s.rahu_ketu_summary;
+    nodesVal.className = "gochar-pill-val val-neutral";
+  }
+
+  const chandraVal = document.getElementById("gochar-chandra-val");
+  if (chandraVal) {
+    chandraVal.textContent = s.is_chandrashtama ? "ACTIVE (Moon in 8th)" : "Clear (No Chandrashtama)";
+    chandraVal.className = "gochar-pill-val " + (s.is_chandrashtama ? "val-danger" : "val-good");
+  }
+
+  // Render 9 Graha Transit Table
+  const tbody = document.getElementById("gochar-table-body");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  (g.transits || []).forEach((t) => {
+    const tr = document.createElement("tr");
+
+    // Status badge class
+    const isBenefic = t.is_benefic_from_moon;
+    const badgeClass = isBenefic ? "gochar-badge-benefic" : "gochar-badge-malefic";
+    const statusText = isBenefic ? "Auspicious" : "Challenging";
+
+    // SAV bindu color
+    const savColorClass = t.sav_bindus >= 28 ? "gochar-sav-good" : "gochar-sav-low";
+
+    // Retro indicator
+    const motionStr = t.is_retrograde ? '<span class="retro-badge" title="Retrograde">R</span>' : '<span style="color: var(--text-muted); font-size: 0.75rem;">Dir</span>';
+
+    // Combust indicator
+    const combustStr = t.is_combust ? ' <span class="combust-badge" title="Combust with Sun">🔥</span>' : '';
+
+    const signDisplayName = state.sign_mode === "english" ? t.sign_name : t.sign_sanskrit;
+
+    tr.innerHTML = `
+      <td>
+        <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 600;">
+          <span style="font-size: 1.05rem;">${t.glyph}</span>
+          <span>${t.planet}</span>
+          ${motionStr}
+          ${combustStr}
+        </div>
+      </td>
+      <td><strong>${signDisplayName}</strong></td>
+      <td style="font-family: var(--font-mono); font-size: 0.85rem;">${t.degree_formatted}</td>
+      <td>${t.nakshatra} <span style="color: var(--text-muted); font-size: 0.75rem;">(P${t.pada})</span></td>
+      <td style="font-weight: 600;">H${t.house_from_lagna}</td>
+      <td style="font-weight: 600;">H${t.house_from_moon}</td>
+      <td><span class="gochar-status-badge ${badgeClass}">${statusText}</span></td>
+      <td><span class="${savColorClass}" style="font-family: var(--font-mono); font-weight: 700;">${t.sav_bindus}</span> <span style="font-size: 0.75rem; color: var(--text-muted);">(BAV: ${t.bav_bindus})</span></td>
+      <td><span style="font-weight: 600;">${t.kaksha_lord}</span> <span style="font-size: 0.75rem; color: var(--text-muted);">(K${t.kaksha_number})</span></td>
+      <td style="font-size: 0.825rem; color: var(--text-secondary); max-width: 260px;">${t.transit_phala}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// =============================================================================
 // Event Listeners & Bootstrapping
 // =============================================================================
 
@@ -1240,6 +1349,15 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (tabId === "ashtakavarga") {
         renderAshtakavargaWorkspace();
       }
+    });
+  });
+
+  // 1b. Gochar (Real-Time Transit) Toggle Buttons
+  document.querySelectorAll(".gochar-pill").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.show_gochar = !state.show_gochar;
+      updateGocharButtonStates();
+      calculateChart();
     });
   });
 

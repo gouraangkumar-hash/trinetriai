@@ -63,6 +63,7 @@ HOUSE_CONFIG = {
 def generate_north_indian_svg(
     chart: UnifiedChartData,
     varga_chart: Optional[VargaChart] = None,
+    transit_chart: Optional[UnifiedChartData] = None,
     title: str = "D1 Rashi Chart",
     width: int = 800,
     height: int = 800,
@@ -166,6 +167,30 @@ def generate_north_indian_svg(
         "sign_name": asc_sign_name,
     })
 
+    # 3b. Overlay Transit Planets if Gochar is enabled
+    transit_color = "#059669" if not is_dark else "#34D399"
+    transit_badge_bg = "#064E3B" if is_dark else "#ECFDF5"
+    if transit_chart is not None:
+        for p_name, p_pos in transit_chart.planets.items():
+            if p_name in (PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO):
+                continue
+            h_num = sign_to_house[p_pos.sign.id]
+            t_theme = palette.get(p_name, {"glyph": "", "short": p_name.value[:2]})
+            house_planets[h_num].append({
+                "name": f"{p_name.value} (Transit)",
+                "glyph": t_theme["glyph"],
+                "short": f"{t_theme['short']}(T)",
+                "color": transit_color,
+                "intra_deg_dms": p_pos.sign.dms.formatted,
+                "intra_deg_str": f"{int(p_pos.sign.intra_sign_degree)}°{int((p_pos.sign.intra_sign_degree % 1) * 60):02d}'",
+                "is_retro": p_pos.is_retrograde,
+                "is_combust": p_pos.is_combust,
+                "is_transit": True,
+                "nak_name": "",
+                "pada": 0,
+                "sign_name": p_pos.sign.sanskrit_name,
+            })
+
     # Theme-specific color parameters (Warm Ivory vs Deep Espresso)
     if is_dark:
         bg_fill = "url(#espressoBg)"
@@ -258,9 +283,18 @@ def generate_north_indian_svg(
         f'<line x1="200" y1="600" x2="200" y2="200" stroke="{guide_stroke1}" stroke-width="1.2" stroke-dasharray="3,3" />',
 
         # Center subtle crosshair guides
-        f'<line x1="400" y1="360" x2="400" y2="440" stroke="{guide_stroke2}" stroke-width="1" stroke-dasharray="2,2" />',
-        f'<line x1="360" y1="400" x2="440" y2="400" stroke="{guide_stroke2}" stroke-width="1" stroke-dasharray="2,2" />',
+        f'<line x1="400" y1="370" x2="400" y2="430" stroke="{guide_stroke2}" stroke-width="1" stroke-dasharray="2,2" />',
+        f'<line x1="370" y1="400" x2="430" y2="400" stroke="{guide_stroke2}" stroke-width="1" stroke-dasharray="2,2" />',
     ]
+
+    # Gochar Active Indicator Badge
+    if transit_chart is not None:
+        svg_parts.append(
+            f'<g transform="translate(24, 24)">'
+            f'<rect width="112" height="22" rx="4" fill="{transit_badge_bg}" stroke="{transit_color}" stroke-width="1.2" />'
+            f'<text x="56" y="15" fill="{transit_color}" font-family="Cinzel, serif" font-size="9.5" font-weight="900" text-anchor="middle" letter-spacing="0.6">✦ GOCHAR ON</text>'
+            f'</g>'
+        )
 
     # 5. Render House Numbers and Ascendant / Lagna Badge
     for h_num in range(1, 13):
@@ -270,10 +304,10 @@ def generate_north_indian_svg(
         # If House 1, render subtle luxury Lagna badge
         if h_num == 1:
             svg_parts.append(
-                f'<rect x="342" y="347" width="116" height="26" rx="6" '
+                f'<rect x="358" y="347" width="84" height="24" rx="5" '
                 f'fill="{lagna_bg}" stroke="{lagna_stroke}" stroke-width="1.2" />'
-                f'<text x="400" y="364" fill="{lagna_text}" font-family="Cinzel, serif" '
-                f'font-size="11.5" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA {sign_id} • {asc_intra_deg_str}</text>'
+                f'<text x="400" y="363" fill="{lagna_text}" font-family="Cinzel, serif" '
+                f'font-size="11" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA {sign_id}</text>'
             )
         else:
             svg_parts.append(
@@ -288,7 +322,9 @@ def generate_north_indian_svg(
 
         cx, cy = HOUSE_CONFIG[h_num]["center"]
         count = len(planets)
-        line_height = 25
+        line_height = 24 if count <= 4 else (19 if count <= 6 else 15.5)
+        font_size = 14 if count <= 4 else (12 if count <= 6 else 10.5)
+        deg_font_size = 13 if count <= 4 else (11 if count <= 6 else 9.5)
         start_y = cy - ((count - 1) * line_height / 2.0)
 
         for idx, p in enumerate(planets):
@@ -297,16 +333,18 @@ def generate_north_indian_svg(
             retro_str = " (R)" if p["is_retro"] else ""
             comb_str = " [C]" if p["is_combust"] else ""
             status_flags = f"{retro_str}{comb_str}"
+            is_tr = p.get("is_transit", False)
+            deg_col = transit_color if is_tr else sign_color
 
             # Left/Right 2-column formatting per line
             svg_parts.append(
                 f'<g class="planet-row cursor-pointer">'
-                f'<text x="{cx - 6}" y="{py}" fill="{p["color"]}" font-family="JetBrains Mono, monospace" '
-                f'font-size="14" font-weight="800" text-anchor="end" dominant-baseline="central">'
-                f'{p["short"]} {status_flags}'
+                f'<text x="{cx - 5}" y="{py}" fill="{p["color"]}" font-family="JetBrains Mono, monospace" '
+                f'font-size="{font_size}" font-weight="{"800" if is_tr else "700"}" text-anchor="end" dominant-baseline="central">'
+                f'{p["short"]}{status_flags}'
                 f'</text>'
-                f'<text x="{cx + 6}" y="{py}" fill="{sign_color}" font-family="JetBrains Mono, monospace" '
-                f'font-size="13" font-weight="600" text-anchor="start" dominant-baseline="central">'
+                f'<text x="{cx + 5}" y="{py}" fill="{deg_col}" font-family="JetBrains Mono, monospace" '
+                f'font-size="{deg_font_size}" font-weight="{"700" if is_tr else "600"}" text-anchor="start" dominant-baseline="central">'
                 f'{p["intra_deg_str"]}'
                 f'</text>'
                 f'</g>'

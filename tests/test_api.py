@@ -83,6 +83,40 @@ def test_calculate_endpoint_default():
     assert "<svg" in data["sav_chart_svg"]
     assert "SARVASHTAKAVARGA" in data["sav_chart_svg"]
 
+    # Verify Lagna box has clean "LAGNA 10" with degrees removed (as "As" already displays degrees)
+    assert "LAGNA 10" in data["chart_svg"]
+    assert "LAGNA 10 • 19°" not in data["chart_svg"]
+
+
+def test_calculate_endpoint_gochar_toggle():
+    """Test POST /api/calculate with show_gochar=True generates Gochar report and overlay."""
+    payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+        "show_gochar": True,
+    }
+    response = client.post("/api/calculate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["show_gochar"] is True
+    assert "gochar" in data
+    assert "summary" in data["gochar"]
+    assert len(data["gochar"]["transits"]) == 9
+    assert data["gochar"]["summary"]["benefic_count"] + data["gochar"]["summary"]["challenging_count"] == 9
+
+    # Chart SVG must contain the active Gochar overlay badge and transit planet indicators
+    svg = data["chart_svg"]
+    assert "GOCHAR ON" in svg
+    assert "(T)" in svg
+
 
 
 
@@ -233,7 +267,10 @@ def test_frontend_markup_and_scripts():
     assert "sav-chart-subtitle" in html
     assert "av-kaksha-card" in html
     assert "scrub-minus-5m" in html
-    assert "scrub-plus-5m" in html
+    # Check Gochar controls and intelligence card
+    assert "gochar-toggle-btn" in html
+    assert "gochar-card" in html
+    assert "gochar-table" in html
 
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200
@@ -245,6 +282,9 @@ def test_frontend_markup_and_scripts():
     assert "pd-panel-row" in css
     assert ".kaksha-grid" in css
     assert ".kaksha-cell" in css
+    assert ".gochar-pill" in css
+    assert ".gochar-card" in css
+    assert ".gochar-badge-benefic" in css
 
     js_res = client.get("/static/js/app.js")
     assert js_res.status_code == 200
@@ -259,5 +299,7 @@ def test_frontend_markup_and_scripts():
     assert "window.toggleMahadashaCard" in js
     assert "scrub-minus-5m" in js
     assert "scrub-plus-5m" in js
+    assert "updateGocharButtonStates" in js
+    assert "renderGocharWorkspace" in js
 
 

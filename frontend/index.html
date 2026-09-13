@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.2.4">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.2.5">
 </head>
 <body>
 
@@ -82,7 +82,8 @@
         <div class="overview-chart-col">
           <div class="chart-header-bar">
             <span id="kundali-chart-title" class="card-title">D1 RASHI CHART</span>
-            <div style="display: flex; gap: 0.35rem;">
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <button id="gochar-toggle-btn" class="action-pill gochar-pill" title="Toggle Real-Time Planetary Transit (Gochar) Overlay">✦ Gochar</button>
               <button class="action-pill quick-varga-pill active" data-varga="D1">D1</button>
               <button class="action-pill quick-varga-pill" data-varga="D9">D9</button>
               <button class="action-pill quick-varga-pill" data-varga="D10">D10</button>
@@ -158,6 +159,67 @@
         </span>
       </div>
 
+      <!-- Real-Time Gochar (Transits) Intelligence Card -->
+      <div id="gochar-card" class="card gochar-card" style="margin-bottom: 1.5rem;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <span class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="color: #059669; font-size: 1.1rem;">✦</span> Real-Time Gochar (Planetary Transits)
+            </span>
+            <span id="gochar-subtitle" style="font-size: 0.8rem; color: var(--text-muted);">
+              Phaladeepika Ch. 26 & Ashtakavarga Real-Time Transit Intelligence
+            </span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <span id="gochar-score-badge" class="gochar-score-badge">Calculating...</span>
+            <span id="gochar-timestamp-badge" class="badge badge-subtle">-</span>
+          </div>
+        </div>
+
+        <!-- Quick Transit Intelligence Strips -->
+        <div class="gochar-alerts-grid" id="gochar-alerts-strip">
+          <div class="gochar-alert-pill" id="gochar-sade-sati-pill">
+            <span class="gochar-pill-label">Saturn / Shani:</span>
+            <span id="gochar-sade-sati-val" class="gochar-pill-val">-</span>
+          </div>
+          <div class="gochar-alert-pill" id="gochar-guru-pill">
+            <span class="gochar-pill-label">Jupiter / Guru:</span>
+            <span id="gochar-guru-val" class="gochar-pill-val">-</span>
+          </div>
+          <div class="gochar-alert-pill" id="gochar-nodes-pill">
+            <span class="gochar-pill-label">Rahu-Ketu Axis:</span>
+            <span id="gochar-nodes-val" class="gochar-pill-val">-</span>
+          </div>
+          <div class="gochar-alert-pill" id="gochar-chandra-pill">
+            <span class="gochar-pill-label">Chandrashtama:</span>
+            <span id="gochar-chandra-val" class="gochar-pill-val">-</span>
+          </div>
+        </div>
+
+        <!-- 9 Graha Transit Matrix Table -->
+        <div class="table-responsive" style="margin-top: 1rem;">
+          <table class="studio-table gochar-table">
+            <thead>
+              <tr>
+                <th>Graha</th>
+                <th>Transit Sign</th>
+                <th>Degree</th>
+                <th>Nakshatra</th>
+                <th>From Lagna</th>
+                <th>From Moon</th>
+                <th>Phaladeepika</th>
+                <th>SAV Bindus</th>
+                <th>Kaksha Lord</th>
+                <th>Classical Phala</th>
+              </tr>
+            </thead>
+            <tbody id="gochar-table-body">
+              <!-- Rendered via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Planetary Positions & Sub-Lords Table Card -->
       <div class="card">
         <div class="card-header">
@@ -219,7 +281,10 @@
       <div class="chart-stage-container">
         <div class="chart-header-bar">
           <span id="varga-chart-title" class="card-title">D1 NATAL RASHI CHART</span>
-          <span style="font-size: 0.8rem; color: var(--text-muted);">BPHS Harmonic Division</span>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button id="gochar-varga-toggle-btn" class="action-pill gochar-pill" title="Toggle Real-Time Planetary Transit (Gochar) Overlay">✦ Gochar</button>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">BPHS Harmonic Division</span>
+          </div>
         </div>
         <div class="chart-stage-wrapper">
           <div id="varga-chart-svg" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
@@ -813,6 +878,6 @@
   </footer>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=2.2.4"></script>
+  <script src="/static/js/app.js?v=2.2.5"></script>
 </body>
 </html>

@@ -27,6 +27,7 @@ from core.constants import (
 )
 from core.ephemeris import EphemerisEngine
 from core.geo import GeoResolver, to_utc_datetime
+from engines.aspects import AspectsEngine
 from engines.ashtakavarga import AshtakavargaEngine
 from engines.gochar import GocharEngine
 from engines.jaimini import JaiminiEngine
@@ -164,6 +165,9 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     gochar_report = GocharEngine.evaluate(chart, ashtakavarga_report, sign_mode=req.sign_mode)
     transit_overlay = gochar_report.transit_chart if req.show_gochar else None
 
+    # Classical Parashari Planetary Aspects (Graha Drishti)
+    aspects_report = AspectsEngine.evaluate(chart, sign_mode=req.sign_mode)
+
     # 1. Primary Angles Summary
     asc_sign = chart.angles.ascendant_sign
     asc_nak = chart.angles.ascendant_nakshatra
@@ -243,6 +247,16 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         d9_sign_name = ZODIAC_SIGNS[d9_placement.sign_id]["english_name"] if req.sign_mode == "english" else d9_placement.sign_name
         vargottama_status = f"Vargottama (D1 & D9 in {s_name})" if is_vargottama else f"No (D9 in {d9_sign_name})"
 
+        graha_aspect = aspects_report.planets_aspects.get(p_name.value)
+        drishti_badges = graha_aspect.summary_badges if graha_aspect else []
+        aspects_cast_list = [c.model_dump() for c in graha_aspect.aspects_cast] if graha_aspect else []
+        aspects_received_list = [r.model_dump() for r in graha_aspect.aspects_received] if graha_aspect else []
+        mutuals_list = graha_aspect.mutual_aspects if graha_aspect else []
+        conjunctions_list = graha_aspect.conjunctions if graha_aspect else []
+        ray_color_light = graha_aspect.ray_color_light if graha_aspect else "#B45309"
+        ray_color_dark = graha_aspect.ray_color_dark if graha_aspect else "#FBBF24"
+        natal_house = graha_aspect.natal_house if graha_aspect else 1
+
         p_dict = {
             "planet": p_name.value,
             "sign": s_name,
@@ -265,6 +279,14 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             "vargottama_status": vargottama_status,
             "d9_sign": d9_sign_name,
             "d9_degree": d9_placement.dms.formatted,
+            "natal_house": natal_house,
+            "drishti_badges": drishti_badges,
+            "aspects_cast": aspects_cast_list,
+            "aspects_received": aspects_received_list,
+            "mutual_aspects": mutuals_list,
+            "conjunctions": conjunctions_list,
+            "ray_color_light": ray_color_light,
+            "ray_color_dark": ray_color_dark,
         }
         planets_table.append(p_dict)
         planet_details[p_name.value] = p_dict
@@ -302,6 +324,14 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "vargottama_status": asc_vargottama_status,
         "d9_sign": asc_d9_sign_name,
         "d9_degree": asc_d9.dms.formatted,
+        "natal_house": 1,
+        "drishti_badges": [],
+        "aspects_cast": [],
+        "aspects_received": [],
+        "mutual_aspects": [],
+        "conjunctions": [],
+        "ray_color_light": "#B45309",
+        "ray_color_dark": "#FBBF24",
     }
     planets_table.insert(0, asc_dict)
     planet_details["Ascendant (Lagna)"] = asc_dict
@@ -557,6 +587,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "yogas_list": [y.model_dump() for y in yogas_report.yogas],
         "ashtakavarga": ashtakavarga_report.model_dump(),
         "gochar": gochar_report.model_dump(),
+        "aspects": aspects_report.model_dump(),
     }
 
 

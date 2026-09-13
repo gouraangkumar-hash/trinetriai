@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/static/favicon.png?v=2.2.7">
   <link rel="apple-touch-icon" href="/static/favicon.png?v=2.2.7">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.2.7">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.2.8">
 </head>
 <body>
 
@@ -85,7 +85,8 @@
         <div class="overview-chart-col">
           <div class="chart-header-bar">
             <span id="kundali-chart-title" class="card-title">D1 RASHI CHART</span>
-            <div style="display: flex; gap: 0.35rem; align-items: center;">
+            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+              <button id="clear-rays-btn" class="action-pill" style="display: none; background: rgba(185, 28, 28, 0.12); color: #B91C1C; border-color: rgba(185, 28, 28, 0.3); font-weight: 700;" onclick="clearAspectRays()" title="Clear active aspect rays">✕ Clear Rays (<span id="active-rays-planet-label">-</span>)</button>
               <button id="gochar-toggle-btn" class="action-pill gochar-pill" title="Toggle Real-Time Planetary Transit (Gochar) Overlay">✦ Gochar</button>
               <button class="action-pill quick-varga-pill active" data-varga="D1">D1</button>
               <button class="action-pill quick-varga-pill" data-varga="D9">D9</button>
@@ -237,6 +238,7 @@
                 <th>Sign</th>
                 <th>Degree</th>
                 <th>Nakshatra</th>
+                <th>Drishti Cast</th>
                 <th>Star Lord</th>
                 <th>Sub Lord</th>
                 <th>Sub-Sub Lord</th>
@@ -248,6 +250,31 @@
               <!-- Rendered via app.js -->
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- 12 Bhavas (House) Aspect Influences & Mutual Drishti Collapsible Card -->
+      <div class="card" id="bhava-aspects-card" style="margin-top: 1.5rem;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleBhavaAspectsCard()">
+          <div>
+            <span class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="color: var(--accent-primary);">✦</span> 12 Bhavas (House) Drishti Influences & Mutual Aspects
+            </span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Comprehensive Parashari House Illuminations and Reciprocal Planetary Aspects</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span id="bhava-aspects-toggle-icon" style="font-size: 0.9rem; color: var(--text-muted); transition: transform 0.2s;">▼</span>
+          </div>
+        </div>
+        <div id="bhava-aspects-content" style="display: block; margin-top: 1rem;">
+          <!-- Mutual Aspects & Conjunctions Banner -->
+          <div id="mutual-aspects-strip" class="mutual-aspects-container" style="margin-bottom: 1.25rem;">
+            <!-- Rendered via app.js -->
+          </div>
+          <!-- 12 Houses Grid -->
+          <div class="bhava-grid" id="bhava-aspects-grid">
+            <!-- Rendered via app.js -->
+          </div>
         </div>
       </div>
 
@@ -760,6 +787,25 @@
             </div>
           </div>
         </div>
+
+        <!-- Parashari Graha Drishti (Aspects) -->
+        <div id="drawer-aspects-section">
+          <h4 class="drawer-section-title">Parashari Graha Drishti (Aspects)</h4>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div class="drawer-field-box" style="width: 100%;">
+              <span class="drawer-field-label">Houses & Grahas Aspected</span>
+              <div id="drawer-aspects-cast" style="margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.4rem;">-</div>
+            </div>
+            <div class="drawer-field-box" style="width: 100%;">
+              <span class="drawer-field-label">Aspects Received (Aspecting Grahas)</span>
+              <div id="drawer-aspects-received" style="margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">-</div>
+            </div>
+            <div class="drawer-field-box" style="width: 100%;">
+              <span class="drawer-field-label">Mutual Aspects & Conjunctions</span>
+              <div id="drawer-mutual-conjunctions" style="margin-top: 0.35rem; font-size: 0.825rem; line-height: 1.4;">-</div>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
   </div>
@@ -884,6 +930,6 @@
   </footer>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=2.2.7"></script>
+  <script src="/static/js/app.js?v=2.2.8"></script>
 </body>
 </html>

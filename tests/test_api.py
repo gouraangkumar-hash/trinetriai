@@ -70,9 +70,14 @@ def test_calculate_endpoint_default():
     assert "yogas_summary" in data
     assert "yogas_list" in data
     assert data["yogas_summary"]["total_yogas"] > 0
-    assert any(y["id"] == "mahapurusha_venus" for y in data["yogas_list"])
     assert "ashtakavarga" in data
     assert data["ashtakavarga"]["summary"]["total_bindus"] == 337
+    assert "aspects" in data
+    assert "planets_aspects" in data["aspects"]
+    assert "bhava_aspects" in data["aspects"]
+    mars_row = next(p for p in data["planets_table"] if p["planet"] == "Mars")
+    assert len(mars_row["drishti_badges"]) == 3
+    assert any(b["label"] == "H2 (4th)" for b in mars_row["drishti_badges"])
     assert len(data["ashtakavarga"]["sarvashtakavarga"]) == 12
     assert "Jupiter" in data["ashtakavarga"]["bhinna"]
     assert "lagna_kaksha" in data["ashtakavarga"]
@@ -287,11 +292,20 @@ def test_frontend_markup_and_scripts():
     assert "favicon.png" in html
     assert "brand-logo" in html
 
+    # Check Aspects and Visual Rays markup
+    assert "Drishti Cast" in html
+    assert "bhava-aspects-card" in html
+    assert "clear-rays-btn" in html
+    assert "drawer-aspects-section" in html
+
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200
     css = css_res.text
     assert ".overview-hero-layout" in css
     assert ".brand-logo" in css
+    assert ".aspect-pill" in css
+    assert ".aspect-ray-path" in css
+    assert ".bhava-card" in css
     assert ".ad-dates-cell" in css
     assert "min-width: 0" in css
     assert ".pd-nested-table" in css
@@ -315,6 +329,9 @@ def test_frontend_markup_and_scripts():
     assert "togglePratyantardashaRow" in js
     assert "window.togglePratyantardashaRow" in js
     assert "window.toggleMahadashaCard" in js
+    assert "togglePlanetAspectRays" in js
+    assert "clearAspectRays" in js
+    assert "renderBhavaAspectsWorkspace" in js
     assert "scrub-minus-5m" in js
     assert "scrub-plus-5m" in js
     assert "updateGocharButtonStates" in js

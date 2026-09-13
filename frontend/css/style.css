@@ -2008,6 +2008,246 @@ input, select {
 }
 
 /* =============================================================================
+   Planetary Aspects & Visual Rays
+   ============================================================================= */
+.aspect-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  min-width: 140px;
+}
+
+.aspect-pill {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.aspect-pill:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.aspect-pill.special {
+  background-color: rgba(180, 83, 9, 0.09);
+  border-color: rgba(180, 83, 9, 0.28);
+  color: #B45309;
+}
+
+[data-theme="dark"] .aspect-pill.special {
+  background-color: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #FBBF24;
+}
+
+.aspect-rays-btn {
+  font-size: 0.72rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.aspect-rays-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.aspect-rays-btn.active {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--text-inverse);
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(180, 83, 9, 0.35);
+}
+
+tr.active-ray-row {
+  background-color: rgba(180, 83, 9, 0.08) !important;
+  box-shadow: inset 3px 0 0 var(--accent-primary);
+}
+
+[data-theme="dark"] tr.active-ray-row {
+  background-color: rgba(251, 191, 36, 0.1) !important;
+  box-shadow: inset 3px 0 0 var(--accent-primary);
+}
+
+/* Dynamic SVG Ray Animation */
+.aspect-ray-path {
+  stroke-dasharray: 6 4;
+  animation: rayDashAnim 1.2s linear infinite;
+}
+
+@keyframes rayDashAnim {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.aspect-target-glow {
+  animation: targetGlowPulse 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes targetGlowPulse {
+  0% {
+    opacity: 0.4;
+    stroke-width: 2px;
+  }
+  100% {
+    opacity: 0.9;
+    stroke-width: 4.5px;
+  }
+}
+
+/* 12 Bhavas Aspect Influences Matrix */
+.bhava-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.85rem;
+}
+
+.bhava-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-elevated);
+  padding: 0.85rem 1rem;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bhava-card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.bhava-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.4rem;
+}
+
+.bhava-title {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.bhava-meta {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+}
+
+.bhava-badge {
+  font-size: 0.675rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bhava-badge-benefic {
+  background-color: rgba(5, 150, 105, 0.12);
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+.bhava-badge-malefic {
+  background-color: rgba(220, 38, 38, 0.12);
+  color: #DC2626;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+.bhava-badge-mixed {
+  background-color: rgba(217, 119, 6, 0.12);
+  color: #D97706;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.bhava-badge-neutral {
+  background-color: rgba(107, 114, 128, 0.12);
+  color: #6B7280;
+  border: 1px solid rgba(107, 114, 128, 0.25);
+}
+
+.bhava-aspect-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.bhava-aspect-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.bhava-aspect-tag.benefic {
+  color: #059669;
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.bhava-aspect-tag.malefic {
+  color: #DC2626;
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+[data-theme="dark"] .bhava-aspect-tag.benefic {
+  color: #34D399;
+}
+
+[data-theme="dark"] .bhava-aspect-tag.malefic {
+  color: #F87171;
+}
+
+.mutual-aspects-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-elevated);
+  border: 1px dashed var(--border-subtle);
+}
+
+.mutual-aspect-pill {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: rgba(180, 83, 9, 0.08);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  color: var(--accent-primary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* =============================================================================
    Footer
    ============================================================================= */
 .footer-bar {

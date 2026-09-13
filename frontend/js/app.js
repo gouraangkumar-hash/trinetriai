@@ -29,6 +29,7 @@ const state = {
   active_yoga_filter: "all",
   selected_bav_planet: "Jupiter",
   show_gochar: false,
+  activeRayPlanet: null,
   currentData: null,
 };
 
@@ -61,6 +62,36 @@ const KARAKA_DESCRIPTIONS = {
   PK: "Putrakaraka — Children, creative intelligence, and disciples",
   GK: "Gnatikaraka — Obstacles, competition, and ancestral debt",
   DK: "Darakaraka — Spouse, life partner, and worldly partnerships",
+};
+
+const NORTH_HOUSE_CENTERS = {
+  1:  { x: 400, y: 185 },
+  2:  { x: 200, y: 80 },
+  3:  { x: 80,  y: 200 },
+  4:  { x: 195, y: 400 },
+  5:  { x: 80,  y: 600 },
+  6:  { x: 200, y: 720 },
+  7:  { x: 400, y: 615 },
+  8:  { x: 600, y: 720 },
+  9:  { x: 720, y: 600 },
+  10: { x: 605, y: 400 },
+  11: { x: 720, y: 200 },
+  12: { x: 600, y: 80 },
+};
+
+const SOUTH_SIGN_GRID = {
+  12: { col: 0, row: 0 },
+  1:  { col: 1, row: 0 },
+  2:  { col: 2, row: 0 },
+  3:  { col: 3, row: 0 },
+  4:  { col: 3, row: 1 },
+  5:  { col: 3, row: 2 },
+  6:  { col: 3, row: 3 },
+  7:  { col: 2, row: 3 },
+  8:  { col: 1, row: 3 },
+  9:  { col: 0, row: 3 },
+  10: { col: 0, row: 2 },
+  11: { col: 0, row: 1 },
 };
 
 // =============================================================================
@@ -210,6 +241,7 @@ function renderAll() {
   renderYogasOverviewStrip();
   renderGocharWorkspace();
   renderPlanetsTable();
+  renderBhavaAspectsWorkspace();
   renderTelemetry();
   renderVargasWorkspace();
   renderDashasWorkspace();
@@ -257,6 +289,9 @@ function renderKundaliChart() {
   const svgContainer = document.getElementById("main-chart-svg");
   if (svgContainer) {
     svgContainer.innerHTML = d.chart_svg;
+    if (state.activeRayPlanet) {
+      renderAspectRays(state.activeRayPlanet);
+    }
   }
 
   const titleEl = document.getElementById("kundali-chart-title");
@@ -334,18 +369,53 @@ function renderPlanetsTable() {
         ? `<span class="status-badge active" style="font-size: 0.625rem; padding: 0.1rem 0.35rem; margin-left: 0.35rem; vertical-align: middle;" title="Vargottama: Same sign in D1 & D9">Vargottama</span>`
         : "";
 
+      // Drishti Cast Pills
+      let drishtiHtml = `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`;
+      if (p.drishti_badges && p.drishti_badges.length > 0) {
+        drishtiHtml = `
+          <div class="aspect-pills-wrap">
+            ${p.drishti_badges.map(b => `
+              <span class="aspect-pill ${b.is_special ? 'special' : ''}" 
+                    title="${b.title}" 
+                    onclick="togglePlanetAspectRays('${p.planet}', event)">
+                ${b.label}
+              </span>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      // Action Buttons
+      const isRayActive = (state.activeRayPlanet === p.planet);
+      const isAscendant = p.planet.includes("Ascendant");
+      const raysBtnHtml = !isAscendant ? `
+        <button class="action-pill aspect-rays-btn ${isRayActive ? 'active' : ''}" 
+                id="rays-btn-${p.planet}" 
+                onclick="togglePlanetAspectRays('${p.planet}', event)" 
+                title="Toggle visual aspect rays on Kundali chart">
+          ✦ Rays
+        </button>
+      ` : "";
+
+      const rowClass = isRayActive ? 'active-ray-row' : '';
+      const rowId = `planet-row-${p.planet.replace(/[^a-zA-Z0-9]/g, '')}`;
+
       return `
-        <tr>
+        <tr class="${rowClass}" id="${rowId}">
           <td><strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> ${p.planet}${vargottamaTag}</td>
           <td>${p.sign}</td>
           <td style="font-family: var(--font-mono);">${p.degree}</td>
           <td>${p.nakshatra}</td>
+          <td>${drishtiHtml}</td>
           <td>${p.star_lord}</td>
           <td>${p.sub_lord}</td>
           <td>${p.sub_sub_lord}</td>
           <td>${motionHtml}</td>
           <td>
-            <button class="inspect-btn" onclick="openPlanetDrawer('${p.planet}')">Inspect</button>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              ${raysBtnHtml}
+              <button class="inspect-btn" onclick="openPlanetDrawer('${p.planet}')">Inspect</button>
+            </div>
           </td>
         </tr>
       `;
@@ -1076,12 +1146,359 @@ function openPlanetDrawer(planetName) {
   document.getElementById("drawer-sig-c").textContent = p.sig_c;
   document.getElementById("drawer-sig-d").textContent = p.sig_d;
 
+  // Parashari Graha Drishti (Aspects)
+  const castContainer = document.getElementById("drawer-aspects-cast");
+  const receivedContainer = document.getElementById("drawer-aspects-received");
+  const mutualContainer = document.getElementById("drawer-mutual-conjunctions");
+
+  if (castContainer) {
+    if (p.aspects_cast && p.aspects_cast.length > 0) {
+      castContainer.innerHTML = p.aspects_cast.map(c => {
+        const targetGrahas = (c.aspected_planets && c.aspected_planets.length > 0)
+          ? ` ➔ Aspecting: <strong>${c.aspected_planets.join(", ")}</strong>`
+          : `<span style="color: var(--text-muted);"> (Vacant)</span>`;
+        return `
+          <div style="font-size: 0.825rem;">
+            <strong style="color: var(--accent-primary);">House ${c.target_house} (${c.target_sign_name})</strong>
+            via ${c.aspect_type}${targetGrahas}
+          </div>
+        `;
+      }).join("");
+    } else {
+      castContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.825rem;">No aspects cast (Lagna/Reference point)</span>`;
+    }
+  }
+
+  if (receivedContainer) {
+    if (p.aspects_received && p.aspects_received.length > 0) {
+      receivedContainer.innerHTML = p.aspects_received.map(r => `
+        <span class="bhava-aspect-tag ${r.is_benefic ? 'benefic' : 'malefic'}" style="font-size: 0.775rem;">
+          ${r.from_planet} (${r.aspect_type})
+        </span>
+      `).join("");
+    } else {
+      receivedContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.825rem;">None (Free from direct Graha Drishti)</span>`;
+    }
+  }
+
+  if (mutualContainer) {
+    let mcHtml = "";
+    if (p.mutual_aspects && p.mutual_aspects.length > 0) {
+      mcHtml += `<div><strong>Mutual Aspects with:</strong> ${p.mutual_aspects.join(", ")}</div>`;
+    }
+    if (p.conjunctions && p.conjunctions.length > 0) {
+      mcHtml += `<div style="margin-top: 0.25rem;"><strong>Conjunct with:</strong> ${p.conjunctions.join(", ")}</div>`;
+    }
+    if (!mcHtml) {
+      mcHtml = `<span style="color: var(--text-muted);">No mutual aspects or conjunctions.</span>`;
+    }
+    mutualContainer.innerHTML = mcHtml;
+  }
+
   document.getElementById("drawer-backdrop").classList.add("open");
 }
 
 function closePlanetDrawer() {
   document.getElementById("drawer-backdrop").classList.remove("open");
 }
+
+// =============================================================================
+// Planetary Aspects & Visual Rays Controller
+// =============================================================================
+
+function togglePlanetAspectRays(planetName, event) {
+  if (event) event.stopPropagation();
+
+  if (state.activeRayPlanet === planetName) {
+    clearAspectRays();
+  } else {
+    renderAspectRays(planetName);
+  }
+}
+
+function clearAspectRays() {
+  state.activeRayPlanet = null;
+  const svg = document.querySelector("#main-chart-svg svg");
+  if (svg) {
+    const layer = svg.querySelector("#aspect-rays-layer");
+    if (layer) layer.remove();
+  }
+  const clearBtn = document.getElementById("clear-rays-btn");
+  if (clearBtn) clearBtn.style.display = "none";
+
+  document.querySelectorAll(".aspect-rays-btn").forEach(btn => btn.classList.remove("active"));
+  document.querySelectorAll("#overview-planets-table-body tr").forEach(tr => tr.classList.remove("active-ray-row"));
+}
+
+function renderAspectRays(planetName) {
+  const d = state.currentData;
+  if (!d || !d.aspects || !d.aspects.planets_aspects) return;
+  const pAspect = d.aspects.planets_aspects[planetName];
+  if (!pAspect) return;
+
+  const svg = document.querySelector("#main-chart-svg svg");
+  if (!svg) return;
+
+  state.activeRayPlanet = planetName;
+
+  // Remove existing rays layer
+  const oldLayer = svg.querySelector("#aspect-rays-layer");
+  if (oldLayer) oldLayer.remove();
+
+  const isDark = (state.theme_mode === "dark");
+  const rayColor = isDark ? pAspect.ray_color_dark : pAspect.ray_color_light;
+  const themeBg = isDark ? "#1C1917" : "#FAF8F5";
+
+  // Ascendant sign ID for South Indian calculations
+  const ascSignId = d.planets_table.find(p => p.planet.includes("Ascendant"))?.sign_id || 1;
+
+  const layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  layer.setAttribute("id", "aspect-rays-layer");
+
+  const markerId = `ray-head-${planetName.toLowerCase()}`;
+  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+  defs.innerHTML = `
+    <marker id="${markerId}" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+      <polygon points="0 1, 8 4, 0 7, 2 4" fill="${rayColor}" />
+    </marker>
+  `;
+  layer.appendChild(defs);
+
+  // Source coordinates
+  let x1, y1;
+  const srcHouse = pAspect.natal_house;
+  if (state.chart_style === "north") {
+    const sc = NORTH_HOUSE_CENTERS[srcHouse] || { x: 400, y: 400 };
+    x1 = sc.x;
+    y1 = sc.y;
+  } else {
+    const srcSignId = ((ascSignId - 1 + srcHouse - 1) % 12) + 1;
+    const grid = SOUTH_SIGN_GRID[srcSignId] || { col: 0, row: 0 };
+    x1 = grid.col * 200 + 100;
+    y1 = grid.row * 200 + 100;
+  }
+
+  // Draw rays and target highlights for each cast
+  pAspect.aspects_cast.forEach(cast => {
+    let x2, y2, col, row;
+    const tgtHouse = cast.target_house;
+    if (state.chart_style === "north") {
+      const tc = NORTH_HOUSE_CENTERS[tgtHouse] || { x: 400, y: 400 };
+      x2 = tc.x;
+      y2 = tc.y;
+      // Target glow circle
+      const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      glow.setAttribute("cx", x2);
+      glow.setAttribute("cy", y2);
+      glow.setAttribute("r", "50");
+      glow.setAttribute("fill", rayColor);
+      glow.setAttribute("fill-opacity", "0.10");
+      glow.setAttribute("stroke", rayColor);
+      glow.setAttribute("stroke-width", "2.5");
+      glow.setAttribute("class", "aspect-target-glow");
+      layer.appendChild(glow);
+    } else {
+      const tgtSignId = ((ascSignId - 1 + tgtHouse - 1) % 12) + 1;
+      const grid = SOUTH_SIGN_GRID[tgtSignId] || { col: 0, row: 0 };
+      col = grid.col;
+      row = grid.row;
+      x2 = col * 200 + 100;
+      y2 = row * 200 + 100;
+      // Target glow rect
+      const glow = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      glow.setAttribute("x", col * 200 + 8);
+      glow.setAttribute("y", row * 200 + 8);
+      glow.setAttribute("width", "184");
+      glow.setAttribute("height", "184");
+      glow.setAttribute("rx", "4");
+      glow.setAttribute("fill", rayColor);
+      glow.setAttribute("fill-opacity", "0.08");
+      glow.setAttribute("stroke", rayColor);
+      glow.setAttribute("stroke-width", "2.5");
+      glow.setAttribute("class", "aspect-target-glow");
+      layer.appendChild(glow);
+    }
+
+    // Gentle curve avoiding straight intersection
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dist = Math.hypot(dx, dy);
+    const normX = dist > 0 ? -dy / dist : 0;
+    const normY = dist > 0 ? dx / dist : 0;
+    const curveOffset = (dist > 350) ? 28 : 14;
+    const cx = (x1 + x2) / 2 + normX * curveOffset;
+    const cy = (y1 + y2) / 2 + normY * curveOffset;
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+    path.setAttribute("stroke", rayColor);
+    path.setAttribute("stroke-width", "2.5");
+    path.setAttribute("fill", "none");
+    path.setAttribute("class", "aspect-ray-path");
+    path.setAttribute("marker-end", `url(#${markerId})`);
+    path.setAttribute("opacity", "0.9");
+    layer.appendChild(path);
+
+    // Aspect label badge along the curve (t = 0.65)
+    const t = 0.65;
+    const lx = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * cx + t * t * x2;
+    const ly = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * cy + t * t * y2;
+    const badgeLabel = cast.aspect_type.replace(" (100%)", "").replace(" (Vishesha)", " (V)");
+
+    const badgeG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", lx - 32);
+    rect.setAttribute("y", ly - 10);
+    rect.setAttribute("width", "64");
+    rect.setAttribute("height", "20");
+    rect.setAttribute("rx", "5");
+    rect.setAttribute("fill", themeBg);
+    rect.setAttribute("stroke", rayColor);
+    rect.setAttribute("stroke-width", "1.2");
+    rect.setAttribute("opacity", "0.95");
+    badgeG.appendChild(rect);
+
+    const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    txt.setAttribute("x", lx);
+    txt.setAttribute("y", ly + 4);
+    txt.setAttribute("text-anchor", "middle");
+    txt.setAttribute("font-size", "9.5");
+    txt.setAttribute("font-family", "'JetBrains Mono', monospace");
+    txt.setAttribute("font-weight", "700");
+    txt.setAttribute("fill", rayColor);
+    txt.textContent = badgeLabel;
+    badgeG.appendChild(txt);
+
+    layer.appendChild(badgeG);
+  });
+
+  svg.appendChild(layer);
+
+  // Update button and row styles
+  const clearBtn = document.getElementById("clear-rays-btn");
+  if (clearBtn) {
+    clearBtn.style.display = "inline-flex";
+    const lbl = document.getElementById("active-rays-planet-label");
+    if (lbl) lbl.textContent = planetName;
+  }
+
+  document.querySelectorAll(".aspect-rays-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.id === `rays-btn-${planetName}`);
+  });
+
+  document.querySelectorAll("#overview-planets-table-body tr").forEach(tr => {
+    tr.classList.toggle("active-ray-row", tr.id === `planet-row-${planetName.replace(/[^a-zA-Z0-9]/g, '')}`);
+  });
+}
+
+function renderBhavaAspectsWorkspace() {
+  const d = state.currentData;
+  if (!d || !d.aspects) return;
+
+  const card = document.getElementById("bhava-aspects-card");
+  if (!card) return;
+
+  // 1. Mutual Aspects & Conjunctions Banner
+  const stripEl = document.getElementById("mutual-aspects-strip");
+  if (stripEl) {
+    const mutuals = d.aspects.mutual_aspects || [];
+    const conjuncts = d.aspects.conjunctions || [];
+
+    let mutualHtml = "";
+    if (mutuals.length > 0) {
+      mutualHtml += `
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Mutual Drishti:</span>
+        ${mutuals.map(m => `
+          <span class="mutual-aspect-pill" title="Planets in reciprocal aspect">
+            ✦ ${m.planet1} ↔ ${m.planet2} (${m.relation})
+          </span>
+        `).join("")}
+      `;
+    }
+
+    let conjHtml = "";
+    if (conjuncts.length > 0) {
+      conjHtml += `
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-left: ${mutuals.length ? '1rem' : '0'};">Conjunctions (Yuti):</span>
+        ${conjuncts.map(c => `
+          <span class="mutual-aspect-pill" style="background: rgba(5, 150, 105, 0.08); border-color: rgba(5, 150, 105, 0.25); color: #059669;" title="Multiple planets sharing House ${c.house} (${c.sign})">
+            ● House ${c.house} (${c.sign}): <strong>${c.planets.join(' + ')}</strong>
+          </span>
+        `).join("")}
+      `;
+    }
+
+    if (!mutualHtml && !conjHtml) {
+      stripEl.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">No major mutual aspects or multi-planet conjunctions in this chart.</span>`;
+    } else {
+      stripEl.innerHTML = mutualHtml + conjHtml;
+    }
+  }
+
+  // 2. 12 Bhavas Grid
+  const gridEl = document.getElementById("bhava-aspects-grid");
+  if (gridEl && d.aspects.bhava_aspects) {
+    gridEl.innerHTML = d.aspects.bhava_aspects.map(b => {
+      let badgeClass = "bhava-badge-neutral";
+      if (b.net_influence.includes("Benefic")) badgeClass = "bhava-badge-benefic";
+      else if (b.net_influence.includes("Malefic")) badgeClass = "bhava-badge-malefic";
+      else if (b.net_influence.includes("Mixed")) badgeClass = "bhava-badge-mixed";
+
+      const occHtml = b.occupants && b.occupants.length
+        ? b.occupants.map(o => `<strong style="color: var(--accent-primary); font-size: 0.8rem;">${o}</strong>`).join(", ")
+        : `<span style="color: var(--text-muted); font-size: 0.775rem;">Vacant</span>`;
+
+      const beneficsHtml = b.benefics_aspecting && b.benefics_aspecting.length
+        ? b.benefics_aspecting.map(g => `<span class="bhava-aspect-tag benefic">${g}</span>`).join("")
+        : "";
+
+      const maleficsHtml = b.malefics_aspecting && b.malefics_aspecting.length
+        ? b.malefics_aspecting.map(g => `<span class="bhava-aspect-tag malefic">${g}</span>`).join("")
+        : "";
+
+      const aspectsHtml = (beneficsHtml || maleficsHtml)
+        ? `<div class="bhava-aspect-list">${beneficsHtml}${maleficsHtml}</div>`
+        : `<span style="color: var(--text-muted); font-size: 0.775rem;">No direct planetary aspects</span>`;
+
+      return `
+        <div class="bhava-card">
+          <div class="bhava-card-header">
+            <div>
+              <span class="bhava-title">House ${b.house_number}</span>
+              <span class="bhava-meta"> • ${b.sign_name} (${b.lord})</span>
+            </div>
+            <span class="bhava-badge ${badgeClass}">${b.net_influence.split(' ')[0]}</span>
+          </div>
+          <div style="font-size: 0.8rem; display: flex; align-items: baseline; gap: 0.35rem;">
+            <span style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Occupants:</span>
+            ${occHtml}
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Aspects Received:</span>
+            ${aspectsHtml}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+}
+
+function toggleBhavaAspectsCard() {
+  const content = document.getElementById("bhava-aspects-content");
+  const icon = document.getElementById("bhava-aspects-toggle-icon");
+  if (!content || !icon) return;
+  if (content.style.display === "none") {
+    content.style.display = "block";
+    icon.style.transform = "rotate(0deg)";
+  } else {
+    content.style.display = "none";
+    icon.style.transform = "rotate(-90deg)";
+  }
+}
+
+window.togglePlanetAspectRays = togglePlanetAspectRays;
+window.clearAspectRays = clearAspectRays;
+window.toggleBhavaAspectsCard = toggleBhavaAspectsCard;
 
 // =============================================================================
 // Modal Dialog Controller

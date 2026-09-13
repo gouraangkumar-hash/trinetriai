@@ -23,6 +23,7 @@ from engines.parashari import (
     VargaType,
     VimshottariDashaEngine,
 )
+from engines.aspects import AspectsEngine
 from engines.ashtakavarga import AshtakavargaEngine
 from engines.gochar import GocharEngine
 from engines.yogas import YogaDetectorEngine, YogaNature
@@ -539,6 +540,57 @@ class TestGocharEngine:
         assert transits_by_planet["Saturn"].house_from_moon == 9
         # House 9 Saturn is challenging per Phaladeepika (benefic in 3, 6, 11)
         assert transits_by_planet["Saturn"].is_benefic_from_moon is False
+
+
+class TestAspectsEngine:
+    """Validates Parashari Graha Drishti, Vishesha Drishti, and Bhava aspects."""
+
+    def test_parashari_full_aspects_rules(self, reference_chart) -> None:
+        """Validates that Mars (4, 7, 8), Jupiter (5, 7, 9), Saturn (3, 7, 10), Rahu/Ketu (5, 7, 9) and others (7) are cast."""
+        aspects_report = AspectsEngine.evaluate(reference_chart)
+        planets = aspects_report.planets_aspects
+
+        # 1. Mars special aspects: 4th, 7th, 8th
+        mars_casts = planets["Mars"].aspects_cast
+        mars_offsets = [c.aspect_offset for c in mars_casts]
+        assert mars_offsets == [4, 7, 8]
+        assert any(c.is_special for c in mars_casts if c.aspect_offset in (4, 8))
+
+        # 2. Jupiter special aspects: 5th, 7th, 9th
+        jupiter_casts = planets["Jupiter"].aspects_cast
+        jupiter_offsets = [c.aspect_offset for c in jupiter_casts]
+        assert jupiter_offsets == [5, 7, 9]
+
+        # 3. Saturn special aspects: 3rd, 7th, 10th
+        saturn_casts = planets["Saturn"].aspects_cast
+        saturn_offsets = [c.aspect_offset for c in saturn_casts]
+        assert saturn_offsets == [3, 7, 10]
+
+        # 4. Rahu & Ketu special aspects: 5th, 7th, 9th
+        rahu_casts = planets["Rahu"].aspects_cast
+        rahu_offsets = [c.aspect_offset for c in rahu_casts]
+        assert rahu_offsets == [5, 7, 9]
+
+        ketu_casts = planets["Ketu"].aspects_cast
+        ketu_offsets = [c.aspect_offset for c in ketu_casts]
+        assert ketu_offsets == [5, 7, 9]
+
+        # 5. Sun, Moon, Mercury, Venus: only 7th
+        for p in ["Sun", "Moon", "Mercury", "Venus"]:
+            casts = planets[p].aspects_cast
+            assert [c.aspect_offset for c in casts] == [7]
+            assert casts[0].is_special is False
+
+    def test_bhava_aspects_coverage(self, reference_chart) -> None:
+        """Validates all 12 Bhavas have aspect evaluations."""
+        aspects_report = AspectsEngine.evaluate(reference_chart)
+        assert len(aspects_report.bhava_aspects) == 12
+        for b in aspects_report.bhava_aspects:
+            assert 1 <= b.house_number <= 12
+            assert b.lord != ""
+            assert b.sign_name != ""
+            assert b.net_influence in ("Fortified (Benefic)", "Afflicted (Malefic)", "Mixed Influences", "Neutral")
+
 
 
 

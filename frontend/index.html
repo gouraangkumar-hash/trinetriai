@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="/static/favicon.png?v=2.2.7">
-  <link rel="apple-touch-icon" href="/static/favicon.png?v=2.2.7">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.2.9">
+  <link rel="icon" type="image/png" href="/static/favicon.png?v=2.3.0">
+  <link rel="apple-touch-icon" href="/static/favicon.png?v=2.3.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.3.0">
 </head>
 <body>
 
@@ -18,14 +18,14 @@
   <!-- Top Navigation Header                                                   -->
   <!-- ======================================================================= -->
   <header class="header-bar">
-    <div class="brand-section">
-      <img src="/static/favicon.png?v=2.2.7" alt="Trinetri AI Logo" class="brand-logo" width="36" height="36" />
+    <div class="brand-section" id="brand-home-btn" style="cursor: pointer;" title="Trinetri AI Home">
+      <img src="/static/favicon.png?v=2.3.0" alt="Trinetri AI Logo" class="brand-logo" width="36" height="36" />
       <span class="brand-title">TRINETRI AI</span>
       <span class="precision-badge">DE431 Precision</span>
     </div>
 
     <!-- Center Group: Birth Capsule & Scrubber -->
-    <div class="header-center">
+    <div class="header-center studio-only" style="display: none;">
       <!-- Interactive Birth Profile Capsule -->
       <button id="birth-profile-btn" class="birth-capsule" title="Click to modify birth parameters">
         <span>📍</span>
@@ -48,18 +48,268 @@
 
     <!-- Header Actions & Utilities -->
     <div class="header-actions">
-      <button id="chart-style-toggle" class="action-pill" title="Toggle Chart Style">North Diamond</button>
-      <button id="sign-mode-toggle" class="action-pill" title="Toggle Sanskrit / English Sign Names">Sanskrit</button>
+      <button id="nav-view-toggle-btn" class="action-pill primary-action-pill header-view-toggle" title="Toggle between Landing Page and Studio">✦ Enter Studio</button>
+      <button id="chart-style-toggle" class="action-pill studio-only" style="display: none;" title="Toggle Chart Style">North Diamond</button>
+      <button id="sign-mode-toggle" class="action-pill studio-only" style="display: none;" title="Toggle Sanskrit / English Sign Names">Sanskrit</button>
       <button id="theme-toggle-btn" class="theme-btn" title="Toggle Dark / Light Mode">🌙</button>
     </div>
   </header>
 
   <!-- ======================================================================= -->
-  <!-- Central Tab Navigation Row                                              -->
+  <!-- LANDING PAGE VIEW                                                       -->
   <!-- ======================================================================= -->
-  <nav class="tab-container">
-    <div class="tab-nav">
-      <button class="tab-btn active" data-tab="kundali">Overview & Kundali</button>
+  <div id="landing-view" class="landing-view">
+    <!-- Hero Banner with Embedded Quick-Birth Form -->
+    <section class="landing-hero">
+      <div class="hero-badge">✦ Canonical Vedic Astrological Intelligence ✦</div>
+      <h1 class="hero-title">Precision Vedic Kundali & Planetary Analytics</h1>
+      <p class="hero-subtitle">
+        NASA DE431 Swiss Ephemeris mathematical accuracy synthesized with authentic
+        Brihat Parashara, Jaimini Upadesha, and Krishnamurti Paddhati (KP) canons.
+      </p>
+
+      <!-- Quick Birth Parameters Card -->
+      <div class="hero-form-container">
+        <div class="hero-form-header">
+          <span class="hero-form-title"><span>✧</span> Generate Natal Kundali</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">Instant Ephemeris Calculation</span>
+        </div>
+
+        <form id="quick-birth-form">
+          <!-- Hidden Coordinates and Timezone -->
+          <input type="hidden" id="input-quick-latitude" value="26.9124">
+          <input type="hidden" id="input-quick-longitude" value="75.7873">
+          <input type="hidden" id="input-quick-timezone" value="Asia/Kolkata">
+
+          <!-- Location Row with Geocode -->
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="input-quick-city">Birth City / Location</label>
+            <div class="form-input-row">
+              <input type="text" id="input-quick-city" class="form-input" value="Jaipur, India" placeholder="Enter city (e.g. Jaipur, New York, London)" required>
+              <button type="button" id="btn-quick-geocode" class="btn-secondary" style="white-space: nowrap;">Search 🔍</button>
+            </div>
+            <span id="quick-geocode-feedback" style="font-size: 0.75rem; color: var(--accent-primary); display: none;">Resolving coordinates...</span>
+          </div>
+
+          <div class="quick-form-grid">
+            <!-- Date Dropdowns -->
+            <div class="form-group">
+              <label class="form-label">Birth Date</label>
+              <div class="form-select-row">
+                <select id="select-quick-day" class="form-select" style="flex: 1;" title="Day"></select>
+                <select id="select-quick-month" class="form-select" style="flex: 1.4;" title="Month">
+                  <option value="1">Jan (01)</option>
+                  <option value="2">Feb (02)</option>
+                  <option value="3">Mar (03)</option>
+                  <option value="4">Apr (04)</option>
+                  <option value="5">May (05)</option>
+                  <option value="6">Jun (06)</option>
+                  <option value="7">Jul (07)</option>
+                  <option value="8">Aug (08)</option>
+                  <option value="9">Sep (09)</option>
+                  <option value="10" selected>Oct (10)</option>
+                  <option value="11">Nov (11)</option>
+                  <option value="12">Dec (12)</option>
+                </select>
+                <select id="select-quick-year" class="form-select" style="flex: 1.2;" title="Year"></select>
+              </div>
+            </div>
+
+            <!-- Time Dropdowns -->
+            <div class="form-group">
+              <label class="form-label">Birth Time (24-Hour)</label>
+              <div class="form-select-row">
+                <select id="select-quick-hour" class="form-select" style="flex: 1.2;" title="Hour"></select>
+                <select id="select-quick-minute" class="form-select" style="flex: 1;" title="Minute"></select>
+                <select id="select-quick-second" class="form-select" style="flex: 1;" title="Second"></select>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-form-grid" style="margin-top: 1rem;">
+            <!-- Ayanamsha -->
+            <div class="form-group">
+              <label class="form-label" for="select-quick-ayanamsha">Ayanamsha System</label>
+              <select id="select-quick-ayanamsha" class="form-select">
+                <option value="Lahiri" selected>Lahiri (Chitrapaksha - BPHS)</option>
+                <option value="Krishnamurti">Krishnamurti / KP New</option>
+                <option value="Raman">B.V. Raman</option>
+                <option value="Yukteshwar">Sri Yukteshwar</option>
+                <option value="Fagan-Bradley">Fagan-Bradley (Western Sidereal)</option>
+              </select>
+            </div>
+
+            <!-- Chart Style -->
+            <div class="form-group">
+              <label class="form-label" for="select-quick-chart-style">Kundali Representation</label>
+              <select id="select-quick-chart-style" class="form-select">
+                <option value="north" selected>North Indian Diamond Chart</option>
+                <option value="south">South Indian Fixed Grid Chart</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="quick-form-actions">
+            <button type="submit" id="btn-quick-generate" class="btn-hero-primary">
+              ✦ Generate Kundali & Enter Studio
+            </button>
+            <button type="button" id="btn-quick-sample" class="btn-hero-secondary">
+              Explore Sample Chart ➔
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Platform Features Showcase Grid -->
+    <section class="landing-features" id="landing-features">
+      <div class="landing-section-header">
+        <h2 class="landing-section-title">Comprehensive Vedic Astrological Systems</h2>
+        <p class="landing-section-desc">
+          Eight integrated computation engines covering classical Parashari, Jaimini, Krishnamurti Paddhati, and dynamic transits.
+        </p>
+      </div>
+
+      <div class="bento-features-grid">
+        <!-- 1. Parashari Vargas -->
+        <div class="bento-card">
+          <div class="bento-icon-wrapper">🏛️</div>
+          <h3 class="bento-card-title">16 Parashari Vargas (D1–D60)</h3>
+          <p class="bento-card-desc">
+            Complete Shodashavarga hierarchy from D1 Rashi and D9 Navamsha to D60 Shashtiamsha, featuring automatic Vargottama dignity detection and dual North/South Indian charts.
+          </p>
+          <span class="bento-card-tag">Shodashavarga</span>
+        </div>
+
+        <!-- 2. Vimshottari Dasha -->
+        <div class="bento-card">
+          <div class="bento-icon-wrapper">⏳</div>
+          <h3 class="bento-card-title">3-Tier Vimshottari Dasha</h3>
+          <p class="bento-card-desc">
+            Full 120-year planetary dasha cycles mapped from natal Moon nakshatra balance down through Mahadasha, Antardasha, and dynamically expandable Pratyantardasha sub-periods.
+          </p>
+          <span class="bento-card-tag">120-Year Timeline</span>
+        </div>
+
+        <!-- 3. Real-Time Gochar -->
+        <div class="bento-card">
+          <div class="bento-icon-wrapper">🌌</div>
+          <h3 class="bento-card-title">Live Gochar (Transits) Overlay</h3>
+          <p class="bento-card-desc">
+            Instant real-time celestial transit overlay with natal house comparisons, benefic and challenging transit metrics, and live (T) indicator badges on Kundali diagrams.
+          </p>
+          <span class="bento-card-tag">Live Sky Engine</span>
+        </div>
+
+        <!-- 4. Sarvashtakavarga & Kaksha -->
+        <div class="bento-card">
+          <div class="bento-icon-wrapper">☸️</div>
+          <h3 class="bento-card-title">337 SAV Bindus & Kaksha Scrubber</h3>
+          <p class="bento-card-desc">
+            Rigorous Sarvashtakavarga 337-bindu distribution, individual planetary BAVs, Shodhana reductions, and a 5-minute Lagna Kaksha scrubber for exact birth-time rectification.
+          </p>
+          <span class="bento-card-tag">Time Rectification</span>
+        </div>
+
+        <!-- 5. KP System -->
+        <div class="bento-card">
+          <div class="bento-icon-wrapper">🎯</div>
+          <h3 class="bento-card-title">KP 249 Sub-Lords & Significators</h3>
+          <p class="bento-card-desc">
+            High-precision Placidus house cusps, 249 zodiacal subdivisions, Star Lord, Sub Lord, Sub-Sub Lord resolution, and comprehensive 4-fold planetary significators (Levels A–D).
+          </p>
+          <span class="bento-card-tag">Krishnamurti Paddhati</span>
+        </div>
+
+        <!-- 6. Jaimini Sutras -->
+        <div class="bento-card">
+          <div class="bento-icon-wrapper">📜</div>
+          <h3 class="bento-card-title">Chara Karakas & Arudha Padas</h3>
+          <p class="bento-card-desc">
+            7 and 8 Chara Karaka planetary soul hierarchies (Atmakaraka through Darakaraka) and all 12 manifested Arudha Padas (AL, UL, A1–A12) with classical exception rules.
+          </p>
+          <span class="bento-card-tag">Jaimini Sutram</span>
+        </div>
+
+        <!-- 7. Interactive Graha Drishti -->
+        <div class="bento-card">
+          <div class="bento-icon-wrapper">✨</div>
+          <h3 class="bento-card-title">Laser-Style Visual Aspect Rays</h3>
+          <p class="bento-card-desc">
+            Interactive planetary aspect rays radiating across chart geometry with color-coded directional arrowheads, special Vishesha aspects (Mars 4/7/8, Jupiter 5/7/9, Saturn 3/7/10), and 12-Bhava matrix.
+          </p>
+          <span class="bento-card-tag">Graha Drishti</span>
+        </div>
+
+        <!-- 8. Yogas & Neechabhanga -->
+        <div class="bento-card">
+          <div class="bento-icon-wrapper">🔱</div>
+          <h3 class="bento-card-title">Classical Yogas & Neechabhanga</h3>
+          <p class="bento-card-desc">
+            Multi-rule algorithmic detection of Pancha Mahapurusha, Raja Yogas, Kuja Dosha cancellation rules, Shani Sade Sati phase monitoring, and 7 classical Neechabhanga conditions.
+          </p>
+          <span class="bento-card-tag">Canonical Yogas</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Methodology & Mathematical Rigor -->
+    <section class="landing-methodology">
+      <div class="landing-section-header">
+        <h2 class="landing-section-title">Mathematical Rigor & Privacy</h2>
+        <p class="landing-section-desc">
+          Combining astrophysical precision with classical Vedic integrity.
+        </p>
+      </div>
+
+      <div class="methodology-grid">
+        <div class="methodology-card">
+          <h4>NASA DE431 Swiss Ephemeris</h4>
+          <p>
+            Calculates planetary positions to sub-arcsecond accuracy using the Swiss Ephemeris C engine, featuring True Node algorithms, topocentric Ascendant computation, and multiple ayanamshas.
+          </p>
+        </div>
+        <div class="methodology-card">
+          <h4>Canonical Text Integrity</h4>
+          <p>
+            Every algorithmic rule strictly references classical Sanskrit foundations — Brihat Parashara Hora Shastra, Jaimini Upadesha Sutras, and K.S. Krishnamurti's stellar research.
+          </p>
+        </div>
+        <div class="methodology-card">
+          <h4>Zero Tracking & Full Privacy</h4>
+          <p>
+            Your sacred birth details are processed transiently in memory for mathematical computation and never stored in a database, tracked, or shared with third-party networks.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final Call To Action Banner -->
+    <section class="landing-cta-banner">
+      <h3>Ready to Explore Your Canonical Kundali?</h3>
+      <p>
+        Enter your birth parameters or launch the studio to begin your journey into classical Vedic astrological intelligence.
+      </p>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem;">
+        <button type="button" class="btn-hero-primary" onclick="showStudioView()" style="min-width: 220px;">
+          ✦ Launch Full Studio
+        </button>
+        <button type="button" class="btn-hero-secondary" onclick="loadSampleChartAndEnterStudio()" style="min-width: 200px;">
+          Explore Sample Chart ➔
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- STUDIO WORKSPACE VIEW                                                   -->
+  <!-- ======================================================================= -->
+  <div id="studio-view" class="studio-view" style="display: none;">
+
+    <!-- Central Tab Navigation Row -->
+    <nav class="tab-container">
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="kundali">Overview & Kundali</button>
       <button class="tab-btn" data-tab="vargas">Divisional Vargas</button>
       <button class="tab-btn" data-tab="dasha">Vimshottari Dasha</button>
       <button class="tab-btn" data-tab="kp">KP Matrix & Cusps</button>
@@ -687,6 +937,7 @@
     </section>
 
   </main>
+  </div> <!-- /#studio-view -->
 
   <!-- ======================================================================= -->
   <!-- Slide-Over Planet Inspector Drawer                                      -->
@@ -921,12 +1172,12 @@
   <!-- ======================================================================= -->
   <footer class="footer-bar">
     <p style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
-      <img src="/static/favicon.png?v=2.2.7" alt="Trinetri AI" style="width: 18px; height: 18px; object-fit: contain;" />
+      <img src="/static/favicon.png?v=2.3.0" alt="Trinetri AI" style="width: 18px; height: 18px; object-fit: contain;" />
       <span>TrinetriAI Vedic Studio • Swiss Ephemeris DE431 • Parashari Shodashavarga • Krishnamurti Paddhati • Jaimini Upadesha Sutras</span>
     </p>
   </footer>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=2.2.9"></script>
+  <script src="/static/js/app.js?v=2.3.0"></script>
 </body>
 </html>

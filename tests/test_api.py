@@ -264,12 +264,33 @@ def test_frontend_markup_and_scripts():
     assert "select-birth-minute" in html
     assert "select-birth-second" in html
 
+    # Check Landing View and Quick Birth Form markup
+    assert "landing-view" in html
+    assert "landing-hero" in html
+    assert "hero-badge" in html
+    assert "quick-birth-form" in html
+    assert "select-quick-day" in html
+    assert "select-quick-month" in html
+    assert "select-quick-year" in html
+    assert "select-quick-hour" in html
+    assert "select-quick-minute" in html
+    assert "select-quick-second" in html
+    assert "btn-hero-primary" in html
+    assert "btn-hero-secondary" in html
+    assert "bento-features-grid" in html
+    assert "bento-card" in html
+    assert "landing-methodology" in html
+    assert "methodology-grid" in html
+    assert "studio-view" in html
+    assert "nav-view-toggle-btn" in html
+    assert "brand-home-btn" in html
+
     # Check anti-caching headers on root response
     assert response.headers.get("cache-control") == "no-cache, no-store, must-revalidate"
 
     # Check cache-busting query strings on static assets
-    assert "/static/css/style.css?v=" in html
-    assert "/static/js/app.js?v=" in html
+    assert "/static/css/style.css?v=2.3.0" in html
+    assert "/static/js/app.js?v=2.3.0" in html
 
     # Check clickable overview dasha strip to jump to dasha tab
     assert "overview-dasha-strip" in html
@@ -302,6 +323,14 @@ def test_frontend_markup_and_scripts():
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200
     css = css_res.text
+    assert ".landing-view" in css
+    assert ".landing-hero" in css
+    assert ".hero-form-container" in css
+    assert ".quick-form-grid" in css
+    assert ".bento-features-grid" in css
+    assert ".bento-card" in css
+    assert ".methodology-grid" in css
+    assert ".primary-action-pill" in css
     assert ".overview-hero-layout" in css
     assert ".brand-logo" in css
     assert ".aspect-pill" in css
@@ -323,6 +352,12 @@ def test_frontend_markup_and_scripts():
     js_res = client.get("/static/js/app.js")
     assert js_res.status_code == 200
     js = js_res.text
+    assert "populateDateTimeSelects" in js
+    assert "syncQuickFormWithState" in js
+    assert "geocodeLocationQuick" in js
+    assert "showLandingView" in js
+    assert "showStudioView" in js
+    assert "loadSampleChartAndEnterStudio" in js
     assert "initDateTimeDropdowns" in js
     assert "syncModalWithState" in js
     assert "select-birth-year" in js
@@ -339,5 +374,6 @@ def test_frontend_markup_and_scripts():
     assert "updateGocharButtonStates" in js
     assert "renderGocharWorkspace" in js
     assert "col-phala" in js
+
 
 

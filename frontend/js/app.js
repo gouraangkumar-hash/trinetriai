@@ -1506,15 +1506,15 @@ window.toggleBhavaAspectsCard = toggleBhavaAspectsCard;
 // Modal Dialog Controller
 // =============================================================================
 
-function initDateTimeDropdowns() {
-  const daySelect = document.getElementById("select-birth-day");
-  const monthSelect = document.getElementById("select-birth-month");
-  const yearSelect = document.getElementById("select-birth-year");
-  const hourSelect = document.getElementById("select-birth-hour");
-  const minuteSelect = document.getElementById("select-birth-minute");
-  const secondSelect = document.getElementById("select-birth-second");
+function populateDateTimeSelects(prefix) {
+  const daySelect = document.getElementById(`select-${prefix}-day`);
+  const monthSelect = document.getElementById(`select-${prefix}-month`);
+  const yearSelect = document.getElementById(`select-${prefix}-year`);
+  const hourSelect = document.getElementById(`select-${prefix}-hour`);
+  const minuteSelect = document.getElementById(`select-${prefix}-minute`);
+  const secondSelect = document.getElementById(`select-${prefix}-second`);
 
-  if (!daySelect || !yearSelect || !hourSelect || !minuteSelect || !secondSelect) return;
+  if (!daySelect || !monthSelect || !yearSelect || !hourSelect || !minuteSelect || !secondSelect) return;
 
   // Populate Years (1920 to 2040)
   yearSelect.innerHTML = "";
@@ -1578,9 +1578,146 @@ function initDateTimeDropdowns() {
   monthSelect.addEventListener("change", () => updateDaysOptions(true));
   yearSelect.addEventListener("change", () => updateDaysOptions(true));
 
-  // Initial population of days
   updateDaysOptions(false);
 }
+
+function initDateTimeDropdowns() {
+  populateDateTimeSelects("birth");
+  populateDateTimeSelects("quick");
+  syncQuickFormWithState();
+}
+
+function syncQuickFormWithState() {
+  const city = document.getElementById("input-quick-city");
+  const lat = document.getElementById("input-quick-latitude");
+  const lon = document.getElementById("input-quick-longitude");
+  const tz = document.getElementById("input-quick-timezone");
+  const day = document.getElementById("select-quick-day");
+  const month = document.getElementById("select-quick-month");
+  const year = document.getElementById("select-quick-year");
+  const hour = document.getElementById("select-quick-hour");
+  const minute = document.getElementById("select-quick-minute");
+  const second = document.getElementById("select-quick-second");
+  const ayanamsha = document.getElementById("select-quick-ayanamsha");
+  const chartStyle = document.getElementById("select-quick-chart-style");
+
+  if (city) city.value = state.city;
+  if (lat) lat.value = state.latitude;
+  if (lon) lon.value = state.longitude;
+  if (tz) tz.value = state.timezone_str;
+  if (year) year.value = state.year;
+  if (month) month.value = state.month;
+  if (day) day.value = state.day;
+  if (hour) hour.value = state.hour;
+  if (minute) minute.value = state.minute;
+  if (second) second.value = Math.floor(state.second || 0);
+  if (ayanamsha) ayanamsha.value = state.ayanamsha;
+  if (chartStyle) chartStyle.value = state.chart_style;
+}
+
+async function geocodeLocationQuick(query) {
+  const feedback = document.getElementById("quick-geocode-feedback");
+  if (feedback) {
+    feedback.style.display = "block";
+    feedback.textContent = "Resolving location coordinates...";
+  }
+
+  try {
+    const res = await fetch(`/api/geocode?query=${encodeURIComponent(query)}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || "Could not find location");
+    }
+    const data = await res.json();
+
+    document.getElementById("input-quick-city").value = data.display_name;
+    document.getElementById("input-quick-latitude").value = data.latitude;
+    document.getElementById("input-quick-longitude").value = data.longitude;
+    document.getElementById("input-quick-timezone").value = data.timezone_str;
+
+    if (feedback) {
+      feedback.textContent = `✓ Found: ${data.display_name} (${data.timezone_str})`;
+      setTimeout(() => {
+        feedback.style.display = "none";
+      }, 4000);
+    }
+  } catch (err) {
+    if (feedback) feedback.textContent = "⚠️ " + err.message;
+  }
+}
+
+function showLandingView() {
+  const landing = document.getElementById("landing-view");
+  const studio = document.getElementById("studio-view");
+  if (landing) landing.style.display = "flex";
+  if (studio) studio.style.display = "none";
+
+  document.querySelectorAll(".studio-only").forEach((el) => {
+    el.style.display = "none";
+  });
+
+  const navBtn = document.getElementById("nav-view-toggle-btn");
+  if (navBtn) {
+    navBtn.textContent = "✦ Enter Studio";
+    navBtn.classList.add("primary-action-pill");
+  }
+
+  if (window.location.hash === "#studio") {
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function showStudioView() {
+  const landing = document.getElementById("landing-view");
+  const studio = document.getElementById("studio-view");
+  if (landing) landing.style.display = "none";
+  if (studio) studio.style.display = "block";
+
+  document.querySelectorAll(".studio-only").forEach((el) => {
+    el.style.display = "";
+  });
+
+  const navBtn = document.getElementById("nav-view-toggle-btn");
+  if (navBtn) {
+    navBtn.textContent = "← Home";
+    navBtn.classList.remove("primary-action-pill");
+  }
+
+  if (window.location.hash !== "#studio") {
+    window.location.hash = "#studio";
+  }
+
+  if (!state.currentData) {
+    calculateChart();
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function loadSampleChartAndEnterStudio() {
+  state.year = 1995;
+  state.month = 10;
+  state.day = 15;
+  state.hour = 14;
+  state.minute = 30;
+  state.second = 0.0;
+  state.city = "Jaipur, India";
+  state.latitude = 26.9124;
+  state.longitude = 75.7873;
+  state.timezone_str = "Asia/Kolkata";
+  state.ayanamsha = "Lahiri";
+  state.chart_style = "north";
+  state.time_offset_seconds = 0;
+
+  syncQuickFormWithState();
+  syncModalWithState();
+  showStudioView();
+  calculateChart();
+}
+
+window.showLandingView = showLandingView;
+window.showStudioView = showStudioView;
+window.loadSampleChartAndEnterStudio = loadSampleChartAndEnterStudio;
 
 function syncModalWithState() {
   document.getElementById("input-city").value = state.city;
@@ -1932,10 +2069,87 @@ document.addEventListener("DOMContentLoaded", () => {
     state.node_type = document.getElementById("select-node-type").value;
     state.time_offset_seconds = 0; // Reset scrubber on new birth input
 
+    syncQuickFormWithState();
     closeBirthModal();
     calculateChart();
   });
 
-  // 12. Initial Chart Calculation on Page Load
+  // 12. Quick Birth Form Submission (Landing Page)
+  const quickForm = document.getElementById("quick-birth-form");
+  if (quickForm) {
+    quickForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      state.city = document.getElementById("input-quick-city").value.trim();
+      state.latitude = parseFloat(document.getElementById("input-quick-latitude").value) || 26.9124;
+      state.longitude = parseFloat(document.getElementById("input-quick-longitude").value) || 75.7873;
+      state.timezone_str = document.getElementById("input-quick-timezone").value.trim() || "Asia/Kolkata";
+
+      state.year = parseInt(document.getElementById("select-quick-year").value, 10) || 1995;
+      state.month = parseInt(document.getElementById("select-quick-month").value, 10) || 10;
+      state.day = parseInt(document.getElementById("select-quick-day").value, 10) || 15;
+
+      state.hour = parseInt(document.getElementById("select-quick-hour").value, 10) || 14;
+      state.minute = parseInt(document.getElementById("select-quick-minute").value, 10) || 30;
+      state.second = parseFloat(document.getElementById("select-quick-second").value) || 0.0;
+
+      state.ayanamsha = document.getElementById("select-quick-ayanamsha").value || "Lahiri";
+      state.chart_style = document.getElementById("select-quick-chart-style").value || "north";
+      state.time_offset_seconds = 0;
+
+      // Sync modal controls as well
+      syncModalWithState();
+      showStudioView();
+      calculateChart();
+    });
+  }
+
+  // 13. Quick Sample Chart Button
+  document.getElementById("btn-quick-sample")?.addEventListener("click", loadSampleChartAndEnterStudio);
+
+  // 14. Quick Geocode Search Button & Enter Key
+  const triggerQuickGeocode = () => {
+    const q = document.getElementById("input-quick-city").value.trim();
+    if (q) geocodeLocationQuick(q);
+  };
+  document.getElementById("btn-quick-geocode")?.addEventListener("click", triggerQuickGeocode);
+  document.getElementById("input-quick-city")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      triggerQuickGeocode();
+    }
+  });
+
+  // 15. Header View Toggle (Landing <-> Studio)
+  const navViewToggleBtn = document.getElementById("nav-view-toggle-btn");
+  if (navViewToggleBtn) {
+    navViewToggleBtn.addEventListener("click", () => {
+      const studio = document.getElementById("studio-view");
+      if (studio && studio.style.display !== "none") {
+        showLandingView();
+      } else {
+        showStudioView();
+      }
+    });
+  }
+
+  // 16. Brand Logo / Title Click returns to Landing
+  document.getElementById("brand-home-btn")?.addEventListener("click", showLandingView);
+
+  // 17. URL Hash Router Listener
+  window.addEventListener("hashchange", () => {
+    if (window.location.hash === "#studio") {
+      showStudioView();
+    } else {
+      showLandingView();
+    }
+  });
+
+  // 18. Initial View State & Chart Calculation
+  if (window.location.hash === "#studio") {
+    showStudioView();
+  } else {
+    showLandingView();
+  }
   calculateChart();
 });

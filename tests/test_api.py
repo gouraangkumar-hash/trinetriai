@@ -200,6 +200,31 @@ def test_vargas_endpoint():
     assert len(data["varga_table"]) >= 10
 
 
+def test_ai_dossier_endpoint():
+    """Test POST /api/ai/dossier for ground-truth LLM prompt dossier generation."""
+    payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+    }
+    response = client.post("/api/ai/dossier", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "ai_dossier" in data
+    dossier = data["ai_dossier"]
+    assert "TRINETRIAI VEDIC ASTROLOGICAL DOSSIER" in dossier["markdown_dossier"]
+    assert "system_prompt_recommendation" in dossier
+    assert "structured_payload" in dossier
+
+
 def test_serve_index_and_static():
     """Test GET / returns HTML and static files exist."""
     response = client.get("/")
@@ -388,6 +413,18 @@ def test_frontend_markup_and_scripts():
     assert "dignity-deb" in js
     assert "dignity-v" in js
     assert "togglePratyantardashaRow" in js
+    assert "openAiDossierModal" in js
+    assert "copyAiDossier" in js
+    assert "downloadAiDossier" in js
+    assert "getFuncBadgeClass" in js
+
+    # Check AI Dossier & Functional markup
+    assert "btn-ai-dossier" in html
+    assert "ai-dossier-modal" in html
+    assert "drawer-functional-strength-section" in html
+    assert ".func-badge" in css
+    assert ".strength-meter-wrap" in css
+    assert ".ai-dossier-container" in css
     assert "window.togglePratyantardashaRow" in js
     assert "window.toggleMahadashaCard" in js
     assert "togglePlanetAspectRays" in js

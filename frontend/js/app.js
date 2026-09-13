@@ -351,6 +351,18 @@ function renderActiveDashaStrip() {
   if (heroDates) heroDates.textContent = `Current Mahadasha: ${ds.md_range} • Active Pratyantar: ${ds.pd_range}`;
 }
 
+function getFuncBadgeClass(badge) {
+  if (!badge) return "neutral";
+  const b = String(badge).toLowerCase();
+  if (b.includes("yogakaraka")) return "yogakaraka";
+  if (b.includes("maraka")) return "maraka";
+  if (b.includes("badhaka")) return "badhaka";
+  if (b.includes("benefic")) return "benefic";
+  if (b.includes("malefic")) return "malefic";
+  if (b.includes("dosha")) return "kendra-dosha";
+  return "neutral";
+}
+
 function renderPlanetsTable() {
   const d = state.currentData;
   if (!d || !d.planets_table) return;
@@ -380,6 +392,35 @@ function renderPlanetsTable() {
       // Shorter method for highlighting Vargottama: [V] pill badge
       if (p.is_vargottama) {
         dignityBadges += `<span class="dignity-badge dignity-v" title="${p.vargottama_status || 'Vargottama: Same sign in D1 & D9'}">[V]</span>`;
+      }
+
+      // Functional Nature Badges
+      let funcHtml = "";
+      if (p.functional_badges && p.functional_badges.length > 0) {
+        funcHtml = `<div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+          ${p.functional_badges.map(b => `<span class="func-badge ${getFuncBadgeClass(b)}">${b}</span>`).join("")}
+        </div>`;
+      } else if (p.functional_role && p.functional_role !== "Neutral") {
+        funcHtml = `<span class="func-badge ${getFuncBadgeClass(p.functional_role)}">${p.functional_role}</span>`;
+      } else {
+        funcHtml = `<span class="func-badge neutral">Neutral</span>`;
+      }
+
+      // Algorithmic Planetary Strength (Bala)
+      let strengthHtml = `<span style="color: var(--text-muted); font-size: 0.8rem; text-align: center; display: block;">-</span>`;
+      if (p.strength) {
+        const gradeClass = (p.strength_grade || "moderate").toLowerCase().replace(/\s+/g, '-');
+        strengthHtml = `
+          <div class="strength-meter-wrap">
+            <div class="strength-meter-top">
+              <strong style="color: ${p.strength.grade_color}; font-size: 0.82rem;">${p.strength_percentage}</strong>
+              <span class="strength-tag ${gradeClass}">${p.strength_grade}</span>
+            </div>
+            <div class="strength-bar-bg">
+              <div class="strength-bar-fill" style="width: ${p.strength.total_score}%; background: ${p.strength.grade_color};"></div>
+            </div>
+          </div>
+        `;
       }
 
       // Drishti Cast Pills
@@ -425,6 +466,8 @@ function renderPlanetsTable() {
           <td style="font-family: var(--font-mono);">${p.degree}</td>
           <td>${p.nakshatra}</td>
           <td>${motionHtml}</td>
+          <td>${funcHtml}</td>
+          <td class="strength-table-cell">${strengthHtml}</td>
           <td>${drishtiHtml}</td>
           <td>
             <div style="display: flex; gap: 0.35rem; align-items: center;">
@@ -1208,6 +1251,60 @@ function openPlanetDrawer(planetName) {
   document.getElementById("drawer-combust").textContent = p.is_combust ? "Combust (Astangata)" : "Clear";
   document.getElementById("drawer-nakshatra").textContent = p.nakshatra;
 
+  // Functional Nature & Bala Strength (BPHS Ch. 34)
+  const funcRoleEl = document.getElementById("drawer-func-role");
+  const funcBadgesEl = document.getElementById("drawer-func-badges");
+  const strengthPctEl = document.getElementById("drawer-strength-pct");
+  const strengthGradeEl = document.getElementById("drawer-strength-grade");
+  const strengthFillEl = document.getElementById("drawer-strength-fill");
+  const strSthanaEl = document.getElementById("drawer-str-sthana");
+  const strDikEl = document.getElementById("drawer-str-dik");
+  const strBavEl = document.getElementById("drawer-str-bav");
+  const strDrishtiEl = document.getElementById("drawer-str-drishti");
+
+  if (funcRoleEl) {
+    funcRoleEl.textContent = p.functional_role || "Neutral";
+  }
+
+  if (funcBadgesEl) {
+    if (p.functional_badges && p.functional_badges.length > 0) {
+      funcBadgesEl.innerHTML = p.functional_badges.map(b => `
+        <span class="func-badge ${getFuncBadgeClass(b)}">${b}</span>
+      `).join("");
+    } else {
+      funcBadgesEl.innerHTML = `<span class="func-badge neutral">Neutral</span>`;
+    }
+  }
+
+  if (p.strength) {
+    const s = p.strength;
+    const gradeClass = (p.strength_grade || "moderate").toLowerCase().replace(/\s+/g, '-');
+    if (strengthPctEl) strengthPctEl.textContent = p.strength_percentage || `${Math.round(s.total_score)}%`;
+    if (strengthGradeEl) {
+      strengthGradeEl.textContent = p.strength_grade;
+      strengthGradeEl.className = `strength-tag ${gradeClass}`;
+    }
+    if (strengthFillEl) {
+      strengthFillEl.style.width = `${s.total_score}%`;
+      strengthFillEl.style.backgroundColor = s.grade_color;
+    }
+    if (strSthanaEl) strSthanaEl.textContent = `${s.breakdown.sthana_score.toFixed(1)} / 35`;
+    if (strDikEl) strDikEl.textContent = `${s.breakdown.dik_score.toFixed(1)} / 25`;
+    if (strBavEl) strBavEl.textContent = `${s.breakdown.bav_score.toFixed(1)} / 25`;
+    if (strDrishtiEl) strDrishtiEl.textContent = `${s.breakdown.drishti_score.toFixed(1)} / 15`;
+  } else {
+    if (strengthPctEl) strengthPctEl.textContent = "-";
+    if (strengthGradeEl) {
+      strengthGradeEl.textContent = "-";
+      strengthGradeEl.className = "strength-tag";
+    }
+    if (strengthFillEl) strengthFillEl.style.width = "0%";
+    if (strSthanaEl) strSthanaEl.textContent = "-";
+    if (strDikEl) strDikEl.textContent = "-";
+    if (strBavEl) strBavEl.textContent = "-";
+    if (strDrishtiEl) strDrishtiEl.textContent = "-";
+  }
+
   document.getElementById("drawer-star-lord").textContent = p.star_lord;
   document.getElementById("drawer-sub-lord").textContent = p.sub_lord;
   document.getElementById("drawer-sub-sub-lord").textContent = p.sub_sub_lord;
@@ -1336,6 +1433,109 @@ function closePlanetDrawer() {
 
 window.openPlanetDrawer = openPlanetDrawer;
 window.closePlanetDrawer = closePlanetDrawer;
+
+// =============================================================================
+// AI Dossier Modal Controller
+// =============================================================================
+
+let activeDossierTab = "md"; // "md" | "prompt" | "json"
+
+function openAiDossierModal() {
+  const d = state.currentData;
+  if (!d || !d.ai_dossier) {
+    alert("Please calculate a chart first before viewing the AI Dossier.");
+    return;
+  }
+
+  const modal = document.getElementById("ai-dossier-modal");
+  if (modal) {
+    modal.classList.add("open");
+    renderAiDossierContent();
+  }
+}
+
+function closeAiDossierModal() {
+  const modal = document.getElementById("ai-dossier-modal");
+  if (modal) {
+    modal.classList.remove("open");
+  }
+}
+
+function switchDossierTab(tab) {
+  activeDossierTab = tab;
+  document.querySelectorAll(".dossier-tab-btn").forEach(btn => {
+    btn.classList.remove("active");
+  });
+  const activeBtn = document.getElementById(`btn-tab-dossier-${tab}`);
+  if (activeBtn) activeBtn.classList.add("active");
+
+  renderAiDossierContent();
+}
+
+function renderAiDossierContent() {
+  const d = state.currentData;
+  if (!d || !d.ai_dossier) return;
+
+  const codeEl = document.getElementById("ai-dossier-code-content");
+  if (!codeEl) return;
+
+  if (activeDossierTab === "md") {
+    codeEl.textContent = d.ai_dossier.markdown_dossier;
+  } else if (activeDossierTab === "prompt") {
+    codeEl.textContent = d.ai_dossier.system_prompt_recommendation;
+  } else if (activeDossierTab === "json") {
+    codeEl.textContent = JSON.stringify(d.ai_dossier.structured_payload, null, 2);
+  }
+}
+
+function showCopyToast(msg = "✓ Copied to clipboard!") {
+  let toast = document.querySelector(".copy-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.className = "copy-toast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2400);
+}
+
+function copyAiDossier() {
+  const codeEl = document.getElementById("ai-dossier-code-content");
+  if (!codeEl) return;
+  const text = codeEl.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    showCopyToast("✓ Copied AI Dossier to clipboard!");
+  }).catch(err => {
+    console.error("Copy failed:", err);
+    showCopyToast("⚠️ Copy failed, please copy manually.");
+  });
+}
+
+function downloadAiDossier() {
+  const codeEl = document.getElementById("ai-dossier-code-content");
+  if (!codeEl) return;
+  const text = codeEl.textContent;
+  const ext = activeDossierTab === "json" ? "json" : "md";
+  const filename = `TrinetriAI_Vedic_Dossier_${state.city.replace(/[^a-zA-Z0-9]/g, '_')}_${state.year}.${ext}`;
+  const blob = new Blob([text], { type: ext === "json" ? "application/json" : "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+window.openAiDossierModal = openAiDossierModal;
+window.closeAiDossierModal = closeAiDossierModal;
+window.switchDossierTab = switchDossierTab;
+window.copyAiDossier = copyAiDossier;
+window.downloadAiDossier = downloadAiDossier;
 
 // =============================================================================
 // Planetary Aspects & Visual Rays Controller
@@ -2268,6 +2468,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 16. Brand Logo / Title Click returns to Landing
   document.getElementById("brand-home-btn")?.addEventListener("click", showLandingView);
+
+  // 16b. AI Dossier Modal Trigger and Close
+  document.getElementById("btn-ai-dossier")?.addEventListener("click", openAiDossierModal);
+  document.getElementById("ai-dossier-close-btn")?.addEventListener("click", closeAiDossierModal);
+  document.getElementById("ai-dossier-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "ai-dossier-modal") closeAiDossierModal();
+  });
+
+  // 16c. Keyboard ESC Handler for Modals and Drawer
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAiDossierModal();
+      closePlanetDrawer();
+      closeBirthModal();
+    }
+  });
 
   // 17. URL Hash Router Listener
   window.addEventListener("hashchange", () => {

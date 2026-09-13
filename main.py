@@ -40,6 +40,9 @@ from engines.parashari import (
 from engines.dignity import DignityEngine
 from engines.friendships import FriendshipEngine
 from engines.yogas import YogaDetectorEngine
+from engines.functional import FunctionalNatureEngine
+from engines.strength import PlanetaryStrengthEngine
+from engines.ai_context import AIContextEngine
 from schemas.models import BirthInput, GeoLocationModel, UnifiedChartData
 from visualizers.ashtakavarga_svg import generate_ashtakavarga_svg
 from visualizers.north_indian_svg import generate_north_indian_svg
@@ -173,6 +176,25 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     # Classical Planetary Friendships (Pancha-Dha Maitri)
     friendships_report = FriendshipEngine.evaluate(chart)
 
+    # Identify planets with classical Neechabhanga cancellation
+    neechabhanga_planets = set()
+    for y in yogas_report.yogas:
+        if y.id.startswith("neechabhanga_") or "Neechabhanga" in y.name:
+            for p_inv in y.planets_involved:
+                neechabhanga_planets.add(p_inv)
+
+    # Classical Functional Nature (BPHS Chapter 34)
+    functional_report = FunctionalNatureEngine.evaluate(chart)
+
+    # Algorithmic Planetary Strength Index (Bala 0-100%)
+    strength_report = PlanetaryStrengthEngine.evaluate(
+        chart=chart,
+        ashtakavarga_report=ashtakavarga_report,
+        aspects_report=aspects_report,
+        friendships_report=friendships_report,
+        neechabhanga_planets=neechabhanga_planets,
+    )
+
     # 1. Primary Angles Summary
     asc_sign = chart.angles.ascendant_sign
     asc_nak = chart.angles.ascendant_nakshatra
@@ -218,13 +240,6 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "effective_date": effective_dt.strftime("%Y-%m-%d"),
         "birth_profile": f"{req.city} • {effective_dt.strftime('%d %b %Y, %H:%M:%S')} • {req.ayanamsha}",
     }
-
-    # Identify planets with classical Neechabhanga cancellation
-    neechabhanga_planets = set()
-    for y in yogas_report.yogas:
-        if y.id.startswith("neechabhanga_") or "Neechabhanga" in y.name:
-            for p_inv in y.planets_involved:
-                neechabhanga_planets.add(p_inv)
 
     # 2. Planetary Positions Table (9 classical + nodes)
     planets_table = []
@@ -279,6 +294,11 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         ray_color_dark = graha_aspect.ray_color_dark if graha_aspect else "#FBBF24"
         natal_house = graha_aspect.natal_house if graha_aspect else 1
 
+        func_prof = functional_report.profiles.get(p_name.value)
+        func_role = func_prof.primary_role.value if func_prof else "Neutral"
+        func_badges = func_prof.badges if func_prof else []
+        str_prof = strength_report.profiles.get(p_name.value)
+
         p_dict = {
             "planet": p_name.value,
             "sign": s_name,
@@ -324,6 +344,13 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
                 if p_name.value in friendships_report.profiles
                 else None
             ),
+            "functional_nature": func_prof.model_dump() if func_prof else None,
+            "functional_role": func_role,
+            "functional_badges": func_badges,
+            "strength": str_prof.model_dump() if str_prof else None,
+            "strength_percentage": str_prof.percentage_str if str_prof else "-",
+            "strength_grade": str_prof.grade if str_prof else "-",
+            "strength_score": str_prof.total_score if str_prof else 0.0,
         }
         planets_table.append(p_dict)
         planet_details[p_name.value] = p_dict
@@ -380,6 +407,13 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "ray_color_light": "#B45309",
         "ray_color_dark": "#FBBF24",
         "friendships": None,
+        "functional_nature": None,
+        "functional_role": "Ascendant (Lagna)",
+        "functional_badges": [f"Badhaka: H{functional_report.badhaka_house}"] if functional_report.badhaka_house else [],
+        "strength": None,
+        "strength_percentage": "-",
+        "strength_grade": "-",
+        "strength_score": 0.0,
     }
     planets_table.insert(0, asc_dict)
     planet_details["Ascendant (Lagna)"] = asc_dict
@@ -608,6 +642,23 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "current_pratyantardashas": current_pratyantardashas,
     }
 
+    # AI Ground-Truth Context Dossier & Serializer
+    ai_dossier = AIContextEngine.generate(
+        chart=chart,
+        yogas_report=yogas_report,
+        ashtakavarga_report=ashtakavarga_report,
+        dashas=dashas,
+        gochar_report=gochar_report,
+        aspects_report=aspects_report,
+        friendships_report=friendships_report,
+        functional_report=functional_report,
+        strength_report=strength_report,
+        dasha_summary=dasha_summary,
+        birth_city=req.city,
+        effective_time_str=effective_dt.strftime("%H:%M:%S"),
+        effective_date_str=effective_dt.strftime("%Y-%m-%d"),
+    )
+
     mahadashas = []
     for md in dashas.mahadashas:
         is_active_md = md.start_date <= now_utc <= md.end_date
@@ -711,6 +762,9 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "gochar": gochar_report.model_dump(),
         "aspects": aspects_report.model_dump(),
         "friendships": friendships_report.model_dump(),
+        "functional_nature": functional_report.model_dump(),
+        "planetary_strength": strength_report.model_dump(),
+        "ai_dossier": ai_dossier.model_dump(),
     }
 
 
@@ -723,6 +777,19 @@ def calculate_chart(req: ChartCalculationRequest):
     """Calculates all chart features and returns formatted data with active SVG."""
     try:
         return _compute_chart_and_visuals(req)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/api/ai/dossier")
+def get_ai_dossier(req: ChartCalculationRequest):
+    """Generates the authoritative ground-truth AI dossier and system prompt for LLMs."""
+    try:
+        data = _compute_chart_and_visuals(req)
+        return {
+            "status": "success",
+            "ai_dossier": data["ai_dossier"],
+        }
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

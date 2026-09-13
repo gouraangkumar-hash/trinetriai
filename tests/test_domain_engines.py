@@ -792,6 +792,181 @@ class TestDignityEngine:
         assert "Adhi Mitra" in moon_profile.dispositor_kshetra
 
 
+# =========================================================================
+# 11. Functional Nature Engine (BPHS Chapter 34) Tests
+# =========================================================================
+
+class TestFunctionalNatureEngine:
+    """Validates BPHS Chapter 34 Lagna-wise functional classifications."""
+
+    def test_canonical_yogakarakas_and_badhakas_all_lagnas(self) -> None:
+        """Verifies canonical Yogakarakas and Badhakas for all 12 Lagnas."""
+        from engines.functional import BPHS_CH34_RULES
+        from core.constants import ZODIAC_SIGNS
+
+        # 6 Lagnas have canonical Yogakarakas (rules 4/5 or 5/10 or 4/9 or 9/10)
+        # Taurus (2) -> Saturn
+        assert BPHS_CH34_RULES[2][PlanetEnum.SATURN][3] is True
+        # Cancer (4) -> Mars
+        assert BPHS_CH34_RULES[4][PlanetEnum.MARS][3] is True
+        # Leo (5) -> Mars
+        assert BPHS_CH34_RULES[5][PlanetEnum.MARS][3] is True
+        # Libra (7) -> Saturn
+        assert BPHS_CH34_RULES[7][PlanetEnum.SATURN][3] is True
+        # Capricorn (10) -> Venus
+        assert BPHS_CH34_RULES[10][PlanetEnum.VENUS][3] is True
+        # Aquarius (11) -> Venus
+        assert BPHS_CH34_RULES[11][PlanetEnum.VENUS][3] is True
+
+        # Modalities in ZODIAC_SIGNS
+        for s in (1, 4, 7, 10):
+            assert ZODIAC_SIGNS[s]["modality"] == "Movable"
+
+        for s in (2, 5, 8, 11):
+            assert ZODIAC_SIGNS[s]["modality"] == "Fixed"
+
+        for s in (3, 6, 9, 12):
+            assert ZODIAC_SIGNS[s]["modality"] == "Dual"
+
+    def test_functional_nature_reference_chart(self, reference_chart) -> None:
+        """Validates evaluation on reference chart (Capricorn Lagna)."""
+        from engines.functional import FunctionalNatureEngine
+
+        report = FunctionalNatureEngine.evaluate(reference_chart)
+        assert report.lagna_sign_id == 10
+        assert report.lagna_sign_name == "Makara"
+        assert report.lagna_modality == "Movable"
+        assert report.badhaka_house == 11
+        assert report.badhaka_lord == "Mars"
+        assert "Venus" in report.yogakaraka_planets
+        assert "Moon" in report.maraka_planets
+
+        # Venus profile check
+        venus_prof = report.profiles["Venus"]
+        assert venus_prof.is_yogakaraka is True
+        assert "Yogakaraka" in venus_prof.badges
+
+        # Mars profile check (Badhaka)
+        mars_prof = report.profiles["Mars"]
+        assert mars_prof.is_badhaka is True
+        assert "Badhaka" in mars_prof.badges
+
+
+# =========================================================================
+# 12. Algorithmic Planetary Strength Index Tests
+# =========================================================================
+
+class TestPlanetaryStrengthEngine:
+    """Validates composite Vedic Planetary Strength calculation."""
+
+    def test_planetary_strength_reference_chart(self, reference_chart) -> None:
+        from engines.ashtakavarga import AshtakavargaEngine
+        from engines.aspects import AspectsEngine
+        from engines.friendships import FriendshipEngine
+        from engines.strength import PlanetaryStrengthEngine
+
+        sav_report = AshtakavargaEngine.evaluate(reference_chart)
+        aspects_report = AspectsEngine.evaluate(reference_chart)
+        friendships_report = FriendshipEngine.evaluate(reference_chart)
+
+        report = PlanetaryStrengthEngine.evaluate(
+            chart=reference_chart,
+            ashtakavarga_report=sav_report,
+            aspects_report=aspects_report,
+            friendships_report=friendships_report,
+        )
+
+        assert len(report.profiles) == 9
+        for p_name, prof in report.profiles.items():
+            assert 0.0 <= prof.total_score <= 100.0
+            assert prof.grade in ("Very Strong", "Strong", "Moderate", "Weak", "Afflicted")
+            # All factors non-negative in breakdown
+            assert prof.breakdown.sthana_score >= 0.0
+            assert prof.breakdown.dik_score >= 0.0
+            assert prof.breakdown.bav_score >= 0.0
+            assert prof.breakdown.drishti_score >= 0.0
+
+        # Mars is in own sign Scorpio (26 pts sthana) -> high composite score
+        mars_prof = report.profiles["Mars"]
+        assert mars_prof.breakdown.sthana_score >= 25.0
+        assert mars_prof.total_score >= 65.0
+
+
+# =========================================================================
+# 13. AI Ground-Truth Context Engine Tests
+# =========================================================================
+
+class TestAIContextEngine:
+    """Validates generation of token-optimized AI dossier and prompt serialization."""
+
+    def test_ai_dossier_generation(self, reference_chart) -> None:
+        from engines.ashtakavarga import AshtakavargaEngine
+        from engines.aspects import AspectsEngine
+        from engines.friendships import FriendshipEngine
+        from engines.functional import FunctionalNatureEngine
+        from engines.gochar import GocharEngine
+        from engines.parashari import VimshottariDashaEngine
+        from engines.strength import PlanetaryStrengthEngine
+        from engines.yogas import YogaDetectorEngine
+        from engines.ai_context import AIContextEngine
+
+        yogas_report = YogaDetectorEngine.evaluate(reference_chart)
+        sav_report = AshtakavargaEngine.evaluate(reference_chart)
+        moon_lon = reference_chart.planets[PlanetEnum.MOON].longitude
+        dashas = VimshottariDashaEngine.generate_dasha_tree(reference_chart.utc_datetime, moon_lon)
+        gochar_report = GocharEngine.evaluate(reference_chart, sav_report)
+        aspects_report = AspectsEngine.evaluate(reference_chart)
+        friendships_report = FriendshipEngine.evaluate(reference_chart)
+        functional_report = FunctionalNatureEngine.evaluate(reference_chart)
+        strength_report = PlanetaryStrengthEngine.evaluate(
+            reference_chart, sav_report, aspects_report, friendships_report
+        )
+
+        dasha_summary = {
+            "md": "Jupiter",
+            "ad": "Saturn",
+            "pd": "Mercury",
+            "md_range": "2015 - 2031",
+            "ad_range": "2023 - 2026",
+            "pd_range": "2024",
+        }
+
+        dossier = AIContextEngine.generate(
+            chart=reference_chart,
+            yogas_report=yogas_report,
+            ashtakavarga_report=sav_report,
+            dashas=dashas,
+            gochar_report=gochar_report,
+            aspects_report=aspects_report,
+            friendships_report=friendships_report,
+            functional_report=functional_report,
+            strength_report=strength_report,
+            dasha_summary=dasha_summary,
+            birth_city="Jaipur, India",
+        )
+
+        md = dossier.markdown_dossier
+        assert "# TRINETRIAI VEDIC ASTROLOGICAL DOSSIER" in md
+        assert "## 1. NATAL BASELINE & ASTRONOMICAL ANCHORS" in md
+        assert "## 2. PLANETARY PLACEMENTS & VEDIC STRENGTH MATRIX" in md
+        assert "## 3. ACTIVE CLASSICAL YOGAS & DOSHAS" in md
+        assert "## 4. 12 BHAVAS (HOUSES) ASHTAKAVARGA & ENERGETIC MATRIX" in md
+        assert "## 5. VIMSHOTTARI DASHA CHRONOLOGY" in md
+        assert "## 6. ACTIVE REAL-TIME TRANSITS (GOCHAR)" in md
+
+        # System prompt instructions
+        prompt = dossier.system_prompt_recommendation
+        assert "expert, highly authoritative Vedic Astrologer" in prompt
+        assert "DO NOT hallucinate" in prompt
+
+        # Structured JSON
+        payload = dossier.structured_payload
+        assert payload["baseline"]["lagna"] == "Makara"
+        assert len(payload["planets"]) >= 7
+        assert "gochar_transits" in payload
+
+
+
 
 
 

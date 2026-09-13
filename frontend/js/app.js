@@ -488,8 +488,8 @@ function renderVargasWorkspace() {
         }
 
         const nameHtml = isAsc
-          ? `<strong style="color: var(--accent-primary);">✧ ${row.planet}</strong>${dignityBadgeHtml}`
-          : `<strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> ${row.planet}${dignityBadgeHtml}`;
+          ? `<span class="cursor-pointer" onclick="window.openPlanetDrawer && window.openPlanetDrawer('Ascendant')" style="cursor: pointer;" title="Click to inspect Ascendant"><strong style="color: var(--accent-primary);">✧ ${row.planet}</strong></span>${dignityBadgeHtml}`
+          : `<span class="cursor-pointer" onclick="window.openPlanetDrawer && window.openPlanetDrawer('${row.planet}')" style="cursor: pointer;" title="Click to inspect ${row.planet}"><strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> <span class="planet-name-link">${row.planet}</span></span>${dignityBadgeHtml}`;
 
         const statusBadges = [];
         if (row.is_retro) statusBadges.push(`<span class="status-badge retro">Retro</span>`);
@@ -1333,6 +1333,9 @@ function getPanchaBadgeClass(rel) {
 function closePlanetDrawer() {
   document.getElementById("drawer-backdrop").classList.remove("open");
 }
+
+window.openPlanetDrawer = openPlanetDrawer;
+window.closePlanetDrawer = closePlanetDrawer;
 
 // =============================================================================
 // Planetary Aspects & Visual Rays Controller

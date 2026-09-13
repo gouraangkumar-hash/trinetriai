@@ -922,6 +922,39 @@ input, select {
   color: var(--accent-text);
 }
 
+.ad-clickable-row {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+}
+
+.ad-clickable-row:hover {
+  background-color: var(--bg-surface-elevated);
+}
+
+.pd-toggle-icon {
+  display: inline-block;
+  width: 14px;
+  font-size: 0.75rem;
+  color: var(--accent-primary);
+  font-weight: 700;
+  margin-right: 0.25rem;
+}
+
+.pd-nested-table tr:hover td {
+  background-color: var(--bg-surface-subtle);
+}
+
+.pd-nested-table tr.active-pd {
+  background-color: var(--accent-subtle);
+  font-weight: 700;
+}
+
+#current-pd-card tr.active-pd {
+  background-color: var(--accent-subtle);
+  font-weight: 700;
+}
+
 /* =============================================================================
    Slide-Over Planet Inspector Drawer
    ============================================================================= */

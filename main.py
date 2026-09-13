@@ -424,6 +424,22 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     now_utc = datetime.now(ZoneInfo("UTC"))
     active_dasha = VimshottariDashaEngine.get_current_dasha(dashas, now_utc)
 
+    current_pratyantardashas = []
+    if active_dasha and active_dasha[1]:
+        for pd in active_dasha[1].pratyantardashas:
+            is_active_pd = pd.start_date <= now_utc <= pd.end_date
+            pd_status = "ACTIVE" if is_active_pd else ("COMPLETED" if pd.end_date < now_utc else "UPCOMING")
+            pd_days = pd.duration_days
+            pd_duration_str = f"{pd_days:.1f}d" if pd_days >= 1 else f"{pd_days * 24:.0f}h"
+            current_pratyantardashas.append({
+                "lord": pd.lord.value,
+                "start": pd.start_date.strftime("%d %b %Y"),
+                "end": pd.end_date.strftime("%d %b %Y"),
+                "duration": pd_duration_str,
+                "is_active": is_active_pd,
+                "status": pd_status,
+            })
+
     dasha_summary = {
         "md": active_dasha[0].lord.value if active_dasha else "-",
         "ad": active_dasha[1].lord.value if active_dasha else "-",
@@ -431,6 +447,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "md_range": f"{active_dasha[0].start_date.strftime('%b %Y')} → {active_dasha[0].end_date.strftime('%b %Y')}" if active_dasha else "-",
         "ad_range": f"{active_dasha[1].start_date.strftime('%d %b %Y')} → {active_dasha[1].end_date.strftime('%d %b %Y')}" if active_dasha else "-",
         "pd_range": f"{active_dasha[2].start_date.strftime('%d %b %Y')} → {active_dasha[2].end_date.strftime('%d %b %Y')}" if active_dasha else "-",
+        "current_pratyantardashas": current_pratyantardashas,
     }
 
     mahadashas = []
@@ -446,6 +463,21 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             ad_months = ad.duration_days / 30.4375
             ad_duration_str = f"{ad_months:.1f}m" if ad_months >= 1 else f"{int(ad.duration_days)}d"
 
+            pratyantardashas = []
+            for pd in ad.pratyantardashas:
+                is_active_pd = pd.start_date <= now_utc <= pd.end_date
+                pd_status = "ACTIVE" if is_active_pd else ("COMPLETED" if pd.end_date < now_utc else "UPCOMING")
+                pd_days = pd.duration_days
+                pd_duration_str = f"{pd_days:.1f}d" if pd_days >= 1 else f"{pd_days * 24:.0f}h"
+                pratyantardashas.append({
+                    "lord": pd.lord.value,
+                    "start": pd.start_date.strftime("%d %b %Y"),
+                    "end": pd.end_date.strftime("%d %b %Y"),
+                    "duration": pd_duration_str,
+                    "is_active": is_active_pd,
+                    "status": pd_status,
+                })
+
             antardashas.append({
                 "lord": ad.lord.value,
                 "start": ad.start_date.strftime("%d %b %Y"),
@@ -453,6 +485,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
                 "duration": ad_duration_str,
                 "is_active": is_active_ad,
                 "status": ad_status,
+                "pratyantardashas": pratyantardashas,
             })
 
         mahadashas.append({

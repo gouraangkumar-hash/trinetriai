@@ -269,10 +269,36 @@
         </div>
       </div>
 
+      <!-- Current Active Pratyantardasha Hero Card -->
+      <div class="card" id="current-pd-card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent-primary);">
+        <div class="card-header">
+          <div>
+            <span class="card-title" id="current-pd-card-title">Active Pratyantardashas (Sub-Sub Periods)</span>
+            <span id="current-pd-card-subtitle" style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">All 9 Pratyantardashas in current Mahadasha & Antardasha</span>
+          </div>
+          <span class="status-badge active" id="current-pd-active-badge">Active Period</span>
+        </div>
+        <div class="table-responsive">
+          <table class="studio-table">
+            <thead>
+              <tr>
+                <th>Pratyantar Lord (PD)</th>
+                <th>Span / Date Range</th>
+                <th>Duration</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="current-pd-table-body">
+              <!-- Rendered via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- 120-Year Mahadashas Card Grid (3-4 cards per row) -->
       <div class="card-header" style="margin-top: 1rem;">
         <span class="card-title">120-Year Mahadasha Timeline</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">Click any card to inspect all 9 nested Antardashas</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Click any Mahadasha card to inspect Antardashas, and click any Antardasha row to expand its 9 Pratyantardashas</span>
       </div>
       <div class="dasha-cards-grid" id="dasha-cards-container">
         <!-- Rendered via app.js with 3-4 cards per row -->

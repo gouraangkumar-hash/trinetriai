@@ -60,6 +60,13 @@ def test_calculate_endpoint_default():
     assert len(data["arudha_padas"]) == 12
     assert len(data["mahadashas"]) == 9
     assert "dasha_summary" in data
+    assert "current_pratyantardashas" in data["dasha_summary"]
+    assert len(data["dasha_summary"]["current_pratyantardashas"]) == 9
+    assert any(pd["is_active"] for pd in data["dasha_summary"]["current_pratyantardashas"])
+    first_md = data["mahadashas"][0]
+    assert len(first_md["antardashas"]) > 0
+    assert "pratyantardashas" in first_md["antardashas"][0]
+    assert len(first_md["antardashas"][0]["pratyantardashas"]) > 0
     assert "yogas_summary" in data
     assert "yogas_list" in data
     assert data["yogas_summary"]["total_yogas"] > 0

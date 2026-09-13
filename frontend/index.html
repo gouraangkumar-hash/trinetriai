@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.2.1">
 </head>
 <body>
 
@@ -289,7 +289,11 @@
               </tr>
             </thead>
             <tbody id="current-pd-table-body">
-              <!-- Rendered via app.js -->
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+                  Calculating active Pratyantardashas...
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -301,7 +305,9 @@
         <span style="font-size: 0.8rem; color: var(--text-muted);">Click any Mahadasha card to inspect Antardashas, and click any Antardasha row to expand its 9 Pratyantardashas</span>
       </div>
       <div class="dasha-cards-grid" id="dasha-cards-container">
-        <!-- Rendered via app.js with 3-4 cards per row -->
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">
+          Calculating 120-Year Mahadasha timeline...
+        </div>
       </div>
     </section>
 
@@ -797,6 +803,6 @@
   </footer>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=2.2.1"></script>
 </body>
 </html>

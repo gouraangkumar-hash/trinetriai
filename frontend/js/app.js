@@ -297,16 +297,24 @@ function renderActiveDashaStrip() {
   if (!d || !d.dasha_summary) return;
   const ds = d.dasha_summary;
 
-  document.getElementById("strip-dasha-md").textContent = ds.md;
-  document.getElementById("strip-dasha-ad").textContent = ds.ad;
-  document.getElementById("strip-dasha-pd").textContent = ds.pd;
-  document.getElementById("strip-dasha-dates").textContent = `${ds.ad} AD (${ds.ad_range}) • Active PD: ${ds.pd} (${ds.pd_range})`;
+  const elMd = document.getElementById("strip-dasha-md");
+  if (elMd) elMd.textContent = ds.md;
+  const elAd = document.getElementById("strip-dasha-ad");
+  if (elAd) elAd.textContent = ds.ad;
+  const elPd = document.getElementById("strip-dasha-pd");
+  if (elPd) elPd.textContent = ds.pd;
+  const elDates = document.getElementById("strip-dasha-dates");
+  if (elDates) elDates.textContent = `${ds.ad} AD (${ds.ad_range}) • Active PD: ${ds.pd} (${ds.pd_range})`;
 
   // Also update hero in Tab 3
-  document.getElementById("dasha-hero-md").textContent = ds.md;
-  document.getElementById("dasha-hero-ad").textContent = ds.ad;
-  document.getElementById("dasha-hero-pd").textContent = ds.pd;
-  document.getElementById("dasha-hero-dates").textContent = `Current Mahadasha: ${ds.md_range} • Active Pratyantar: ${ds.pd_range}`;
+  const heroMd = document.getElementById("dasha-hero-md");
+  if (heroMd) heroMd.textContent = ds.md;
+  const heroAd = document.getElementById("dasha-hero-ad");
+  if (heroAd) heroAd.textContent = ds.ad;
+  const heroPd = document.getElementById("dasha-hero-pd");
+  if (heroPd) heroPd.textContent = ds.pd;
+  const heroDates = document.getElementById("dasha-hero-dates");
+  if (heroDates) heroDates.textContent = `Current Mahadasha: ${ds.md_range} • Active Pratyantar: ${ds.pd_range}`;
 }
 
 function renderPlanetsTable() {
@@ -413,17 +421,16 @@ function renderDashasWorkspace() {
   const curPdTbody = document.getElementById("current-pd-table-body");
   const curPdTitle = document.getElementById("current-pd-card-title");
   const curPdSub = document.getElementById("current-pd-card-subtitle");
-  if (curPdTbody && d.dasha_summary) {
+  if (curPdTbody) {
     const ds = d.dasha_summary;
-    if (curPdTitle) {
-      curPdTitle.textContent = `Active Pratyantardashas (${ds.md} MD → ${ds.ad} AD)`;
-    }
-    if (curPdSub) {
-      curPdSub.textContent = `Antardasha Span: ${ds.ad_range} • Active Sub-Sub Period: ${ds.pd} (${ds.pd_range})`;
-    }
-    const pds = ds.current_pratyantardashas || [];
-    if (pds.length > 0) {
-      curPdTbody.innerHTML = pds
+    if (ds && ds.current_pratyantardashas && ds.current_pratyantardashas.length > 0) {
+      if (curPdTitle) {
+        curPdTitle.textContent = `Active Pratyantardashas (${ds.md} MD → ${ds.ad} AD)`;
+      }
+      if (curPdSub) {
+        curPdSub.textContent = `Antardasha Span: ${ds.ad_range} • Active Sub-Sub Period: ${ds.pd} (${ds.pd_range})`;
+      }
+      curPdTbody.innerHTML = ds.current_pratyantardashas
         .map((pd) => {
           const pdGlyph = PLANET_GLYPHS[pd.lord] || "";
           const activeClass = pd.is_active ? "active-pd" : "";
@@ -441,7 +448,7 @@ function renderDashasWorkspace() {
         })
         .join("");
     } else {
-      curPdTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No current period data.</td></tr>`;
+      curPdTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">No active Pratyantardasha timeline available.</td></tr>`;
     }
   }
 
@@ -463,27 +470,31 @@ function renderDashasWorkspace() {
             ? `<span class="status-badge active">Active</span>`
             : (ad.status === "COMPLETED" ? `<span class="status-badge completed">Done</span>` : `<span class="status-badge upcoming">Next</span>`);
 
-          const pdRows = (ad.pratyantardashas || []).map((pd) => {
-            const pdGlyph = PLANET_GLYPHS[pd.lord] || "";
-            const activePdClass = pd.is_active ? "active-pd" : "";
-            const pdBadge = pd.is_active
-              ? `<span class="status-badge active" style="font-size: 0.6rem; padding: 0.1rem 0.35rem;">Active</span>`
-              : (pd.status === "COMPLETED" ? `<span class="status-badge completed" style="font-size: 0.6rem; padding: 0.1rem 0.35rem;">Done</span>` : `<span class="status-badge upcoming" style="font-size: 0.6rem; padding: 0.1rem 0.35rem;">Next</span>`);
+          const subPeriods = ad.pratyantardashas || [];
+          const subCount = subPeriods.length;
+          const pdRows = subCount > 0
+            ? subPeriods.map((pd) => {
+                const pdGlyph = PLANET_GLYPHS[pd.lord] || "";
+                const activePdClass = pd.is_active ? "active-pd" : "";
+                const pdBadge = pd.is_active
+                  ? `<span class="status-badge active" style="font-size: 0.6rem; padding: 0.1rem 0.35rem;">Active</span>`
+                  : (pd.status === "COMPLETED" ? `<span class="status-badge completed" style="font-size: 0.6rem; padding: 0.1rem 0.35rem;">Done</span>` : `<span class="status-badge upcoming" style="font-size: 0.6rem; padding: 0.1rem 0.35rem;">Next</span>`);
 
-            return `
-              <tr class="${activePdClass}">
-                <td style="padding-left: 1.25rem;"><strong style="color: var(--accent-primary); margin-right: 0.3rem;">${pdGlyph}</strong> ${pd.lord}</td>
-                <td style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-secondary);">${pd.start} → ${pd.end}</td>
-                <td style="font-size: 0.68rem; color: var(--text-muted);">${pd.duration}</td>
-                <td>${pdBadge}</td>
-              </tr>
-            `;
-          }).join("");
+                return `
+                  <tr class="${activePdClass}">
+                    <td><strong style="color: var(--accent-primary); margin-right: 0.3rem;">${pdGlyph}</strong> ${pd.lord}</td>
+                    <td style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-secondary);">${pd.start} → ${pd.end}</td>
+                    <td style="font-size: 0.68rem; color: var(--text-muted); text-align: center;">${pd.duration}</td>
+                    <td>${pdBadge}</td>
+                  </tr>
+                `;
+              }).join("")
+            : `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 0.5rem; font-size: 0.72rem;">No sub-periods recorded for this interval.</td></tr>`;
 
           const isAdActive = ad.is_active;
 
           return `
-            <tr class="${activeAdClass} ad-clickable-row" onclick="togglePratyantardashaRow(${mdIdx}, ${adIdx})" title="Click to view/hide 9 Pratyantardashas">
+            <tr class="${activeAdClass} ad-clickable-row" onclick="togglePratyantardashaRow(${mdIdx}, ${adIdx})" title="Click to view/hide Pratyantardashas">
               <td>
                 <span class="pd-toggle-icon" id="pd-icon-${mdIdx}-${adIdx}">${isAdActive ? '▾' : '▸'}</span>
                 <strong>${adGlyph}</strong> ${ad.lord}
@@ -493,13 +504,13 @@ function renderDashasWorkspace() {
               <td>${adBadge}</td>
             </tr>
             <tr id="pd-panel-${mdIdx}-${adIdx}" class="pd-panel-row" style="display: ${isAdActive ? 'table-row' : 'none'};">
-              <td colspan="4" style="padding: 0; background: var(--bg-surface-elevated); border-bottom: 1px solid var(--border-subtle);">
+              <td colspan="4">
                 <div style="padding: 0.5rem 0.6rem;">
                   <div style="font-size: 0.68rem; font-weight: 700; color: var(--accent-primary); text-transform: uppercase; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
                     <span>✦ ${md.lord}-${ad.lord} Pratyantar Dashas</span>
-                    <span style="color: var(--text-muted); font-weight: 500;">9 Sub-Periods</span>
+                    <span style="color: var(--text-muted); font-weight: 500;">${subCount} Sub-Periods</span>
                   </div>
-                  <table class="ad-table pd-nested-table" style="width: 100%; border-collapse: collapse;">
+                  <table class="pd-nested-table">
                     <tbody>
                       ${pdRows}
                     </tbody>
@@ -526,7 +537,7 @@ function renderDashasWorkspace() {
             </div>
           </div>
           <button class="md-toggle-btn" onclick="toggleMahadashaCard(${mdIdx})">
-            <span>View 9 Antardashas &amp; Pratyantardashas</span>
+            <span>View Antardashas &amp; Pratyantardashas</span>
             <span class="caret">▼</span>
           </button>
           <div class="antardasha-panel">
@@ -553,13 +564,17 @@ function togglePratyantardashaRow(mdIdx, adIdx) {
   const panel = document.getElementById(`pd-panel-${mdIdx}-${adIdx}`);
   const icon = document.getElementById(`pd-icon-${mdIdx}-${adIdx}`);
   if (panel) {
-    const isHidden = panel.style.display === "none";
+    const isHidden = panel.style.display === "none" || (panel.style.display === "" && window.getComputedStyle(panel).display === "none");
     panel.style.display = isHidden ? "table-row" : "none";
     if (icon) {
       icon.textContent = isHidden ? "▾" : "▸";
     }
   }
 }
+
+// Bind to window so inline onclick handlers in table HTML reliably resolve
+window.toggleMahadashaCard = toggleMahadashaCard;
+window.togglePratyantardashaRow = togglePratyantardashaRow;
 
 function renderKPWorkspace() {
   const d = state.currentData;

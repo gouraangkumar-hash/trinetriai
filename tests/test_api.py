@@ -212,12 +212,26 @@ def test_frontend_markup_and_scripts():
     assert "select-birth-minute" in html
     assert "select-birth-second" in html
 
+    # Check anti-caching headers on root response
+    assert response.headers.get("cache-control") == "no-cache, no-store, must-revalidate"
+
+    # Check cache-busting query strings on static assets
+    assert "/static/css/style.css?v=" in html
+    assert "/static/js/app.js?v=" in html
+
+    # Check Pratyantardasha elements in index.html
+    assert "current-pd-card" in html
+    assert "current-pd-table-body" in html
+    assert "Active Pratyantardashas (Sub-Sub Periods)" in html
+
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200
     css = css_res.text
     assert ".overview-hero-layout" in css
     assert ".ad-dates-cell" in css
     assert "min-width: 0" in css
+    assert ".pd-nested-table" in css
+    assert "pd-panel-row" in css
 
     js_res = client.get("/static/js/app.js")
     assert js_res.status_code == 200
@@ -227,5 +241,8 @@ def test_frontend_markup_and_scripts():
     assert "select-birth-year" in js
     assert "drawer-vargottama" in js
     assert "p.is_vargottama" in js
+    assert "togglePratyantardashaRow" in js
+    assert "window.togglePratyantardashaRow" in js
+    assert "window.toggleMahadashaCard" in js
 
 

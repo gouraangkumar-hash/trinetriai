@@ -614,4 +614,11 @@ def serve_index():
             status_code=404,
             content={"message": "Frontend index.html not yet created."},
         )
-    return FileResponse(str(index_file))
+    return FileResponse(
+        str(index_file),
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )

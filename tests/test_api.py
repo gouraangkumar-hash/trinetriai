@@ -53,6 +53,15 @@ def test_calculate_endpoint_default():
     assert sun_detail["is_vargottama"] is True
     assert "Vargottama" in sun_detail["vargottama_status"]
     assert sun_detail["d9_sign"] == "Kanya"
+
+    # Verify Mercury is Exalted in reference chart (Virgo / Kanya)
+    merc_detail = data["planet_details"]["Mercury"]
+    assert merc_detail["is_exalted"] is True
+    assert merc_detail["is_debilitated"] is False
+    assert merc_detail["dignity"] == "Exalted"
+    assert "Exalted" in merc_detail["dignity_label"]
+    assert merc_detail["dignity_short"] == "Ex"
+
     assert len(data["varga_table"]) >= 10  # Ascendant + 9 planets
     assert len(data["cusps_table"]) == 12
     assert len(data["chara_karakas_7"]) == 7
@@ -289,8 +298,8 @@ def test_frontend_markup_and_scripts():
     assert response.headers.get("cache-control") == "no-cache, no-store, must-revalidate"
 
     # Check cache-busting query strings on static assets
-    assert "/static/css/style.css?v=2.3.0" in html
-    assert "/static/js/app.js?v=2.3.0" in html
+    assert "/static/css/style.css?v=2.3.1" in html
+    assert "/static/js/app.js?v=2.3.1" in html
 
     # Check clickable overview dasha strip to jump to dasha tab
     assert "overview-dasha-strip" in html
@@ -320,6 +329,11 @@ def test_frontend_markup_and_scripts():
     assert "clear-rays-btn" in html
     assert "drawer-aspects-section" in html
 
+    # Check Planetary Dignity markup in drawer
+    assert "box-dignity" in html
+    assert "drawer-dignity" in html
+    assert "drawer-dignity-badge" in html
+
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200
     css = css_res.text
@@ -348,6 +362,10 @@ def test_frontend_markup_and_scripts():
     assert ".gochar-badge-benefic" in css
     assert ".col-phala" in css
     assert "min-width: 320px" in css
+    assert ".dignity-badge" in css
+    assert ".dignity-ex" in css
+    assert ".dignity-deb" in css
+    assert ".dignity-v" in css
 
     js_res = client.get("/static/js/app.js")
     assert js_res.status_code == 200
@@ -363,6 +381,12 @@ def test_frontend_markup_and_scripts():
     assert "select-birth-year" in js
     assert "drawer-vargottama" in js
     assert "p.is_vargottama" in js
+    assert "p.is_exalted" in js
+    assert "p.is_debilitated" in js
+    assert "dignityBadges" in js
+    assert "dignity-ex" in js
+    assert "dignity-deb" in js
+    assert "dignity-v" in js
     assert "togglePratyantardashaRow" in js
     assert "window.togglePratyantardashaRow" in js
     assert "window.toggleMahadashaCard" in js

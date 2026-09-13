@@ -365,9 +365,22 @@ function renderPlanetsTable() {
       const combustBadge = p.is_combust ? `<span class="status-badge combust">Combust</span>` : "";
       const motionHtml = retroBadge || combustBadge ? `${retroBadge} ${combustBadge}` : `<span class="status-badge upcoming">Direct</span>`;
 
-      const vargottamaTag = p.is_vargottama
-        ? `<span class="status-badge active" style="font-size: 0.625rem; padding: 0.1rem 0.35rem; margin-left: 0.35rem; vertical-align: middle;" title="Vargottama: Same sign in D1 & D9">Vargottama</span>`
-        : "";
+      // Dignity Tags: Exalted [Ex], Debilitated [Deb], Own Sign [Own]
+      let dignityBadges = "";
+      if (p.is_exalted) {
+        dignityBadges += `<span class="dignity-badge dignity-ex" title="${p.dignity_desc || 'Exalted (Uccha) in ' + p.sign}">[Ex]</span>`;
+      } else if (p.is_debilitated) {
+        const nbFlag = p.has_neechabhanga ? '*' : '';
+        const nbNote = p.has_neechabhanga ? ' • Neechabhanga Cancelled' : '';
+        dignityBadges += `<span class="dignity-badge dignity-deb" title="${p.dignity_desc || 'Debilitated (Neecha) in ' + p.sign}${nbNote}">[Deb${nbFlag}]</span>`;
+      } else if (p.is_own_sign) {
+        dignityBadges += `<span class="dignity-badge dignity-own" title="${p.dignity_desc || 'Own Sign (Swa Kshetra) in ' + p.sign}">[Own]</span>`;
+      }
+
+      // Shorter method for highlighting Vargottama: [V] pill badge
+      if (p.is_vargottama) {
+        dignityBadges += `<span class="dignity-badge dignity-v" title="${p.vargottama_status || 'Vargottama: Same sign in D1 & D9'}">[V]</span>`;
+      }
 
       // Drishti Cast Pills
       let drishtiHtml = `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`;
@@ -406,7 +419,7 @@ function renderPlanetsTable() {
               style="${!isAscendant ? 'cursor: pointer;' : ''}" 
               title="${!isAscendant ? 'Click to toggle aspect rays on chart' : ''}">
             <strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> 
-            <span class="${!isAscendant ? 'planet-name-link' : ''}">${p.planet}</span>${vargottamaTag}
+            <span class="${!isAscendant ? 'planet-name-link' : ''}">${p.planet}</span>${dignityBadges}
           </td>
           <td>${p.sign}</td>
           <td style="font-family: var(--font-mono);">${p.degree}</td>
@@ -1091,6 +1104,45 @@ function openPlanetDrawer(planetName) {
   document.getElementById("drawer-planet-glyph").textContent = PLANET_GLYPHS[p.planet] || "✧";
   document.getElementById("drawer-planet-name").textContent = p.planet;
   document.getElementById("drawer-planet-pos").textContent = `${p.sign} ${p.degree}`;
+
+  // Classical Dignity (Avastha) Badge & Details
+  const digBadge = document.getElementById("drawer-dignity-badge");
+  const digBox = document.getElementById("box-dignity");
+  const digVal = document.getElementById("drawer-dignity");
+
+  if (digBadge) {
+    if (p.is_exalted) {
+      digBadge.style.display = "inline-flex";
+      digBadge.className = "status-badge dignity-exalted";
+      digBadge.textContent = "✦ Exalted (Uccha)";
+    } else if (p.is_debilitated) {
+      digBadge.style.display = "inline-flex";
+      digBadge.className = "status-badge dignity-debilitated";
+      digBadge.textContent = p.has_neechabhanga ? "✦ Neechabhanga Active" : "▼ Debilitated (Neecha)";
+    } else if (p.is_own_sign) {
+      digBadge.style.display = "inline-flex";
+      digBadge.className = "status-badge dignity-own";
+      digBadge.textContent = "✦ Own Sign";
+    } else {
+      digBadge.style.display = "none";
+    }
+  }
+
+  if (digVal) {
+    digVal.textContent = p.dignity_label || p.dignity || "Neutral";
+    if (p.is_exalted) {
+      digVal.style.color = "#059669";
+    } else if (p.is_debilitated) {
+      digVal.style.color = "#DC2626";
+    } else if (p.is_own_sign) {
+      digVal.style.color = "var(--accent-primary)";
+    } else {
+      digVal.style.color = "var(--text-secondary)";
+    }
+    if (digBox && p.dignity_desc) {
+      digBox.setAttribute("title", p.dignity_desc);
+    }
+  }
 
   // Vargottama Dignity Status & Navamsha (D9) Sign
   const vBadge = document.getElementById("drawer-vargottama-badge");

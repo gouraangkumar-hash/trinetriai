@@ -592,6 +592,128 @@ class TestAspectsEngine:
             assert b.net_influence in ("Fortified (Benefic)", "Afflicted (Malefic)", "Mixed Influences", "Neutral")
 
 
+# =========================================================================
+# 9. Classical Planetary Dignity Engine Tests
+# =========================================================================
+
+class TestDignityEngine:
+    """Validates classical Parashari planetary dignities (Exaltation, Debilitation, Own Sign, Moolatrikona)."""
+
+    def test_all_9_planets_exaltations(self) -> None:
+        """Validates that all 9 planets correctly detect their classical exaltation signs."""
+        from engines.dignity import DignityEngine, EXALTATION_SIGNS, DEEP_EXALTATION_DEGREES, DignityState
+        from core.constants import PlanetEnum
+
+        for planet, ex_sign in EXALTATION_SIGNS.items():
+            deep_deg = DEEP_EXALTATION_DEGREES[planet]
+            rep = DignityEngine.evaluate_planet_dignity(
+                planet=planet,
+                sign_id=ex_sign,
+                sign_name="TestSign",
+                degree_in_sign=deep_deg,
+            )
+            assert rep.is_exalted is True
+            assert rep.is_debilitated is False
+            assert rep.dignity == DignityState.EXALTED
+            assert rep.dignity_short == "Ex"
+            assert "Exalted" in rep.dignity_label
+            assert "Deep Exaltation" in rep.dignity_desc or "Exalted in" in rep.dignity_desc
+
+    def test_all_9_planets_debilitations(self) -> None:
+        """Validates that all 9 planets correctly detect their classical debilitation signs."""
+        from engines.dignity import DignityEngine, DEBILITATION_SIGNS, DEEP_DEBILITATION_DEGREES, DignityState
+        from core.constants import PlanetEnum
+
+        for planet, deb_sign in DEBILITATION_SIGNS.items():
+            deep_deg = DEEP_DEBILITATION_DEGREES[planet]
+            rep = DignityEngine.evaluate_planet_dignity(
+                planet=planet,
+                sign_id=deb_sign,
+                sign_name="TestSign",
+                degree_in_sign=deep_deg,
+            )
+            assert rep.is_debilitated is True
+            assert rep.is_exalted is False
+            assert rep.dignity == DignityState.DEBILITATED
+            assert rep.dignity_short == "Deb"
+            assert "Debilitated" in rep.dignity_label
+
+    def test_neechabhanga_integration(self) -> None:
+        """Validates that Neechabhanga cancellation is flagged on debilitated planets."""
+        from engines.dignity import DignityEngine, DignityState
+        from core.constants import PlanetEnum
+
+        # Saturn in Aries (Sign 1) with Neechabhanga
+        rep_nb = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.SATURN,
+            sign_id=1,
+            sign_name="Mesha",
+            degree_in_sign=20.0,
+            neechabhanga_planets={"Saturn"},
+        )
+        assert rep_nb.is_debilitated is True
+        assert rep_nb.has_neechabhanga is True
+        assert "[Cancelled]" in rep_nb.dignity_label
+        assert "Neechabhanga" in rep_nb.dignity_desc
+
+        # Saturn in Aries without Neechabhanga
+        rep_plain = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.SATURN,
+            sign_id=1,
+            sign_name="Mesha",
+            degree_in_sign=20.0,
+            neechabhanga_planets=set(),
+        )
+        assert rep_plain.is_debilitated is True
+        assert rep_plain.has_neechabhanga is False
+        assert "[Cancelled]" not in rep_plain.dignity_label
+
+    def test_own_sign_and_moolatrikona(self) -> None:
+        """Validates Moolatrikona vs Own Sign distinction."""
+        from engines.dignity import DignityEngine, DignityState
+        from core.constants import PlanetEnum
+
+        # Sun in Leo 10° is Moolatrikona (0°-20°)
+        rep_sun_mt = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.SUN,
+            sign_id=5,
+            sign_name="Simha",
+            degree_in_sign=10.0,
+        )
+        assert rep_sun_mt.is_moolatrikona is True
+        assert rep_sun_mt.dignity == DignityState.MOOLATRIKONA
+        assert rep_sun_mt.dignity_short == "MT"
+
+        # Sun in Leo 25° is Own Sign (20°-30°)
+        rep_sun_own = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.SUN,
+            sign_id=5,
+            sign_name="Simha",
+            degree_in_sign=25.0,
+        )
+        assert rep_sun_own.is_own_sign is True
+        assert rep_sun_own.dignity == DignityState.OWN_SIGN
+        assert rep_sun_own.dignity_short == "Own"
+
+    def test_reference_chart_dignities(self, reference_chart) -> None:
+        """Validates dignities of planets in the standard reference chart."""
+        from engines.dignity import DignityEngine, DignityState
+        from core.constants import PlanetEnum
+
+        mercury_pos = reference_chart.planets[PlanetEnum.MERCURY]
+        rep_merc = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.MERCURY,
+            sign_id=mercury_pos.sign.id,
+            sign_name=mercury_pos.sign.sanskrit_name,
+            degree_in_sign=mercury_pos.longitude % 30.0,
+        )
+        # Mercury in Virgo (Kanya, 6) is Exalted
+        assert rep_merc.is_exalted is True
+        assert rep_merc.dignity == DignityState.EXALTED
+        assert rep_merc.dignity_short == "Ex"
+
+
+
 
 
 

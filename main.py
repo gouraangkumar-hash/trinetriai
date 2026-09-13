@@ -37,6 +37,7 @@ from engines.parashari import (
     VargaType,
     VimshottariDashaEngine,
 )
+from engines.dignity import DignityEngine
 from engines.yogas import YogaDetectorEngine
 from schemas.models import BirthInput, GeoLocationModel, UnifiedChartData
 from visualizers.ashtakavarga_svg import generate_ashtakavarga_svg
@@ -214,6 +215,13 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "birth_profile": f"{req.city} • {effective_dt.strftime('%d %b %Y, %H:%M:%S')} • {req.ayanamsha}",
     }
 
+    # Identify planets with classical Neechabhanga cancellation
+    neechabhanga_planets = set()
+    for y in yogas_report.yogas:
+        if y.id.startswith("neechabhanga_") or "Neechabhanga" in y.name:
+            for p_inv in y.planets_involved:
+                neechabhanga_planets.add(p_inv)
+
     # 2. Planetary Positions Table (9 classical + nodes)
     planets_table = []
     planet_details = {}
@@ -235,6 +243,16 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             if k_item.planet == p_name:
                 karaka_role = f"{k_item.role_code} ({k_item.role_name.value})"
                 break
+
+        # Classical Sign Dignity Check (Exalted, Debilitated, Moolatrikona, Own Sign)
+        intra_deg = p_pos.sign.dms.degrees + (p_pos.sign.dms.minutes / 60.0) + (p_pos.sign.dms.seconds / 3600.0)
+        dignity_rep = DignityEngine.evaluate_planet_dignity(
+            planet=p_name,
+            sign_id=p_pos.sign.id,
+            sign_name=s_name,
+            degree_in_sign=intra_deg,
+            neechabhanga_planets=neechabhanga_planets,
+        )
 
         # Vargottama dignity check (D1 Rashi sign == D9 Navamsha sign)
         d9_placement = VargaChartEngine.calculate_point_varga(
@@ -275,6 +293,16 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             "is_retro": p_pos.is_retrograde,
             "is_combust": p_pos.is_combust,
             "karaka_role": karaka_role,
+            "is_exalted": dignity_rep.is_exalted,
+            "is_debilitated": dignity_rep.is_debilitated,
+            "is_own_sign": dignity_rep.is_own_sign,
+            "is_moolatrikona": dignity_rep.is_moolatrikona,
+            "dignity": dignity_rep.dignity.value,
+            "dignity_label": dignity_rep.dignity_label,
+            "dignity_short": dignity_rep.dignity_short,
+            "dignity_desc": dignity_rep.dignity_desc,
+            "dignity_sanskrit": dignity_rep.dignity_sanskrit,
+            "has_neechabhanga": dignity_rep.has_neechabhanga,
             "is_vargottama": is_vargottama,
             "vargottama_status": vargottama_status,
             "d9_sign": d9_sign_name,
@@ -320,6 +348,16 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "is_retro": False,
         "is_combust": False,
         "karaka_role": "Lagna",
+        "is_exalted": False,
+        "is_debilitated": False,
+        "is_own_sign": False,
+        "is_moolatrikona": False,
+        "dignity": "Neutral",
+        "dignity_label": "Lagna (Ascendant)",
+        "dignity_short": "",
+        "dignity_desc": "Ascendant Point",
+        "dignity_sanskrit": "लग्न",
+        "has_neechabhanga": False,
         "is_vargottama": is_asc_vargottama,
         "vargottama_status": asc_vargottama_status,
         "d9_sign": asc_d9_sign_name,

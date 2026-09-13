@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="/static/favicon.png?v=2.3.0">
-  <link rel="apple-touch-icon" href="/static/favicon.png?v=2.3.0">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.3.0">
+  <link rel="icon" type="image/png" href="/static/favicon.png?v=2.3.1">
+  <link rel="apple-touch-icon" href="/static/favicon.png?v=2.3.1">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.3.1">
 </head>
 <body>
 
@@ -948,8 +948,9 @@
         <div class="drawer-title-group">
           <span id="drawer-planet-glyph" style="font-size: 1.5rem; color: var(--accent-primary);">☉</span>
           <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <h3 id="drawer-planet-name" class="drawer-planet-name">Sun</h3>
+              <span id="drawer-dignity-badge" class="status-badge" style="display: none;"></span>
               <span id="drawer-vargottama-badge" class="status-badge active" style="display: none;">✦ Vargottama</span>
             </div>
             <span id="drawer-planet-pos" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">Kanya 27°43'</span>
@@ -963,6 +964,10 @@
         <div>
           <h4 class="drawer-section-title">Astronomical & Vedic Properties</h4>
           <div class="drawer-field-grid">
+            <div class="drawer-field-box" id="box-dignity">
+              <span class="drawer-field-label">Classical Dignity (Avastha)</span>
+              <p id="drawer-dignity" class="drawer-field-value" style="font-weight: 700;">-</p>
+            </div>
             <div class="drawer-field-box" id="box-vargottama">
               <span class="drawer-field-label">Vargottama (D1 = D9)</span>
               <p id="drawer-vargottama" class="drawer-field-value" style="font-weight: 700;">-</p>
@@ -1172,12 +1177,12 @@
   <!-- ======================================================================= -->
   <footer class="footer-bar">
     <p style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
-      <img src="/static/favicon.png?v=2.3.0" alt="Trinetri AI" style="width: 18px; height: 18px; object-fit: contain;" />
+      <img src="/static/favicon.png?v=2.3.1" alt="Trinetri AI" style="width: 18px; height: 18px; object-fit: contain;" />
       <span>TrinetriAI Vedic Studio • Swiss Ephemeris DE431 • Parashari Shodashavarga • Krishnamurti Paddhati • Jaimini Upadesha Sutras</span>
     </p>
   </footer>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=2.3.0"></script>
+  <script src="/static/js/app.js?v=2.3.1"></script>
 </body>
 </html>

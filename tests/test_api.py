@@ -151,7 +151,8 @@ def test_serve_index_and_static():
 
 
 def test_geocode_endpoint():
-    """Test GET /api/geocode for location lookup."""
+    """Test GET /api/geocode for location lookup across multiple tiers."""
+    # 1. Primary Indian city
     response = client.get("/api/geocode?query=Jaipur")
     assert response.status_code == 200
     data = response.json()
@@ -159,6 +160,33 @@ def test_geocode_endpoint():
     assert "latitude" in data
     assert "longitude" in data
     assert "Asia/Kolkata" in data["timezone_str"]
+    assert data["city"] == "Jaipur"
+
+    # 2. Sacred Vedic city (Ujjain)
+    res_uj = client.get("/api/geocode?query=Ujjain")
+    assert res_uj.status_code == 200
+    d_uj = res_uj.json()
+    assert d_uj["city"] == "Ujjain"
+    assert "Asia/Kolkata" in d_uj["timezone_str"]
+
+    # 3. Global metro (New York)
+    res_ny = client.get("/api/geocode?query=New York")
+    assert res_ny.status_code == 200
+    d_ny = res_ny.json()
+    assert "America/New_York" in d_ny["timezone_str"]
+
+    # 4. Direct coordinate input
+    res_coord = client.get("/api/geocode?query=26.9124,%2075.7873")
+    assert res_coord.status_code == 200
+    d_coord = res_coord.json()
+    assert abs(d_coord["latitude"] - 26.9124) < 1e-3
+    assert abs(d_coord["longitude"] - 75.7873) < 1e-3
+    assert d_coord["timezone_str"] == "Asia/Kolkata"
+
+    # 5. Invalid gibberish returns 400 with descriptive detail
+    res_err = client.get("/api/geocode?query=qwertyuiopasdfghjklzxcvbnm99999")
+    assert res_err.status_code == 400
+    assert "Location lookup failed" in res_err.json()["detail"]
 
 
 def test_frontend_markup_and_scripts():

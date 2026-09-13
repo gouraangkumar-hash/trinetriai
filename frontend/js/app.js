@@ -172,7 +172,10 @@ async function geocodeLocation(query) {
 
   try {
     const res = await fetch(`/api/geocode?query=${encodeURIComponent(query)}`);
-    if (!res.ok) throw new Error("Could not find location");
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || "Could not find location");
+    }
     const data = await res.json();
 
     document.getElementById("input-city").value = data.display_name;
@@ -1221,10 +1224,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.id === "birth-modal") closeBirthModal();
   });
 
-  // 10. Geocode Button in Modal
-  document.getElementById("btn-geocode").addEventListener("click", () => {
+  // 10. Geocode Button & Enter Key in Modal
+  const triggerGeocode = () => {
     const q = document.getElementById("input-city").value.trim();
     if (q) geocodeLocation(q);
+  };
+  document.getElementById("btn-geocode").addEventListener("click", triggerGeocode);
+  document.getElementById("input-city").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      triggerGeocode();
+    }
   });
 
   // 11. Modal Form Submission

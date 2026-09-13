@@ -402,15 +402,17 @@ function renderPlanetsTable() {
 
       return `
         <tr class="${rowClass}" id="${rowId}">
-          <td><strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> ${p.planet}${vargottamaTag}</td>
+          <td onclick="${!isAscendant ? `togglePlanetAspectRays('${p.planet}', event)` : ''}" 
+              style="${!isAscendant ? 'cursor: pointer;' : ''}" 
+              title="${!isAscendant ? 'Click to toggle aspect rays on chart' : ''}">
+            <strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> 
+            <span class="${!isAscendant ? 'planet-name-link' : ''}">${p.planet}</span>${vargottamaTag}
+          </td>
           <td>${p.sign}</td>
           <td style="font-family: var(--font-mono);">${p.degree}</td>
           <td>${p.nakshatra}</td>
-          <td>${drishtiHtml}</td>
-          <td>${p.star_lord}</td>
-          <td>${p.sub_lord}</td>
-          <td>${p.sub_sub_lord}</td>
           <td>${motionHtml}</td>
+          <td>${drishtiHtml}</td>
           <td>
             <div style="display: flex; gap: 0.35rem; align-items: center;">
               ${raysBtnHtml}

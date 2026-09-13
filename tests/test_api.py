@@ -294,6 +294,7 @@ def test_frontend_markup_and_scripts():
 
     # Check Aspects and Visual Rays markup
     assert "Drishti Cast" in html
+    assert "Planetary Positions & Graha Drishti" in html
     assert "bhava-aspects-card" in html
     assert "clear-rays-btn" in html
     assert "drawer-aspects-section" in html
@@ -305,6 +306,7 @@ def test_frontend_markup_and_scripts():
     assert ".brand-logo" in css
     assert ".aspect-pill" in css
     assert ".aspect-ray-path" in css
+    assert ".planet-name-link" in css
     assert ".bhava-card" in css
     assert ".ad-dates-cell" in css
     assert "min-width: 0" in css

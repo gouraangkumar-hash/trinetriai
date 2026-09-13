@@ -353,9 +353,14 @@ def generate_north_indian_svg(
             is_tr = p.get("is_transit", False)
             deg_col = transit_color if is_tr else sign_color
 
+            p_name_str = p["name"].value if hasattr(p["name"], "value") else str(p["name"])
+            click_attr = f'onclick="window.togglePlanetAspectRays && window.togglePlanetAspectRays(\'{p_name_str}\', event)"' if p_name_str != "Ascendant" and not is_tr else ""
+            title_attr = f'<title>Click to view {p_name_str} aspect rays</title>' if p_name_str != "Ascendant" and not is_tr else ""
+
             # Left/Right 2-column formatting per line
             svg_parts.append(
-                f'<g class="planet-row cursor-pointer">'
+                f'<g class="planet-row cursor-pointer" {click_attr}>'
+                f'{title_attr}'
                 f'<text x="{cx - 3}" y="{py}" fill="{p["color"]}" font-family="JetBrains Mono, monospace" '
                 f'font-size="{font_size}" font-weight="{"800" if is_tr else "700"}" text-anchor="end" dominant-baseline="central">'
                 f'{p["short"]}{status_flags}'

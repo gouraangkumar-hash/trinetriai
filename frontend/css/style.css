@@ -2086,6 +2086,22 @@ tr.active-ray-row {
   box-shadow: inset 3px 0 0 var(--accent-primary);
 }
 
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover text {
+  filter: drop-shadow(0 0 4px var(--accent-primary));
+}
+
+.planet-name-link {
+  transition: color 0.15s ease;
+}
+
+.planet-name-link:hover {
+  color: var(--accent-primary);
+}
+
 /* Dynamic SVG Ray Animation */
 .aspect-ray-path {
   stroke-dasharray: 6 4;

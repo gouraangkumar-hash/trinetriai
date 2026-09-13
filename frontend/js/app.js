@@ -439,28 +439,19 @@ function renderPlanetsTable() {
         `;
       }
 
-      // Action Buttons
       const isRayActive = (state.activeRayPlanet === p.planet);
       const isAscendant = p.planet.includes("Ascendant");
-      const raysBtnHtml = !isAscendant ? `
-        <button class="action-pill aspect-rays-btn ${isRayActive ? 'active' : ''}" 
-                id="rays-btn-${p.planet}" 
-                onclick="togglePlanetAspectRays('${p.planet}', event)" 
-                title="Toggle visual aspect rays on Kundali chart">
-          ✦ Rays
-        </button>
-      ` : "";
-
       const rowClass = isRayActive ? 'active-ray-row' : '';
       const rowId = `planet-row-${p.planet.replace(/[^a-zA-Z0-9]/g, '')}`;
+      const drawerTarget = isAscendant ? 'Ascendant' : p.planet;
 
       return `
         <tr class="${rowClass}" id="${rowId}">
-          <td onclick="${!isAscendant ? `togglePlanetAspectRays('${p.planet}', event)` : ''}" 
-              style="${!isAscendant ? 'cursor: pointer;' : ''}" 
-              title="${!isAscendant ? 'Click to toggle aspect rays on chart' : ''}">
+          <td onclick="openPlanetDrawer('${drawerTarget}')" 
+              style="cursor: pointer;" 
+              title="Click to inspect ${p.planet} in slide-over drawer">
             <strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> 
-            <span class="${!isAscendant ? 'planet-name-link' : ''}">${p.planet}</span>${dignityBadges}
+            <span class="planet-name-link">${p.planet}</span>${dignityBadges}
           </td>
           <td>${p.sign}</td>
           <td style="font-family: var(--font-mono);">${p.degree}</td>
@@ -469,12 +460,6 @@ function renderPlanetsTable() {
           <td>${funcHtml}</td>
           <td class="strength-table-cell">${strengthHtml}</td>
           <td>${drishtiHtml}</td>
-          <td>
-            <div style="display: flex; gap: 0.35rem; align-items: center;">
-              ${raysBtnHtml}
-              <button class="inspect-btn" onclick="openPlanetDrawer('${p.planet}')">Inspect</button>
-            </div>
-          </td>
         </tr>
       `;
     })

@@ -44,19 +44,20 @@ PLANET_THEMES_LIGHT = {
 }
 
 # Dedicated Non-Overlapping Coordinates for Sign Numbers and Planet Text
+# Triangles have wide outer bases and narrow inner apexes; centers are placed in the wide body
 HOUSE_CONFIG = {
-    1:  {"center": (400, 200), "sign_pos": (400, 365), "type": "diamond"},
-    2:  {"center": (200, 115), "sign_pos": (200, 32),  "type": "triangle"},
-    3:  {"center": (115, 200), "sign_pos": (32, 200),  "type": "triangle"},
-    4:  {"center": (190, 400), "sign_pos": (365, 400), "type": "diamond"},
-    5:  {"center": (115, 600), "sign_pos": (32, 600),  "type": "triangle"},
-    6:  {"center": (200, 685), "sign_pos": (200, 770), "type": "triangle"},
-    7:  {"center": (400, 600), "sign_pos": (400, 435), "type": "diamond"},
-    8:  {"center": (600, 685), "sign_pos": (600, 770), "type": "triangle"},
-    9:  {"center": (685, 600), "sign_pos": (768, 600), "type": "triangle"},
-    10: {"center": (610, 400), "sign_pos": (435, 400), "type": "diamond"},
-    11: {"center": (685, 200), "sign_pos": (768, 200), "type": "triangle"},
-    12: {"center": (600, 115), "sign_pos": (600, 32),  "type": "triangle"},
+    1:  {"center": (400, 185), "sign_pos": (400, 365), "type": "diamond"},
+    2:  {"center": (200, 80),  "sign_pos": (200, 165), "type": "triangle"},
+    3:  {"center": (80, 200),  "sign_pos": (165, 200), "type": "triangle"},
+    4:  {"center": (195, 400), "sign_pos": (365, 400), "type": "diamond"},
+    5:  {"center": (80, 600),  "sign_pos": (165, 600), "type": "triangle"},
+    6:  {"center": (200, 720), "sign_pos": (200, 635), "type": "triangle"},
+    7:  {"center": (400, 615), "sign_pos": (400, 435), "type": "diamond"},
+    8:  {"center": (600, 720), "sign_pos": (600, 635), "type": "triangle"},
+    9:  {"center": (720, 600), "sign_pos": (635, 600), "type": "triangle"},
+    10: {"center": (605, 400), "sign_pos": (435, 400), "type": "diamond"},
+    11: {"center": (720, 200), "sign_pos": (635, 200), "type": "triangle"},
+    12: {"center": (600, 80),  "sign_pos": (600, 165), "type": "triangle"},
 }
 
 
@@ -322,28 +323,44 @@ def generate_north_indian_svg(
 
         cx, cy = HOUSE_CONFIG[h_num]["center"]
         count = len(planets)
-        line_height = 24 if count <= 4 else (19 if count <= 6 else 15.5)
-        font_size = 14 if count <= 4 else (12 if count <= 6 else 10.5)
-        deg_font_size = 13 if count <= 4 else (11 if count <= 6 else 9.5)
+        if count <= 2:
+            line_height = 22.0
+            font_size = 13.0
+            deg_font_size = 12.0
+        elif count <= 4:
+            line_height = 17.0
+            font_size = 11.0
+            deg_font_size = 10.0
+        elif count <= 6:
+            line_height = 14.0
+            font_size = 9.5
+            deg_font_size = 8.5
+        else:
+            line_height = 12.0
+            font_size = 8.5
+            deg_font_size = 7.5
+
         start_y = cy - ((count - 1) * line_height / 2.0)
 
         for idx, p in enumerate(planets):
             py = start_y + (idx * line_height)
 
-            retro_str = " (R)" if p["is_retro"] else ""
-            comb_str = " [C]" if p["is_combust"] else ""
-            status_flags = f"{retro_str}{comb_str}"
+            retro_str = "(R)" if p["is_retro"] else ""
+            comb_str = "[C]" if p["is_combust"] else ""
+            status_flags = f" {retro_str}" if retro_str else ""
+            if comb_str:
+                status_flags += f" {comb_str}"
             is_tr = p.get("is_transit", False)
             deg_col = transit_color if is_tr else sign_color
 
             # Left/Right 2-column formatting per line
             svg_parts.append(
                 f'<g class="planet-row cursor-pointer">'
-                f'<text x="{cx - 5}" y="{py}" fill="{p["color"]}" font-family="JetBrains Mono, monospace" '
+                f'<text x="{cx - 3}" y="{py}" fill="{p["color"]}" font-family="JetBrains Mono, monospace" '
                 f'font-size="{font_size}" font-weight="{"800" if is_tr else "700"}" text-anchor="end" dominant-baseline="central">'
                 f'{p["short"]}{status_flags}'
                 f'</text>'
-                f'<text x="{cx + 5}" y="{py}" fill="{deg_col}" font-family="JetBrains Mono, monospace" '
+                f'<text x="{cx + 3}" y="{py}" fill="{deg_col}" font-family="JetBrains Mono, monospace" '
                 f'font-size="{deg_font_size}" font-weight="{"700" if is_tr else "600"}" text-anchor="start" dominant-baseline="central">'
                 f'{p["intra_deg_str"]}'
                 f'</text>'

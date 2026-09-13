@@ -1221,13 +1221,23 @@ function updateGocharButtonStates() {
 }
 
 function renderGocharWorkspace() {
+  const card = document.getElementById("gochar-card");
+  if (!card) return;
+
+  // Sync button states
+  updateGocharButtonStates();
+
+  // Display Gochar card ONLY when Gochar is toggled ON
+  if (!state.show_gochar) {
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "block";
+
   const d = state.currentData;
   if (!d || !d.gochar) return;
   const g = d.gochar;
   const s = g.summary;
-
-  // Sync button states
-  updateGocharButtonStates();
 
   // Summary score badges
   const scoreBadge = document.getElementById("gochar-score-badge");
@@ -1302,12 +1312,12 @@ function renderGocharWorkspace() {
       <td><strong>${signDisplayName}</strong></td>
       <td style="font-family: var(--font-mono); font-size: 0.85rem;">${t.degree_formatted}</td>
       <td>${t.nakshatra} <span style="color: var(--text-muted); font-size: 0.75rem;">(P${t.pada})</span></td>
-      <td style="font-weight: 600;">H${t.house_from_lagna}</td>
-      <td style="font-weight: 600;">H${t.house_from_moon}</td>
-      <td><span class="gochar-status-badge ${badgeClass}">${statusText}</span></td>
+      <td style="font-weight: 600; text-align: center;">H${t.house_from_lagna}</td>
+      <td style="font-weight: 600; text-align: center;">H${t.house_from_moon}</td>
+      <td style="text-align: center;"><span class="gochar-status-badge ${badgeClass}">${statusText}</span></td>
       <td><span class="${savColorClass}" style="font-family: var(--font-mono); font-weight: 700;">${t.sav_bindus}</span> <span style="font-size: 0.75rem; color: var(--text-muted);">(BAV: ${t.bav_bindus})</span></td>
       <td><span style="font-weight: 600;">${t.kaksha_lord}</span> <span style="font-size: 0.75rem; color: var(--text-muted);">(K${t.kaksha_number})</span></td>
-      <td style="font-size: 0.825rem; color: var(--text-secondary); max-width: 260px;">${t.transit_phala}</td>
+      <td class="col-phala">${t.transit_phala}</td>
     `;
     tbody.appendChild(tr);
   });

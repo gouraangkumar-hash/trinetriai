@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.2.5">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.2.6">
 </head>
 <body>
 
@@ -160,7 +160,7 @@
       </div>
 
       <!-- Real-Time Gochar (Transits) Intelligence Card -->
-      <div id="gochar-card" class="card gochar-card" style="margin-bottom: 1.5rem;">
+      <div id="gochar-card" class="card gochar-card" style="display: none; margin-bottom: 1.5rem;">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
           <div>
             <span class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
@@ -201,16 +201,16 @@
           <table class="studio-table gochar-table">
             <thead>
               <tr>
-                <th>Graha</th>
-                <th>Transit Sign</th>
-                <th>Degree</th>
-                <th>Nakshatra</th>
-                <th>From Lagna</th>
-                <th>From Moon</th>
-                <th>Phaladeepika</th>
-                <th>SAV Bindus</th>
-                <th>Kaksha Lord</th>
-                <th>Classical Phala</th>
+                <th style="width: 80px;">Graha</th>
+                <th style="width: 90px;">Transit Sign</th>
+                <th style="width: 75px;">Degree</th>
+                <th style="width: 110px;">Nakshatra</th>
+                <th style="width: 60px; text-align: center;">From Lagna</th>
+                <th style="width: 60px; text-align: center;">From Moon</th>
+                <th style="width: 100px; text-align: center;">Phaladeepika</th>
+                <th style="width: 85px;">SAV Bindus</th>
+                <th style="width: 105px;">Kaksha Lord</th>
+                <th class="col-phala">Classical Phala</th>
               </tr>
             </thead>
             <tbody id="gochar-table-body">
@@ -878,6 +878,6 @@
   </footer>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=2.2.5"></script>
+  <script src="/static/js/app.js?v=2.2.6"></script>
 </body>
 </html>

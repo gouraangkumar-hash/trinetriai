@@ -303,9 +303,22 @@ def generate_south_indian_svg(
         if planets:
             p_start_y = y + (52 if is_asc else 38)
             count = len(planets)
-            line_height = 20 if count <= 4 else (16 if count <= 6 else 13.5)
-            font_size = 13 if count <= 4 else (11 if count <= 6 else 9.5)
-            deg_font_size = 12 if count <= 4 else (10.5 if count <= 6 else 9)
+            if count <= 2:
+                line_height = 22.0
+                font_size = 13.0
+                deg_font_size = 12.0
+            elif count <= 4:
+                line_height = 17.0
+                font_size = 11.0
+                deg_font_size = 10.0
+            elif count <= 6:
+                line_height = 14.0
+                font_size = 9.5
+                deg_font_size = 8.5
+            else:
+                line_height = 12.0
+                font_size = 8.5
+                deg_font_size = 7.5
 
             for idx, p in enumerate(planets):
                 if idx >= 8:
@@ -313,9 +326,11 @@ def generate_south_indian_svg(
                 py = p_start_y + (idx * line_height)
                 cx = x + (cell_w / 2.0)
 
-                retro_str = " (R)" if p["is_retro"] else ""
-                comb_str = " [C]" if p["is_combust"] else ""
-                status_flags = f"{retro_str}{comb_str}"
+                retro_str = "(R)" if p["is_retro"] else ""
+                comb_str = "[C]" if p["is_combust"] else ""
+                status_flags = f" {retro_str}" if retro_str else ""
+                if comb_str:
+                    status_flags += f" {comb_str}"
                 is_tr = p.get("is_transit", False)
                 deg_col = transit_color if is_tr else sign_label_color
 

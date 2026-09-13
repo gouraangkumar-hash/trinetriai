@@ -267,10 +267,12 @@ def test_frontend_markup_and_scripts():
     assert "sav-chart-subtitle" in html
     assert "av-kaksha-card" in html
     assert "scrub-minus-5m" in html
-    # Check Gochar controls and intelligence card
+    # Check Gochar controls, hidden state by default, and intelligence card
     assert "gochar-toggle-btn" in html
     assert "gochar-card" in html
+    assert 'id="gochar-card" class="card gochar-card" style="display: none;' in html
     assert "gochar-table" in html
+    assert "col-phala" in html
 
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200
@@ -285,6 +287,8 @@ def test_frontend_markup_and_scripts():
     assert ".gochar-pill" in css
     assert ".gochar-card" in css
     assert ".gochar-badge-benefic" in css
+    assert ".col-phala" in css
+    assert "min-width: 320px" in css
 
     js_res = client.get("/static/js/app.js")
     assert js_res.status_code == 200
@@ -301,5 +305,6 @@ def test_frontend_markup_and_scripts():
     assert "scrub-plus-5m" in js
     assert "updateGocharButtonStates" in js
     assert "renderGocharWorkspace" in js
+    assert "col-phala" in js
 
 

@@ -9,6 +9,7 @@ Supports Sanskrit and English sign name toggling.
 from typing import Optional
 
 from core.constants import PlanetEnum
+from engines.dignity import EXALTATION_SIGNS, DEBILITATION_SIGNS
 from engines.parashari import VargaChart
 from schemas.models import UnifiedChartData
 
@@ -109,6 +110,8 @@ def generate_south_indian_svg(
                 else p_varga.sign_name
             )
             is_retro = chart.planets[p_name].is_retrograde if chart and p_name in chart.planets else False
+            is_ex = bool(p_varga.sign_id == EXALTATION_SIGNS.get(p_name))
+            is_deb = bool(p_varga.sign_id == DEBILITATION_SIGNS.get(p_name))
             sign_planets[p_varga.sign_id].append({
                 "name": p_name,
                 "glyph": theme["glyph"],
@@ -118,6 +121,8 @@ def generate_south_indian_svg(
                 "intra_deg_str": f"{int(p_varga.intra_sign_degree)}°{int((p_varga.intra_sign_degree%1)*60):02d}'",
                 "is_retro": is_retro,
                 "is_combust": False,
+                "is_exalted": is_ex,
+                "is_debilitated": is_deb,
                 "nak_name": "",
                 "pada": 0,
                 "sign_name": s_name,
@@ -132,6 +137,8 @@ def generate_south_indian_svg(
                 if sign_mode == "english"
                 else p_pos.sign.sanskrit_name
             )
+            is_ex = bool(p_pos.sign.id == EXALTATION_SIGNS.get(p_name))
+            is_deb = bool(p_pos.sign.id == DEBILITATION_SIGNS.get(p_name))
             sign_planets[p_pos.sign.id].append({
                 "name": p_name,
                 "glyph": theme["glyph"],
@@ -141,6 +148,8 @@ def generate_south_indian_svg(
                 "intra_deg_str": f"{int(p_pos.sign.intra_sign_degree)}°{int((p_pos.sign.intra_sign_degree%1)*60):02d}'",
                 "is_retro": p_pos.is_retrograde,
                 "is_combust": p_pos.is_combust,
+                "is_exalted": is_ex,
+                "is_debilitated": is_deb,
                 "nak_name": p_pos.nakshatra.sanskrit_name,
                 "pada": p_pos.nakshatra.pada,
                 "sign_name": s_name,
@@ -156,6 +165,8 @@ def generate_south_indian_svg(
         "intra_deg_str": asc_intra_deg_str,
         "is_retro": False,
         "is_combust": False,
+        "is_exalted": False,
+        "is_debilitated": False,
         "nak_name": chart.angles.ascendant_nakshatra.sanskrit_name if varga_chart is None else "",
         "pada": chart.angles.ascendant_nakshatra.pada if varga_chart is None else 0,
         "sign_name": asc_sign_name,
@@ -328,9 +339,12 @@ def generate_south_indian_svg(
 
                 retro_str = "(R)" if p["is_retro"] else ""
                 comb_str = "[C]" if p["is_combust"] else ""
+                dignity_str = "(E)" if p.get("is_exalted") else ("(D)" if p.get("is_debilitated") else "")
                 status_flags = f" {retro_str}" if retro_str else ""
                 if comb_str:
                     status_flags += f" {comb_str}"
+                if dignity_str:
+                    status_flags += f" {dignity_str}"
                 is_tr = p.get("is_transit", False)
                 deg_col = transit_color if is_tr else sign_label_color
 

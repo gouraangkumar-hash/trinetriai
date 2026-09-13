@@ -712,6 +712,86 @@ class TestDignityEngine:
         assert rep_merc.dignity == DignityState.EXALTED
         assert rep_merc.dignity_short == "Ex"
 
+    def test_naisargika_maitri_canonical_rules(self) -> None:
+        """Validates canonical BPHS Chapter 3 natural friendships rules."""
+        from engines.friendships import FriendshipEngine
+        from core.constants import PlanetEnum
+
+        # Sun perspective
+        rel, score = FriendshipEngine.get_natural_relationship(PlanetEnum.SUN, PlanetEnum.MOON)
+        assert rel == "Friend" and score == 1
+        rel, score = FriendshipEngine.get_natural_relationship(PlanetEnum.SUN, PlanetEnum.MERCURY)
+        assert rel == "Neutral" and score == 0
+        rel, score = FriendshipEngine.get_natural_relationship(PlanetEnum.SUN, PlanetEnum.SATURN)
+        assert rel == "Enemy" and score == -1
+
+        # Moon perspective: Moon has NO natural enemies
+        for p in [PlanetEnum.MARS, PlanetEnum.JUPITER, PlanetEnum.VENUS, PlanetEnum.SATURN]:
+            rel, score = FriendshipEngine.get_natural_relationship(PlanetEnum.MOON, p)
+            assert rel == "Neutral" and score == 0
+        rel, score = FriendshipEngine.get_natural_relationship(PlanetEnum.MOON, PlanetEnum.MERCURY)
+        assert rel == "Friend" and score == 1
+
+        # Asymmetric relationship: Mercury considers Moon enemy, but Moon considers Mercury friend
+        rel_merc_to_moon, score_merc = FriendshipEngine.get_natural_relationship(PlanetEnum.MERCURY, PlanetEnum.MOON)
+        assert rel_merc_to_moon == "Enemy" and score_merc == -1
+
+    def test_tatkalika_and_compound_maitri(self) -> None:
+        """Validates temporal (Tatkalika) and compound 5-fold (Pancha-Dha) rules."""
+        from engines.friendships import FriendshipEngine, RelationshipType
+
+        # Temporal friends: houses 2, 3, 4, 10, 11, 12
+        for h in [2, 3, 4, 10, 11, 12]:
+            rel, score = FriendshipEngine.get_temporal_relationship(h)
+            assert rel == "Friend" and score == 1
+
+        # Temporal enemies: houses 1, 5, 6, 7, 8, 9
+        for h in [1, 5, 6, 7, 8, 9]:
+            rel, score = FriendshipEngine.get_temporal_relationship(h)
+            assert rel == "Enemy" and score == -1
+
+        # Compound rules:
+        # +1 + 1 = +2 (Great Friend / Adhi Mitra)
+        rel_comp, sc = FriendshipEngine.compute_compound(1, 1)
+        assert rel_comp == RelationshipType.GREAT_FRIEND and sc == 2
+
+        # 0 + 1 = +1 (Friend / Mitra)
+        rel_comp, sc = FriendshipEngine.compute_compound(0, 1)
+        assert rel_comp == RelationshipType.FRIEND and sc == 1
+
+        # -1 + 1 = 0 (Neutral / Sama)
+        rel_comp, sc = FriendshipEngine.compute_compound(-1, 1)
+        assert rel_comp == RelationshipType.NEUTRAL and sc == 0
+
+        # 0 + (-1) = -1 (Enemy / Shatru)
+        rel_comp, sc = FriendshipEngine.compute_compound(0, -1)
+        assert rel_comp == RelationshipType.ENEMY and sc == -1
+
+        # -1 + (-1) = -2 (Great Enemy / Adhi Shatru)
+        rel_comp, sc = FriendshipEngine.compute_compound(-1, -1)
+        assert rel_comp == RelationshipType.GREAT_ENEMY and sc == -2
+
+    def test_pancha_dha_maitri_reference_chart(self, reference_chart) -> None:
+        """Validates evaluation of full chart planetary friendships on reference chart."""
+        from engines.friendships import FriendshipEngine
+
+        report = FriendshipEngine.evaluate(reference_chart)
+        assert len(report.profiles) == 9
+
+        sun_profile = report.profiles["Sun"]
+        assert sun_profile.planet == "Sun"
+        assert len(sun_profile.relationships) == 8
+        # Sun is in Virgo with Mercury (dispositor in same sign, offset 1 -> temporal enemy)
+        # Natural: Sun to Mercury is Neutral (0). Temporal: -1. Compound: -1 (Shatru)
+        assert "Shatru" in sun_profile.dispositor_kshetra
+
+        moon_profile = report.profiles["Moon"]
+        assert moon_profile.planet == "Moon"
+        # Moon in Gemini (3) with dispositor Mercury in Virgo (6): offset 4 (temporal friend +1)
+        # Natural: Moon to Mercury is Friend (+1). Temporal: +1. Compound: +2 (Adhi Mitra)
+        assert "Adhi Mitra" in moon_profile.dispositor_kshetra
+
+
 
 
 

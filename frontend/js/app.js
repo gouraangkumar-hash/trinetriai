@@ -473,13 +473,31 @@ function renderVargasWorkspace() {
       .map((row) => {
         const glyph = PLANET_GLYPHS[row.planet] || "";
         const isAsc = row.planet.includes("Ascendant");
+
+        // Mini Dignity Badges next to planet name
+        let dignityBadgeHtml = "";
+        if (row.is_exalted) {
+          dignityBadgeHtml += ` <span class="varga-badge exalted" title="Exalted (Uccha)">[Ex]</span>`;
+        } else if (row.is_debilitated) {
+          dignityBadgeHtml += ` <span class="varga-badge debilitated" title="Debilitated (Neecha)">[Deb]</span>`;
+        } else if (row.is_own_sign) {
+          dignityBadgeHtml += ` <span class="varga-badge own" title="Own Sign (Swa Kshetra)">[Own]</span>`;
+        }
+        if (row.is_vargottama) {
+          dignityBadgeHtml += ` <span class="varga-badge vargottama" title="Vargottama (Same sign in D1 and this Varga)">[V]</span>`;
+        }
+
         const nameHtml = isAsc
-          ? `<strong style="color: var(--accent-primary);">✧ ${row.planet}</strong>`
-          : `<strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> ${row.planet}`;
+          ? `<strong style="color: var(--accent-primary);">✧ ${row.planet}</strong>${dignityBadgeHtml}`
+          : `<strong style="color: var(--accent-primary); margin-right: 0.4rem;">${glyph}</strong> ${row.planet}${dignityBadgeHtml}`;
 
         const statusBadges = [];
         if (row.is_retro) statusBadges.push(`<span class="status-badge retro">Retro</span>`);
         if (row.is_combust) statusBadges.push(`<span class="status-badge combust">Combust</span>`);
+        if (row.dignity_label && row.dignity_label !== "Lagna" && !row.dignity_label.includes("Neutral")) {
+          const cls = row.is_exalted ? "dignity-exalted" : (row.is_debilitated ? "dignity-debilitated" : (row.is_own_sign ? "dignity-own" : "upcoming"));
+          statusBadges.push(`<span class="status-badge ${cls}">${row.dignity_label}</span>`);
+        }
         const statusHtml = statusBadges.length > 0 ? statusBadges.join(" ") : `<span class="status-badge upcoming">Normal</span>`;
 
         return `
@@ -1249,7 +1267,67 @@ function openPlanetDrawer(planetName) {
     mutualContainer.innerHTML = mcHtml;
   }
 
+  // Classical Planetary Friendships (Pancha-Dha Maitri)
+  const friendshipSection = document.getElementById("drawer-friendships-section");
+  const dispName = document.getElementById("drawer-dispositor-name");
+  const dispPill = document.getElementById("drawer-dispositor-pill");
+  const dispSanskrit = document.getElementById("drawer-dispositor-sanskrit");
+  const friendshipTableBody = document.getElementById("drawer-friendships-table-body");
+
+  if (p.friendships && friendshipSection) {
+    friendshipSection.style.display = "block";
+    const f = p.friendships;
+
+    if (dispName) {
+      dispName.textContent = `Dispositor: ${f.dispositor} (${f.sign_name})`;
+    }
+
+    if (dispPill) {
+      dispPill.textContent = f.dispositor_kshetra;
+      dispPill.className = "pancha-badge " + getPanchaBadgeClass(f.dispositor_relationship);
+    }
+
+    if (dispSanskrit) {
+      dispSanskrit.textContent = f.dispositor_sanskrit || "";
+    }
+
+    if (friendshipTableBody) {
+      if (f.relationships && f.relationships.length > 0) {
+        friendshipTableBody.innerHTML = f.relationships.map(rel => {
+          const badgeClass = getPanchaBadgeClass(rel.pancha_dha_relationship);
+          return `
+            <tr>
+              <td style="font-weight: 700; white-space: nowrap;">
+                <span style="color: var(--accent-primary); margin-right: 0.25rem;">${rel.target_glyph}</span>${rel.target_planet}
+              </td>
+              <td style="text-align: center; color: var(--text-secondary); font-size: 0.75rem;">${rel.natural_relationship}</td>
+              <td style="text-align: center; color: var(--text-secondary); font-size: 0.75rem;">${rel.temporal_relationship} (H${rel.house_offset_from_source})</td>
+              <td style="text-align: right;">
+                <span class="pancha-badge ${badgeClass}" title="${rel.pancha_dha_sanskrit}">${rel.pancha_dha_relationship}</span>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } else {
+        friendshipTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No relationship data available.</td></tr>`;
+      }
+    }
+  } else if (friendshipSection) {
+    friendshipSection.style.display = "none";
+  }
+
   document.getElementById("drawer-backdrop").classList.add("open");
+}
+
+function getPanchaBadgeClass(rel) {
+  if (!rel) return "sama";
+  const s = String(rel).toLowerCase();
+  if (s.includes("own") || s.includes("swa")) return "own-sign";
+  if (s.includes("great friend") || s.includes("adhi mitra") || s.includes("adhimitra")) return "adhi-mitra";
+  if (s.includes("great enemy") || s.includes("adhi shatru") || s.includes("adhishatru")) return "adhi-shatru";
+  if (s.includes("friend") || s.includes("mitra")) return "mitra";
+  if (s.includes("enemy") || s.includes("shatru")) return "shatru";
+  return "sama";
 }
 
 function closePlanetDrawer() {

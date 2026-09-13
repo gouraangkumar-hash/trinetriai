@@ -38,6 +38,7 @@ from engines.parashari import (
     VimshottariDashaEngine,
 )
 from engines.dignity import DignityEngine
+from engines.friendships import FriendshipEngine
 from engines.yogas import YogaDetectorEngine
 from schemas.models import BirthInput, GeoLocationModel, UnifiedChartData
 from visualizers.ashtakavarga_svg import generate_ashtakavarga_svg
@@ -168,6 +169,9 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
 
     # Classical Parashari Planetary Aspects (Graha Drishti)
     aspects_report = AspectsEngine.evaluate(chart, sign_mode=req.sign_mode)
+
+    # Classical Planetary Friendships (Pancha-Dha Maitri)
+    friendships_report = FriendshipEngine.evaluate(chart)
 
     # 1. Primary Angles Summary
     asc_sign = chart.angles.ascendant_sign
@@ -315,6 +319,11 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             "conjunctions": conjunctions_list,
             "ray_color_light": ray_color_light,
             "ray_color_dark": ray_color_dark,
+            "friendships": (
+                friendships_report.profiles[p_name.value].model_dump()
+                if p_name.value in friendships_report.profiles
+                else None
+            ),
         }
         planets_table.append(p_dict)
         planet_details[p_name.value] = p_dict
@@ -370,6 +379,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "conjunctions": [],
         "ray_color_light": "#B45309",
         "ray_color_dark": "#FBBF24",
+        "friendships": None,
     }
     planets_table.insert(0, asc_dict)
     planet_details["Ascendant (Lagna)"] = asc_dict
@@ -380,6 +390,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     if varga_chart is not None:
         asc_v = varga_chart.ascendant
         asc_v_sign = ZODIAC_SIGNS[asc_v.sign_id]["english_name"] if req.sign_mode == "english" else asc_v.sign_name
+        is_asc_v = bool(asc_sign.id == asc_v.sign_id)
         varga_table.append({
             "planet": "Ascendant (Lagna)",
             "sign": asc_v_sign,
@@ -388,6 +399,12 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             "house": "House 1 (Lagna)",
             "is_retro": False,
             "is_combust": False,
+            "is_exalted": False,
+            "is_debilitated": False,
+            "is_own_sign": False,
+            "is_vargottama": is_asc_v,
+            "dignity_label": "Vargottama Lagna" if is_asc_v else "Lagna",
+            "dignity_short": "[V]" if is_asc_v else "",
         })
         asc_sign_id = asc_v.sign_id
         for p_enum, v_pos in varga_chart.planets.items():
@@ -397,6 +414,28 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             house_num = ((v_pos.sign_id - asc_sign_id) % 12) + 1
             is_retro = chart.planets[p_enum].is_retrograde if p_enum in chart.planets else False
             is_combust = chart.planets[p_enum].is_combust if p_enum in chart.planets else False
+
+            v_deg = v_pos.intra_sign_degree
+            v_dignity = DignityEngine.evaluate_planet_dignity(
+                planet=p_enum,
+                sign_id=v_pos.sign_id,
+                sign_name=s_name,
+                degree_in_sign=v_deg,
+            )
+            d1_sign_id = chart.planets[p_enum].sign.id
+            is_varg = bool(d1_sign_id == v_pos.sign_id)
+
+            badges = []
+            if v_dignity.is_exalted:
+                badges.append("[Ex]")
+            elif v_dignity.is_debilitated:
+                badges.append("[Deb]")
+            elif v_dignity.is_own_sign:
+                badges.append("[Own]")
+            if is_varg:
+                badges.append("[V]")
+            dignity_short_str = " ".join(badges)
+
             varga_table.append({
                 "planet": p_enum.value,
                 "sign": s_name,
@@ -405,6 +444,12 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
                 "house": f"House {house_num}",
                 "is_retro": is_retro,
                 "is_combust": is_combust,
+                "is_exalted": v_dignity.is_exalted,
+                "is_debilitated": v_dignity.is_debilitated,
+                "is_own_sign": v_dignity.is_own_sign,
+                "is_vargottama": is_varg,
+                "dignity_label": v_dignity.dignity_label,
+                "dignity_short": dignity_short_str,
             })
     else:
         # D1 fallback
@@ -417,6 +462,12 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             "house": "House 1 (Lagna)",
             "is_retro": False,
             "is_combust": False,
+            "is_exalted": False,
+            "is_debilitated": False,
+            "is_own_sign": False,
+            "is_vargottama": False,
+            "dignity_label": "Lagna",
+            "dignity_short": "",
         })
         asc_id = asc_sign.id
         for p_enum, p_pos in chart.planets.items():
@@ -424,6 +475,33 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
                 continue
             s_name = p_pos.sign.english_name if req.sign_mode == "english" else p_pos.sign.sanskrit_name
             house_num = ((p_pos.sign.id - asc_id) % 12) + 1
+            intra_deg = p_pos.sign.intra_sign_degree
+            v_dignity = DignityEngine.evaluate_planet_dignity(
+                planet=p_enum,
+                sign_id=p_pos.sign.id,
+                sign_name=s_name,
+                degree_in_sign=intra_deg,
+                neechabhanga_planets=neechabhanga_planets,
+            )
+            d9_placement = VargaChartEngine.calculate_point_varga(
+                longitude=p_pos.longitude,
+                varga=VargaType.D9,
+                planet=p_enum,
+                is_ascendant=False,
+            )
+            is_varg = bool(p_pos.sign.id == d9_placement.sign_id)
+
+            badges = []
+            if v_dignity.is_exalted:
+                badges.append("[Ex]")
+            elif v_dignity.is_debilitated:
+                badges.append("[Deb]")
+            elif v_dignity.is_own_sign:
+                badges.append("[Own]")
+            if is_varg:
+                badges.append("[V]")
+            dignity_short_str = " ".join(badges)
+
             varga_table.append({
                 "planet": p_enum.value,
                 "sign": s_name,
@@ -432,6 +510,12 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
                 "house": f"House {house_num}",
                 "is_retro": p_pos.is_retrograde,
                 "is_combust": p_pos.is_combust,
+                "is_exalted": v_dignity.is_exalted,
+                "is_debilitated": v_dignity.is_debilitated,
+                "is_own_sign": v_dignity.is_own_sign,
+                "is_vargottama": is_varg,
+                "dignity_label": v_dignity.dignity_label,
+                "dignity_short": dignity_short_str,
             })
 
     # 4. Placidus House Cusps & KP Table
@@ -626,6 +710,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "ashtakavarga": ashtakavarga_report.model_dump(),
         "gochar": gochar_report.model_dump(),
         "aspects": aspects_report.model_dump(),
+        "friendships": friendships_report.model_dump(),
     }
 
 

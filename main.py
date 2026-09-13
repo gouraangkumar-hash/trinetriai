@@ -615,6 +615,20 @@ def geocode_city(query: str = Query(..., min_length=2)):
 if FRONTEND_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
+@app.get("/favicon.ico")
+def serve_favicon():
+    """Serves the website favicon."""
+    favicon_file = FRONTEND_DIR / "favicon.png"
+    if favicon_file.exists():
+        return FileResponse(
+            str(favicon_file),
+            media_type="image/png",
+            headers={
+                "Cache-Control": "public, max-age=86400",
+            },
+        )
+    return JSONResponse(status_code=404, content={"message": "Favicon not found."})
+
 @app.get("/")
 def serve_index():
     """Serves the main application HTML page."""

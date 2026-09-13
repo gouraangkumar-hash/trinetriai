@@ -195,6 +195,15 @@ def test_serve_index_and_static():
     assert "app.js" in response.text
 
 
+def test_favicon_endpoint():
+    """Test GET /favicon.ico returns the website logo."""
+    response = client.get("/favicon.ico")
+    assert response.status_code == 200
+    assert "image/png" in response.headers.get("content-type", "")
+    assert "max-age=" in response.headers.get("cache-control", "")
+
+
+
 def test_geocode_endpoint():
     """Test GET /api/geocode for location lookup across multiple tiers."""
     # 1. Primary Indian city
@@ -274,10 +283,15 @@ def test_frontend_markup_and_scripts():
     assert "gochar-table" in html
     assert "col-phala" in html
 
+    # Check favicon and brand logo
+    assert "favicon.png" in html
+    assert "brand-logo" in html
+
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200
     css = css_res.text
     assert ".overview-hero-layout" in css
+    assert ".brand-logo" in css
     assert ".ad-dates-cell" in css
     assert "min-width: 0" in css
     assert ".pd-nested-table" in css

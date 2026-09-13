@@ -263,11 +263,6 @@ function renderKundaliChart() {
     else if (v === "D10") titleEl.textContent = "D10 DASHAMSHA CHART";
     else titleEl.textContent = `${v} DIVISIONAL CHART`;
   }
-
-  const subEl = document.getElementById("kundali-chart-subtitle");
-  if (subEl && d.summary && d.summary.ascendant) {
-    subEl.textContent = `Ascendant (Lagna): ${d.summary.ascendant.sign} ${d.summary.ascendant.degree}`;
-  }
 }
 
 function renderAngles() {

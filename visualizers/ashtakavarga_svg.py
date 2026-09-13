@@ -80,6 +80,8 @@ def _render_north_sav_svg(
     pill_stroke = "#F59E0B" if is_dark else "#B45309"
 
     lagna_sign_id = chart.angles.ascendant_sign.id
+    asc_deg_str = f"{chart.angles.ascendant_sign.dms.degrees}°{chart.angles.ascendant_sign.dms.minutes:02d}'"
+    asc_s_name = ZODIAC_SIGNS[lagna_sign_id]["english_name"] if sign_mode == "english" else ZODIAC_SIGNS[lagna_sign_id]["sanskrit_name"]
 
     # Build sign bindu map from SAV report
     sign_bindu_map: Dict[int, int] = {sd.sign_id: sd.total_bindus for sd in av_report.sarvashtakavarga}
@@ -110,10 +112,11 @@ def _render_north_sav_svg(
     # Center Brand Emblem
     svg_parts.append(
         f'<g transform="translate(400, 400)">'
-        f'<circle cx="0" cy="0" r="42" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" opacity="0.9" />'
-        f'<text x="0" y="-9" fill="{outer_border}" font-family="Cinzel, serif" font-size="7.2" font-weight="900" text-anchor="middle" letter-spacing="0.6">SARVASHTAKAVARGA</text>'
-        f'<text x="0" y="10" fill="{text_primary}" font-family="JetBrains Mono, monospace" font-size="16" font-weight="900" text-anchor="middle">337</text>'
-        f'<text x="0" y="23" fill="{text_muted}" font-size="8.5" font-weight="700" text-anchor="middle" letter-spacing="0.5">BINDUS</text>'
+        f'<circle cx="0" cy="0" r="44" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" opacity="0.9" />'
+        f'<text x="0" y="-12" fill="{outer_border}" font-family="Cinzel, serif" font-size="7" font-weight="900" text-anchor="middle" letter-spacing="0.5">SARVASHTAKAVARGA</text>'
+        f'<text x="0" y="8" fill="{text_primary}" font-family="JetBrains Mono, monospace" font-size="16" font-weight="900" text-anchor="middle">337</text>'
+        f'<text x="0" y="21" fill="{text_muted}" font-size="8" font-weight="700" text-anchor="middle" letter-spacing="0.5">BINDUS</text>'
+        f'<text x="0" y="32" fill="{outer_border}" font-family="JetBrains Mono, monospace" font-size="7.5" font-weight="700" text-anchor="middle">{asc_s_name} {asc_deg_str}</text>'
         f'</g>'
     )
 
@@ -127,8 +130,8 @@ def _render_north_sav_svg(
         sx, sy = NORTH_HOUSE_CONFIG[h_num]["sign_pos"]
         if h_num == 1:
             svg_parts.append(
-                f'<rect x="358" y="347" width="84" height="24" rx="5" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" />'
-                f'<text x="400" y="363" fill="{outer_border}" font-family="Cinzel, serif" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="0.5">LAGNA {sign_id}</text>'
+                f'<rect x="335" y="347" width="130" height="24" rx="5" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" />'
+                f'<text x="400" y="363" fill="{outer_border}" font-family="Cinzel, serif" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="0.4">LAGNA {sign_id} • {asc_deg_str}</text>'
             )
         else:
             svg_parts.append(
@@ -210,17 +213,22 @@ def _render_south_sav_svg(
 
     # Center 2x2 HUD Summary Panel
     s_rep = av_report.summary
+    asc_deg_str = f"{chart.angles.ascendant_sign.dms.degrees}°{chart.angles.ascendant_sign.dms.minutes:02d}'"
+    asc_s_name = ZODIAC_SIGNS[lagna_sign_id]["english_name"] if sign_mode == "english" else ZODIAC_SIGNS[lagna_sign_id]["sanskrit_name"]
+
     svg_parts.append(
         f'<g transform="translate(215, 215)">'
         f'<rect width="370" height="370" rx="12" fill="{bg_color}" stroke="{pill_stroke}" stroke-width="1.2" />'
-        f'<text x="185" y="45" fill="{outer_border}" font-family="Cinzel, serif" font-size="17" font-weight="900" text-anchor="middle" letter-spacing="1">SARVASHTAKAVARGA</text>'
-        f'<text x="185" y="68" fill="{text_muted}" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="0.5">BPHS 337 BINDUS</text>'
-        f'<line x1="40" y1="85" x2="330" y2="85" stroke="{frame_color}" stroke-width="1" />'
+        f'<text x="185" y="42" fill="{outer_border}" font-family="Cinzel, serif" font-size="17" font-weight="900" text-anchor="middle" letter-spacing="1">SARVASHTAKAVARGA</text>'
+        f'<text x="185" y="62" fill="{text_muted}" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="0.5">BPHS 337 BINDUS</text>'
+        f'<line x1="40" y1="76" x2="330" y2="76" stroke="{frame_color}" stroke-width="1" />'
         # Total Bindus
-        f'<text x="185" y="145" fill="{text_primary}" font-family="JetBrains Mono, monospace" font-size="44" font-weight="900" text-anchor="middle">337</text>'
-        f'<text x="185" y="172" fill="{text_muted}" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="1">TOTAL BINDUS (SAV)</text>'
-        f'<line x1="40" y1="195" x2="330" y2="195" stroke="{frame_color}" stroke-width="1" />'
+        f'<text x="185" y="128" fill="{text_primary}" font-family="JetBrains Mono, monospace" font-size="44" font-weight="900" text-anchor="middle">337</text>'
+        f'<text x="185" y="152" fill="{text_muted}" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="1">TOTAL BINDUS (SAV)</text>'
+        f'<line x1="40" y1="168" x2="330" y2="168" stroke="{frame_color}" stroke-width="1" />'
         # Stats row
+        f'<text x="65" y="200" fill="{text_muted}" font-size="11" font-weight="600">Ascendant:</text>'
+        f'<text x="305" y="200" fill="{outer_border}" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700" text-anchor="end">{asc_s_name} {chart.angles.ascendant_sign.dms.formatted}</text>'
         f'<text x="65" y="235" fill="{text_muted}" font-size="11" font-weight="600">Avg / Sign:</text>'
         f'<text x="305" y="235" fill="{text_primary}" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" text-anchor="end">{s_rep.average_bindus_per_sign}</text>'
         f'<text x="65" y="270" fill="{text_muted}" font-size="11" font-weight="600">Strongest Rashi:</text>'
@@ -251,8 +259,8 @@ def _render_south_sav_svg(
 
         if is_lagna:
             svg_parts.append(
-                f'<rect x="{gx + cell_w - 74}" y="{gy + 14}" width="62" height="20" rx="4" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" />'
-                f'<text x="{gx + cell_w - 43}" y="{gy + 28}" fill="{outer_border}" font-family="Cinzel, serif" font-size="10" font-weight="900" text-anchor="middle">LAGNA</text>'
+                f'<rect x="{gx + cell_w - 92}" y="{gy + 14}" width="82" height="20" rx="4" fill="{pill_bg}" stroke="{pill_stroke}" stroke-width="1.2" />'
+                f'<text x="{gx + cell_w - 51}" y="{gy + 28}" fill="{outer_border}" font-family="Cinzel, serif" font-size="9" font-weight="900" text-anchor="middle">LAGNA {asc_deg_str}</text>'
             )
         else:
             svg_parts.append(

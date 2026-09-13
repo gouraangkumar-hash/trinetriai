@@ -812,6 +812,64 @@ function renderAshtakavargaWorkspace() {
     svgContainer.innerHTML = d.sav_chart_svg;
   }
 
+  // 1c. Update SAV Chart Subtitle with Lagna Degree, Kaksha & Scrubber Offset
+  const savSubEl = document.getElementById("sav-chart-subtitle");
+  if (savSubEl && d.summary && d.summary.ascendant) {
+    const offStr = state.time_offset_seconds !== 0 ? ` • Offset: ${state.time_offset_seconds > 0 ? "+" : ""}${state.time_offset_seconds}s` : "";
+    const kLordStr = av.lagna_kaksha ? ` • Kaksha ${av.lagna_kaksha.active_kaksha_number} (${av.lagna_kaksha.active_kaksha_lord_sanskrit})` : "";
+    savSubEl.textContent = `Ascendant (Lagna): ${d.summary.ascendant.sign} ${d.summary.ascendant.degree}${kLordStr}${offStr}`;
+  }
+
+  // 1d. Render Prastarashtakavarga Lagna Kaksha & Rectification Monitor
+  if (av.lagna_kaksha) {
+    const lk = av.lagna_kaksha;
+    // Active badge in header
+    const badgeContainer = document.getElementById("kaksha-active-badge-container");
+    if (badgeContainer) {
+      badgeContainer.innerHTML = `
+        <div class="action-pill" style="cursor: default; border-color: var(--accent-primary); background: var(--accent-subtle); color: var(--accent-text); font-weight: 700;">
+          ✦ Active Kaksha ${lk.active_kaksha_number}/8: ${lk.active_kaksha_lord} (${lk.active_kaksha_lord_sanskrit}) • ${lk.active_kaksha_range} • ${lk.active_kaksha_bindus}/7 Bindus
+        </div>
+      `;
+    }
+
+    // Progress labels & bar
+    const degLabel = document.getElementById("kaksha-progress-deg-label");
+    if (degLabel) {
+      degLabel.textContent = `Lagna: ${lk.lagna_sign_name} ${lk.lagna_degree_formatted} (Kaksha ${lk.active_kaksha_number} • ${lk.kaksha_progress_pct}% elapsed)`;
+    }
+
+    const barFill = document.getElementById("kaksha-bar-fill");
+    if (barFill) {
+      const totalSignPct = Math.min(100, Math.max(0, (lk.intra_sign_degree / 30.0) * 100.0));
+      barFill.style.width = `${totalSignPct.toFixed(1)}%`;
+    }
+
+    // 8 Kakshas Grid
+    const gridEl = document.getElementById("kaksha-grid");
+    if (gridEl && lk.kakshas) {
+      gridEl.innerHTML = lk.kakshas.map((k) => {
+        const glyph = PLANET_GLYPHS[k.lord] || (k.lord === "Lagna" ? "✧" : "");
+        const activeIndicator = k.is_current ? '<span class="kaksha-active-indicator">ACTIVE</span>' : '';
+        const contribTooltip = k.contributed_planets.length > 0
+          ? `Contributed to: ${k.contributed_planets.join(", ")}`
+          : "No bindu contributed in this sign";
+        return `
+          <div class="kaksha-cell ${k.is_current ? "active" : ""}">
+            ${activeIndicator}
+            <span class="kaksha-num-badge">Kaksha ${k.kaksha_number}</span>
+            <span class="kaksha-lord-name">${glyph} ${k.lord}</span>
+            <span class="kaksha-lord-sanskrit">(${k.lord_sanskrit})</span>
+            <span class="kaksha-range">${k.range_str}</span>
+            <span class="kaksha-bindu-pill" title="${contribTooltip}">
+              <span>✦</span> ${k.bindu_contributions_count}/7 Grahas
+            </span>
+          </div>
+        `;
+      }).join("");
+    }
+  }
+
   // 2. Render Master SAV Matrix Table
   const headerRow = document.getElementById("sav-matrix-header-row");
   const matrixBody = document.getElementById("sav-matrix-body");
@@ -1225,23 +1283,31 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 4. Scrubber Buttons
-  document.getElementById("scrub-minus-1m").addEventListener("click", () => {
+  document.getElementById("scrub-minus-5m")?.addEventListener("click", () => {
+    state.time_offset_seconds -= 300;
+    calculateChart();
+  });
+  document.getElementById("scrub-minus-1m")?.addEventListener("click", () => {
     state.time_offset_seconds -= 60;
     calculateChart();
   });
-  document.getElementById("scrub-minus-15s").addEventListener("click", () => {
+  document.getElementById("scrub-minus-15s")?.addEventListener("click", () => {
     state.time_offset_seconds -= 15;
     calculateChart();
   });
-  document.getElementById("scrub-plus-15s").addEventListener("click", () => {
+  document.getElementById("scrub-plus-15s")?.addEventListener("click", () => {
     state.time_offset_seconds += 15;
     calculateChart();
   });
-  document.getElementById("scrub-plus-1m").addEventListener("click", () => {
+  document.getElementById("scrub-plus-1m")?.addEventListener("click", () => {
     state.time_offset_seconds += 60;
     calculateChart();
   });
-  document.getElementById("scrub-reset").addEventListener("click", () => {
+  document.getElementById("scrub-plus-5m")?.addEventListener("click", () => {
+    state.time_offset_seconds += 300;
+    calculateChart();
+  });
+  document.getElementById("scrub-reset")?.addEventListener("click", () => {
     state.time_offset_seconds = 0;
     calculateChart();
   });

@@ -75,6 +75,10 @@ def test_calculate_endpoint_default():
     assert data["ashtakavarga"]["summary"]["total_bindus"] == 337
     assert len(data["ashtakavarga"]["sarvashtakavarga"]) == 12
     assert "Jupiter" in data["ashtakavarga"]["bhinna"]
+    assert "lagna_kaksha" in data["ashtakavarga"]
+    assert data["ashtakavarga"]["lagna_kaksha"]["active_kaksha_lord"] == "Mercury"
+    assert data["ashtakavarga"]["lagna_kaksha"]["active_kaksha_number"] == 6
+    assert len(data["ashtakavarga"]["lagna_kaksha"]["kakshas"]) == 8
     assert "sav_chart_svg" in data
     assert "<svg" in data["sav_chart_svg"]
     assert "SARVASHTAKAVARGA" in data["sav_chart_svg"]
@@ -225,6 +229,12 @@ def test_frontend_markup_and_scripts():
     assert "current-pd-card" not in html
     assert "dasha-cards-container" in html
 
+    # Check Ashtakavarga subtitle, Kaksha card and 5m scrubber controls
+    assert "sav-chart-subtitle" in html
+    assert "av-kaksha-card" in html
+    assert "scrub-minus-5m" in html
+    assert "scrub-plus-5m" in html
+
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200
     css = css_res.text
@@ -233,6 +243,8 @@ def test_frontend_markup_and_scripts():
     assert "min-width: 0" in css
     assert ".pd-nested-table" in css
     assert "pd-panel-row" in css
+    assert ".kaksha-grid" in css
+    assert ".kaksha-cell" in css
 
     js_res = client.get("/static/js/app.js")
     assert js_res.status_code == 200
@@ -245,5 +257,7 @@ def test_frontend_markup_and_scripts():
     assert "togglePratyantardashaRow" in js
     assert "window.togglePratyantardashaRow" in js
     assert "window.toggleMahadashaCard" in js
+    assert "scrub-minus-5m" in js
+    assert "scrub-plus-5m" in js
 
 

@@ -425,6 +425,57 @@ class TestAshtakavargaEngine:
             assert p_rep.graha_pinda >= 0
             assert p_rep.yoga_pinda == p_rep.rashi_pinda + p_rep.graha_pinda
 
+    def test_lagna_kaksha_calculation(self, reference_chart) -> None:
+        """Validates BPHS Chapter 68 Lagna Kaksha subdivision and Lord assignment."""
+        report = AshtakavargaEngine.evaluate(reference_chart)
+        assert report.lagna_kaksha is not None
+        lk = report.lagna_kaksha
+        assert lk.lagna_sign_id == 10  # Makara
+        assert lk.active_kaksha_number == 6
+        assert lk.active_kaksha_lord == "Mercury"
+        assert lk.active_kaksha_lord_sanskrit == "Budha"
+        assert lk.active_kaksha_range == "18°45' – 22°30'"
+        assert len(lk.kakshas) == 8
+        assert lk.kakshas[5].is_current is True
+        assert lk.kakshas[0].lord == "Saturn"
+        assert lk.kakshas[7].lord == "Lagna"
+        assert 0.0 <= lk.kaksha_progress_pct <= 100.0
+
+    def test_kaksha_time_rectification_shift(self) -> None:
+        """Validates that scrubbing birth time by -5m shifts Lagna into preceding Kaksha."""
+        from datetime import datetime, timedelta
+        engine = EphemerisEngine()
+        base_dt = datetime(1995, 10, 15, 14, 30, 0)
+        dt_minus_5m = base_dt - timedelta(minutes=5)
+
+        inp_base = BirthInput(
+            year=base_dt.year, month=base_dt.month, day=base_dt.day,
+            hour=base_dt.hour, minute=base_dt.minute, second=float(base_dt.second),
+            location=GeoLocationModel(latitude=26.9124, longitude=75.7873, city="Jaipur", timezone_str="Asia/Kolkata"),
+            ayanamsha=AyanamshaType.LAHIRI, node_type=NodeType.TRUE, house_system=HouseSystemType.PLACIDUS,
+        )
+        inp_minus_5m = BirthInput(
+            year=dt_minus_5m.year, month=dt_minus_5m.month, day=dt_minus_5m.day,
+            hour=dt_minus_5m.hour, minute=dt_minus_5m.minute, second=float(dt_minus_5m.second),
+            location=GeoLocationModel(latitude=26.9124, longitude=75.7873, city="Jaipur", timezone_str="Asia/Kolkata"),
+            ayanamsha=AyanamshaType.LAHIRI, node_type=NodeType.TRUE, house_system=HouseSystemType.PLACIDUS,
+        )
+
+        chart_base = engine.calculate_chart(inp_base)
+        chart_minus_5m = engine.calculate_chart(inp_minus_5m)
+
+        rep_base = AshtakavargaEngine.evaluate(chart_base)
+        rep_minus_5m = AshtakavargaEngine.evaluate(chart_minus_5m)
+
+        assert rep_base.lagna_kaksha.active_kaksha_number == 6
+        assert rep_base.lagna_kaksha.active_kaksha_lord == "Mercury"
+
+        # -5 minutes shifts ~1.25° back from 19°02' to ~17°47', entering Kaksha 5 (Venus: 15°00' - 18°45')
+        assert rep_minus_5m.lagna_kaksha.active_kaksha_number == 5
+        assert rep_minus_5m.lagna_kaksha.active_kaksha_lord == "Venus"
+        assert rep_minus_5m.lagna_kaksha.active_kaksha_lord_sanskrit == "Shukra"
+
+
 
 
 

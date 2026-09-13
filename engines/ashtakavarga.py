@@ -129,10 +129,46 @@ GRAHA_GUNAKARA: Dict[PlanetEnum, int] = {
     PlanetEnum.SATURN: 5,
 }
 
+# 8 Classical Kakshas of 3° 45' each (BPHS Ch. 68 - Prastarashtakavarga)
+# Ordered by orbital speed from slowest to fastest graha, ending with Lagna:
+KAKSHA_LORDS: List[str] = [
+    "Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon", "Lagna"
+]
+KAKSHA_LORDS_SANSKRIT: List[str] = [
+    "Shani", "Guru", "Mangala", "Surya", "Shukra", "Budha", "Chandra", "Lagna"
+]
+
 
 # =============================================================================
 # Pydantic Output Schemas
 # =============================================================================
+
+class KakshaItem(BaseModel):
+    kaksha_number: int
+    lord: str
+    lord_sanskrit: str
+    start_deg: float
+    end_deg: float
+    range_str: str
+    is_current: bool
+    bindu_contributions_count: int
+    contributed_planets: List[str]
+
+
+class LagnaKakshaReport(BaseModel):
+    lagna_sign_id: int
+    lagna_sign_name: str
+    lagna_sign_sanskrit: str
+    lagna_degree_formatted: str
+    intra_sign_degree: float
+    active_kaksha_number: int
+    active_kaksha_lord: str
+    active_kaksha_lord_sanskrit: str
+    active_kaksha_range: str
+    kaksha_progress_pct: float
+    active_kaksha_bindus: int
+    kakshas: List[KakshaItem]
+
 
 class BAVSignDetail(BaseModel):
     sign_id: int
@@ -185,6 +221,7 @@ class AshtakavargaFullReport(BaseModel):
     summary: SAVSummary
     sarvashtakavarga: List[SAVSignDetail]
     bhinna: Dict[str, PlanetBAVReport]
+    lagna_kaksha: LagnaKakshaReport
 
 
 # =============================================================================
@@ -332,10 +369,78 @@ class AshtakavargaEngine:
             challenging_signs_count=sum(1 for v in sav_totals.values() if v < 28),
         )
 
+        # 7. Compute Lagna Kaksha (Prastarashtakavarga 8 Subdivisions - BPHS Ch. 68)
+        lagna_deg = chart.angles.ascendant_sign.intra_sign_degree
+        active_k_idx = min(7, max(0, int(lagna_deg / 3.75)))
+        active_k_num = active_k_idx + 1
+        active_k_lord = KAKSHA_LORDS[active_k_idx]
+        active_k_lord_sanskrit = KAKSHA_LORDS_SANSKRIT[active_k_idx]
+
+        active_k_start = active_k_idx * 3.75
+        kaksha_progress = round(max(0.0, min(100.0, ((lagna_deg - active_k_start) / 3.75) * 100.0)), 1)
+
+        kaksha_items: List[KakshaItem] = []
+        for k_idx in range(8):
+            k_start = k_idx * 3.75
+            k_end = (k_idx + 1) * 3.75
+            s_deg_int = int(k_start)
+            s_min_int = int(round((k_start % 1) * 60))
+            e_deg_int = int(k_end)
+            e_min_int = int(round((k_end % 1) * 60))
+            if e_min_int == 60:
+                e_deg_int += 1
+                e_min_int = 0
+            range_str = f"{s_deg_int:02d}°{s_min_int:02d}' – {e_deg_int:02d}°{e_min_int:02d}'"
+
+            k_lord = KAKSHA_LORDS[k_idx]
+            k_lord_sans = KAKSHA_LORDS_SANSKRIT[k_idx]
+            is_curr = (k_idx == active_k_idx)
+
+            # Determine which Grahas received a bindu from this Kaksha Lord in Lagna sign
+            contributed_grahas: List[str] = []
+            for p in PlanetEnum:
+                if p in sources_breakdown:
+                    if sources_breakdown[p][lagna_sign].get(k_lord, 0) == 1:
+                        contributed_grahas.append(p.value)
+
+            kaksha_items.append(
+                KakshaItem(
+                    kaksha_number=k_idx + 1,
+                    lord=k_lord,
+                    lord_sanskrit=k_lord_sans,
+                    start_deg=k_start,
+                    end_deg=k_end,
+                    range_str=range_str,
+                    is_current=is_curr,
+                    bindu_contributions_count=len(contributed_grahas),
+                    contributed_planets=contributed_grahas,
+                )
+            )
+
+        active_kaksha_bindus = kaksha_items[active_k_idx].bindu_contributions_count
+        active_kaksha_range = kaksha_items[active_k_idx].range_str
+        lagna_s_name = ZODIAC_SIGNS[lagna_sign]["english_name"] if sign_mode == "english" else ZODIAC_SIGNS[lagna_sign]["sanskrit_name"]
+
+        lagna_kaksha_report = LagnaKakshaReport(
+            lagna_sign_id=lagna_sign,
+            lagna_sign_name=lagna_s_name,
+            lagna_sign_sanskrit=ZODIAC_SIGNS[lagna_sign]["sanskrit_name"],
+            lagna_degree_formatted=chart.angles.ascendant_sign.dms.formatted,
+            intra_sign_degree=round(lagna_deg, 4),
+            active_kaksha_number=active_k_num,
+            active_kaksha_lord=active_k_lord,
+            active_kaksha_lord_sanskrit=active_k_lord_sanskrit,
+            active_kaksha_range=active_kaksha_range,
+            kaksha_progress_pct=kaksha_progress,
+            active_kaksha_bindus=active_kaksha_bindus,
+            kakshas=kaksha_items,
+        )
+
         return AshtakavargaFullReport(
             summary=summary,
             sarvashtakavarga=sav_sign_details,
             bhinna=bhinna_reports,
+            lagna_kaksha=lagna_kaksha_report,
         )
 
     @classmethod

@@ -595,6 +595,20 @@ input, select {
   box-sizing: border-box;
 }
 
+.overview-dasha-strip,
+.active-yogas-strip {
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.overview-dasha-strip:hover,
+.active-yogas-strip:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-surface-elevated);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
 .dasha-flow {
   display: flex;
   align-items: center;
@@ -999,10 +1013,6 @@ input, select {
   font-weight: 700;
 }
 
-#current-pd-card tr.active-pd {
-  background-color: var(--accent-subtle);
-  font-weight: 700;
-}
 
 /* =============================================================================
    Slide-Over Planet Inspector Drawer

@@ -417,42 +417,7 @@ function renderDashasWorkspace() {
   const d = state.currentData;
   if (!d) return;
 
-  // 1. Render Current Active Pratyantardasha Hero Card
-  const curPdTbody = document.getElementById("current-pd-table-body");
-  const curPdTitle = document.getElementById("current-pd-card-title");
-  const curPdSub = document.getElementById("current-pd-card-subtitle");
-  if (curPdTbody) {
-    const ds = d.dasha_summary;
-    if (ds && ds.current_pratyantardashas && ds.current_pratyantardashas.length > 0) {
-      if (curPdTitle) {
-        curPdTitle.textContent = `Active Pratyantardashas (${ds.md} MD → ${ds.ad} AD)`;
-      }
-      if (curPdSub) {
-        curPdSub.textContent = `Antardasha Span: ${ds.ad_range} • Active Sub-Sub Period: ${ds.pd} (${ds.pd_range})`;
-      }
-      curPdTbody.innerHTML = ds.current_pratyantardashas
-        .map((pd) => {
-          const pdGlyph = PLANET_GLYPHS[pd.lord] || "";
-          const activeClass = pd.is_active ? "active-pd" : "";
-          const badge = pd.is_active
-            ? `<span class="status-badge active">Active Now</span>`
-            : (pd.status === "COMPLETED" ? `<span class="status-badge completed">Done</span>` : `<span class="status-badge upcoming">Next</span>`);
-          return `
-            <tr class="${activeClass}">
-              <td><strong style="color: var(--accent-primary); margin-right: 0.4rem;">${pdGlyph}</strong> <strong>${pd.lord}</strong></td>
-              <td style="font-family: var(--font-mono); font-size: 0.825rem;">${pd.start} → ${pd.end}</td>
-              <td style="font-family: var(--font-mono);">${pd.duration}</td>
-              <td>${badge}</td>
-            </tr>
-          `;
-        })
-        .join("");
-    } else {
-      curPdTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">No active Pratyantardasha timeline available.</td></tr>`;
-    }
-  }
-
-  // 2. Render 120-Year Mahadasha Cards Grid
+  // Render 120-Year Mahadasha Cards Grid
   const container = document.getElementById("dasha-cards-container");
   if (!container || !d.mahadashas) return;
 

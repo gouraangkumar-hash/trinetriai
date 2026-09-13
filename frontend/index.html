@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.2.1">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.2.2">
 </head>
 <body>
 
@@ -128,8 +128,8 @@
         </div>
       </div>
 
-      <!-- Active Vimshottari Timeline Strip Banner -->
-      <div class="active-dasha-strip">
+      <!-- Active Vimshottari Timeline Strip Banner (Clickable to Tab 3) -->
+      <div class="active-dasha-strip overview-dasha-strip" onclick="document.querySelector('.tab-btn[data-tab=\'dasha\']').click()" style="cursor: pointer;" title="Click to view full 120-Year Vimshottari Dasha timeline">
         <div class="dasha-flow">
           <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Active Dasha:</span>
           <span id="strip-dasha-md">-</span>
@@ -138,8 +138,13 @@
           <span class="arrow">→</span>
           <span id="strip-dasha-pd">-</span>
         </div>
-        <div id="strip-dasha-dates" class="dasha-dates">
-          Calculating timeline...
+        <div style="display: flex; align-items: center; gap: 1.25rem; margin-left: auto; flex-wrap: wrap;">
+          <div id="strip-dasha-dates" class="dasha-dates">
+            Calculating timeline...
+          </div>
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--accent-primary); display: flex; align-items: center; gap: 0.25rem; white-space: nowrap;">
+            View Timeline →
+          </span>
         </div>
       </div>
 
@@ -269,35 +274,6 @@
         </div>
       </div>
 
-      <!-- Current Active Pratyantardasha Hero Card -->
-      <div class="card" id="current-pd-card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent-primary);">
-        <div class="card-header">
-          <div>
-            <span class="card-title" id="current-pd-card-title">Active Pratyantardashas (Sub-Sub Periods)</span>
-            <span id="current-pd-card-subtitle" style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">All 9 Pratyantardashas in current Mahadasha & Antardasha</span>
-          </div>
-          <span class="status-badge active" id="current-pd-active-badge">Active Period</span>
-        </div>
-        <div class="table-responsive">
-          <table class="studio-table">
-            <thead>
-              <tr>
-                <th>Pratyantar Lord (PD)</th>
-                <th>Span / Date Range</th>
-                <th>Duration</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="current-pd-table-body">
-              <tr>
-                <td colspan="4" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
-                  Calculating active Pratyantardashas...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       <!-- 120-Year Mahadashas Card Grid (3-4 cards per row) -->
       <div class="card-header" style="margin-top: 1rem;">
@@ -803,6 +779,6 @@
   </footer>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=2.2.1"></script>
+  <script src="/static/js/app.js?v=2.2.2"></script>
 </body>
 </html>

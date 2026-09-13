@@ -219,10 +219,11 @@ def test_frontend_markup_and_scripts():
     assert "/static/css/style.css?v=" in html
     assert "/static/js/app.js?v=" in html
 
-    # Check Pratyantardasha elements in index.html
-    assert "current-pd-card" in html
-    assert "current-pd-table-body" in html
-    assert "Active Pratyantardashas (Sub-Sub Periods)" in html
+    # Check clickable overview dasha strip to jump to dasha tab
+    assert "overview-dasha-strip" in html
+    assert "data-tab=\\'dasha\\'" in html
+    assert "current-pd-card" not in html
+    assert "dasha-cards-container" in html
 
     css_res = client.get("/static/css/style.css")
     assert css_res.status_code == 200

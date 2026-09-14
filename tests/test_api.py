@@ -240,6 +240,11 @@ def test_serve_index_and_static():
     assert "TRINETRI AI" in response.text
     assert "app.js" in response.text
 
+    # Test static files cache headers
+    static_res = client.get("/static/js/app.js?v=2.4.0")
+    assert static_res.status_code == 200
+    assert "no-cache" in static_res.headers.get("cache-control", "")
+
 
 def test_favicon_endpoint():
     """Test GET /favicon.ico returns the website logo."""
@@ -330,8 +335,8 @@ def test_frontend_markup_and_scripts():
     assert response.headers.get("cache-control") == "no-cache, no-store, must-revalidate"
 
     # Check cache-busting query strings on static assets
-    assert "/static/css/style.css?v=2.3.1" in html
-    assert "/static/js/app.js?v=2.3.1" in html
+    assert "/static/css/style.css?v=2.4.0" in html
+    assert "/static/js/app.js?v=2.4.0" in html
 
     # Check clickable overview dasha strip to jump to dasha tab
     assert "overview-dasha-strip" in html

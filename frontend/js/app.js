@@ -746,16 +746,21 @@ function renderJaiminiWorkspace() {
 
   // Jaimini Chara Dasha
   const charaBadge = document.getElementById("chara-dasha-order-badge");
-  if (charaBadge && d.chara_dasha_summary) {
-    charaBadge.textContent = `Order: ${d.chara_dasha_summary.order}`;
-    if (d.chara_dasha_summary.order && d.chara_dasha_summary.order.includes("Direct")) {
-      charaBadge.className = "status-badge active";
-      charaBadge.style.backgroundColor = "";
-      charaBadge.style.color = "";
+  if (charaBadge) {
+    if (d.chara_dasha_summary) {
+      charaBadge.textContent = `Order: ${d.chara_dasha_summary.order}`;
+      if (d.chara_dasha_summary.order && d.chara_dasha_summary.order.includes("Direct")) {
+        charaBadge.className = "status-badge active";
+        charaBadge.style.backgroundColor = "";
+        charaBadge.style.color = "";
+      } else {
+        charaBadge.className = "status-badge";
+        charaBadge.style.backgroundColor = "rgba(229, 184, 105, 0.15)";
+        charaBadge.style.color = "#E5B869";
+      }
     } else {
+      charaBadge.textContent = "Order: Savya/Apasavya";
       charaBadge.className = "status-badge";
-      charaBadge.style.backgroundColor = "rgba(229, 184, 105, 0.15)";
-      charaBadge.style.color = "#E5B869";
     }
   }
 
@@ -769,75 +774,85 @@ function renderJaiminiWorkspace() {
     if (charaDates) {
       charaDates.textContent = `Current Mahadasha: ${cs.md_range} • Active Antardasha: ${cs.ad_range}`;
     }
+  } else {
+    if (charaMd) charaMd.textContent = "—";
+    if (charaAd) charaAd.textContent = "—";
+    if (charaDates) {
+      charaDates.innerHTML = '<span style="color: var(--accent-primary); cursor: pointer;" onclick="calculateChart()">✦ Click to recalculate chart & load Chara Dasha timeline</span>';
+    }
   }
 
   const charaTbody = document.getElementById("chara-dasha-tbody");
-  if (charaTbody && d.chara_dasha_periods) {
-    charaTbody.innerHTML = d.chara_dasha_periods
-      .map((md, idx) => {
-        const glyph = PLANET_GLYPHS[md.lord] || "";
-        const isActive = md.is_active;
-        const statusBadgeClass = isActive ? "active" : (md.status === "COMPLETED" ? "completed" : "upcoming");
-        const rowBg = isActive ? "style='background: rgba(200, 155, 60, 0.08); font-weight: 600;'" : "";
+  if (charaTbody) {
+    if (d.chara_dasha_periods && d.chara_dasha_periods.length > 0) {
+      charaTbody.innerHTML = d.chara_dasha_periods
+        .map((md, idx) => {
+          const glyph = PLANET_GLYPHS[md.lord] || "";
+          const isActive = md.is_active;
+          const statusBadgeClass = isActive ? "active" : (md.status === "COMPLETED" ? "completed" : "upcoming");
+          const rowBg = isActive ? "style='background: rgba(200, 155, 60, 0.08); font-weight: 600;'" : "";
 
-        const adRows = md.antardashas
-          .map((ad, adIdx) => {
-            const isAdActive = ad.is_active;
-            const adStatusClass = isAdActive ? "active" : (ad.status === "COMPLETED" ? "completed" : "upcoming");
-            const adGlyph = PLANET_GLYPHS[ad.lord] || "";
-            const adBg = isAdActive ? "style='background: rgba(200, 155, 60, 0.12); font-weight: 600;'" : "";
-            return `
-              <tr ${adBg}>
-                <td style="font-family: var(--font-mono);">${adIdx + 1}</td>
-                <td><strong>${ad.sign}</strong></td>
-                <td><span style="color: var(--accent-primary); margin-right: 0.3rem;">${adGlyph}</span> ${ad.lord}</td>
-                <td style="font-family: var(--font-mono);">${ad.duration}</td>
-                <td style="font-family: var(--font-mono);">${ad.start} → ${ad.end}</td>
-                <td><span class="status-badge ${adStatusClass}">${ad.status}</span></td>
-              </tr>
-            `;
-          })
-          .join("");
+          const adRows = md.antardashas
+            .map((ad, adIdx) => {
+              const isAdActive = ad.is_active;
+              const adStatusClass = isAdActive ? "active" : (ad.status === "COMPLETED" ? "completed" : "upcoming");
+              const adGlyph = PLANET_GLYPHS[ad.lord] || "";
+              const adBg = isAdActive ? "style='background: rgba(200, 155, 60, 0.12); font-weight: 600;'" : "";
+              return `
+                <tr ${adBg}>
+                  <td style="font-family: var(--font-mono);">${adIdx + 1}</td>
+                  <td><strong>${ad.sign}</strong></td>
+                  <td><span style="color: var(--accent-primary); margin-right: 0.3rem;">${adGlyph}</span> ${ad.lord}</td>
+                  <td style="font-family: var(--font-mono);">${ad.duration}</td>
+                  <td style="font-family: var(--font-mono);">${ad.start} → ${ad.end}</td>
+                  <td><span class="status-badge ${adStatusClass}">${ad.status}</span></td>
+                </tr>
+              `;
+            })
+            .join("");
 
-        return `
-          <tr ${rowBg} id="chara-md-row-${idx}">
-            <td><span class="status-badge" style="font-family: var(--font-mono); font-size: 0.7rem;">C${md.cycle}</span></td>
-            <td><strong style="font-size: 0.95rem; color: ${isActive ? 'var(--accent-primary)' : 'inherit'};">${md.sign}</strong></td>
-            <td><strong style="color: var(--accent-primary); margin-right: 0.3rem;">${glyph}</strong> ${md.lord}</td>
-            <td style="font-family: var(--font-mono);">${md.duration}</td>
-            <td style="font-family: var(--font-mono);">${md.start} → ${md.end}</td>
-            <td><span class="status-badge ${statusBadgeClass}">${md.status}</span></td>
-            <td style="text-align: right;">
-              <button class="varga-pill-btn" id="chara-ad-btn-${idx}" onclick="toggleCharaAntardashaRow(${idx})" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">
-                ${isActive ? 'Hide Antardashas ▲' : 'View Antardashas ▼'}
-              </button>
-            </td>
-          </tr>
-          <tr id="chara-ad-row-${idx}" class="chara-ad-nested-row" style="display: ${isActive ? 'table-row' : 'none'}; background: rgba(0,0,0,0.15);">
-            <td colspan="7" style="padding: 0.75rem 1rem;">
-              <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">
-                ✦ ${md.sign} Mahadasha • 12 Antardashas (${md.duration} total)
-              </div>
-              <table class="studio-table pd-nested-table" style="margin: 0; background: transparent;">
-                <thead>
-                  <tr>
-                    <th style="width: 40px;">#</th>
-                    <th>Antardasha Rashi</th>
-                    <th>Ruler</th>
-                    <th>Duration</th>
-                    <th>Dates</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${adRows}
-                </tbody>
-              </table>
-            </td>
-          </tr>
-        `;
-      })
-      .join("");
+          return `
+            <tr ${rowBg} id="chara-md-row-${idx}">
+              <td><span class="status-badge" style="font-family: var(--font-mono); font-size: 0.7rem;">C${md.cycle}</span></td>
+              <td><strong style="font-size: 0.95rem; color: ${isActive ? 'var(--accent-primary)' : 'inherit'};">${md.sign}</strong></td>
+              <td><strong style="color: var(--accent-primary); margin-right: 0.3rem;">${glyph}</strong> ${md.lord}</td>
+              <td style="font-family: var(--font-mono);">${md.duration}</td>
+              <td style="font-family: var(--font-mono);">${md.start} → ${md.end}</td>
+              <td><span class="status-badge ${statusBadgeClass}">${md.status}</span></td>
+              <td style="text-align: right;">
+                <button class="varga-pill-btn" id="chara-ad-btn-${idx}" onclick="toggleCharaAntardashaRow(${idx})" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">
+                  ${isActive ? 'Hide Antardashas ▲' : 'View Antardashas ▼'}
+                </button>
+              </td>
+            </tr>
+            <tr id="chara-ad-row-${idx}" class="chara-ad-nested-row" style="display: ${isActive ? 'table-row' : 'none'}; background: rgba(0,0,0,0.15);">
+              <td colspan="7" style="padding: 0.75rem 1rem;">
+                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">
+                  ✦ ${md.sign} Mahadasha • 12 Antardashas (${md.duration} total)
+                </div>
+                <table class="studio-table pd-nested-table" style="margin: 0; background: transparent;">
+                  <thead>
+                    <tr>
+                      <th style="width: 40px;">#</th>
+                      <th>Antardasha Rashi</th>
+                      <th>Ruler</th>
+                      <th>Duration</th>
+                      <th>Dates</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${adRows}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+    } else {
+      charaTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No Chara Dasha periods available. Click <a href="javascript:void(0)" onclick="calculateChart()" style="color: var(--accent-primary); text-decoration: underline;">Calculate Chart</a> to refresh.</td></tr>';
+    }
   }
 
   // 12 Arudha Padas

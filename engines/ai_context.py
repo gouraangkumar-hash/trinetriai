@@ -15,6 +15,7 @@ from engines.aspects import AspectsReport
 from engines.friendships import PanchaDhaMaitriReport
 from engines.functional import FunctionalReport
 from engines.gochar import GocharReport
+from engines.jaimini import CharaDashaResult
 from engines.parashari import VimshottariDashaTree
 from engines.strength import PlanetaryStrengthReport
 from engines.yogas import YogaEvaluationReport
@@ -47,6 +48,7 @@ class AIContextEngine:
         birth_city: str = "Jaipur, India",
         effective_time_str: str = "14:30:00",
         effective_date_str: str = "1995-10-15",
+        chara_dasha: Optional[CharaDashaResult] = None,
     ) -> AIDossierReport:
         asc = chart.angles.ascendant_sign
         asc_nak = chart.angles.ascendant_nakshatra
@@ -209,6 +211,27 @@ class AIContextEngine:
             )
         lines.append("")
 
+        # 7. Jaimini Chara Dasha & Rashi Chronology
+        if chara_dasha:
+            order_str = "Direct (Savya)" if chara_dasha.is_direct_order else "Reverse (Apasavya)"
+            active_md_str = (
+                f"{chara_dasha.active_mahadasha.sign_name} ({chara_dasha.active_mahadasha.sign_english}) "
+                f"[Lord: {chara_dasha.active_mahadasha.sign_lord}] "
+                f"from {chara_dasha.active_mahadasha.start_date.strftime('%b %Y')} to {chara_dasha.active_mahadasha.end_date.strftime('%b %Y')}"
+            ) if chara_dasha.active_mahadasha else "N/A"
+            active_ad_str = (
+                f"{chara_dasha.active_antardasha.sign_name} ({chara_dasha.active_antardasha.sign_english}) "
+                f"[Lord: {chara_dasha.active_antardasha.sign_lord}] "
+                f"from {chara_dasha.active_antardasha.start_date.strftime('%d %b %Y')} to {chara_dasha.active_antardasha.end_date.strftime('%d %b %Y')}"
+            ) if chara_dasha.active_antardasha else "N/A"
+
+            lines.append("## 7. JAIMINI CHARA DASHA & RASHI CHRONOLOGY")
+            lines.append(f"- **Lagna Rashi**: {chara_dasha.lagna_sign_name} ({chara_dasha.lagna_sign_english}) | **9th Rashi from Lagna**: {chara_dasha.ninth_sign_name} ({chara_dasha.ninth_sign_english})")
+            lines.append(f"- **Dasha Progression Sequence**: {order_str}")
+            lines.append(f"- **Active Chara Mahadasha**: {active_md_str}")
+            lines.append(f"- **Active Chara Antardasha**: {active_ad_str}")
+            lines.append("")
+
         markdown_dossier = "\n".join(lines)
 
         # System Prompt Recommendation
@@ -248,6 +271,17 @@ class AIContextEngine:
             "ashtakavarga_summary": ashtakavarga_report.summary.model_dump(),
             "gochar_transits": [t.model_dump() for t in gochar_report.transits],
         }
+
+        if chara_dasha:
+            structured_payload["jaimini_chara_dasha"] = {
+                "lagna_sign": chara_dasha.lagna_sign_english,
+                "ninth_sign": chara_dasha.ninth_sign_english,
+                "is_direct": chara_dasha.is_direct_order,
+                "active_mahadasha": chara_dasha.active_mahadasha.sign_english if chara_dasha.active_mahadasha else None,
+                "active_mahadasha_lord": chara_dasha.active_mahadasha.sign_lord if chara_dasha.active_mahadasha else None,
+                "active_antardasha": chara_dasha.active_antardasha.sign_english if chara_dasha.active_antardasha else None,
+                "active_antardasha_lord": chara_dasha.active_antardasha.sign_lord if chara_dasha.active_antardasha else None,
+            }
 
         return AIDossierReport(
             markdown_dossier=markdown_dossier,

@@ -3146,3 +3146,33 @@ tr.active-ray-row {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* =============================================================================
+   Jaimini Chara Dasha Styles
+   ============================================================================= */
+.chara-dasha-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.chara-dasha-table tr td {
+  vertical-align: middle;
+}
+
+.chara-ad-nested-row {
+  transition: all 0.2s ease-in-out;
+}
+
+.chara-ad-nested-row td {
+  border-top: 1px dashed var(--border-subtle) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+[data-theme="dark"] .chara-ad-nested-row {
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-theme="light"] .chara-ad-nested-row {
+  background: rgba(245, 247, 250, 0.8) !important;
+}

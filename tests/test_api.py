@@ -97,6 +97,13 @@ def test_calculate_endpoint_default():
     assert "<svg" in data["sav_chart_svg"]
     assert "SARVASHTAKAVARGA" in data["sav_chart_svg"]
 
+    # Verify Jaimini Chara Dasha in response
+    assert "chara_dasha_summary" in data
+    assert "chara_dasha_periods" in data
+    assert "Reverse (Apasavya)" in data["chara_dasha_summary"]["order"]
+    assert len(data["chara_dasha_periods"]) == 24
+    assert len(data["chara_dasha_periods"][0]["antardashas"]) == 12
+
     # Verify Lagna box has clean "LAGNA 10" with degrees removed (as "As" already displays degrees)
     assert "LAGNA 10" in data["chart_svg"]
     assert "LAGNA 10 • 19°" not in data["chart_svg"]
@@ -435,6 +442,15 @@ def test_frontend_markup_and_scripts():
     assert "updateGocharButtonStates" in js
     assert "renderGocharWorkspace" in js
     assert "col-phala" in js
+
+    # Check Jaimini Chara Dasha markup and scripts
+    assert "chara-dasha-table" in html
+    assert "chara-dasha-tbody" in html
+    assert "chara-dasha-order-badge" in html
+    assert ".chara-dasha-table" in css
+    assert ".chara-ad-nested-row" in css
+    assert "toggleCharaAntardashaRow" in js
+    assert "window.toggleCharaAntardashaRow" in js
 
 
 

@@ -720,8 +720,56 @@
         </div>
       </div>
 
+      <!-- Jaimini Chara Dasha Card -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <div>
+            <span class="card-title">Jaimini Chara Dasha Timeline</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">
+              Sign-Based Chronological Progression • K.N. Rao Canonical System
+            </span>
+          </div>
+          <div id="chara-dasha-order-badge" class="status-badge" style="font-size: 0.75rem; text-transform: uppercase;">
+            Order: -
+          </div>
+        </div>
+
+        <!-- Active Chara Dasha Strip -->
+        <div class="active-dasha-strip" style="margin: 0.75rem 0 1.25rem 0;">
+          <div class="dasha-flow">
+            <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Active Rashi Period:</span>
+            <span id="chara-hero-md" style="font-weight: 700; color: var(--accent-primary);">-</span>
+            <span class="arrow">→</span>
+            <span id="chara-hero-ad" style="font-weight: 700; color: #E5B869;">-</span>
+          </div>
+          <div id="chara-hero-dates" class="dasha-dates">
+            Calculating Chara Dasha periods...
+          </div>
+        </div>
+
+        <!-- Chara Dasha Mahadashas Table -->
+        <div class="table-responsive">
+          <table class="studio-table chara-dasha-table">
+            <thead>
+              <tr>
+                <th style="width: 70px;">Cycle</th>
+                <th>Mahadasha Rashi</th>
+                <th>Ruling Lord</th>
+                <th>Duration</th>
+                <th>Period Dates</th>
+                <th>Status</th>
+                <th style="text-align: right;">Sub-Periods</th>
+              </tr>
+            </thead>
+            <tbody id="chara-dasha-tbody">
+              <!-- Rendered via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- 12 Arudha Padas Card -->
-      <div class="card">
+      <div class="card" style="margin-top: 1.5rem;">
         <div class="card-header">
           <span class="card-title">12 Arudha Padas (Manifested World & Illusion)</span>
           <span style="font-size: 0.8rem; color: var(--text-muted);">Includes BPHS 1st & 7th House Shift Exceptions</span>

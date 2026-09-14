@@ -155,6 +155,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     karakas_7 = JaiminiEngine.calculate_chara_karakas(chart, scheme=7)
     karakas_8 = JaiminiEngine.calculate_chara_karakas(chart, scheme=8)
     arudhas = JaiminiEngine.calculate_arudha_padas(chart)
+    now_utc = datetime.now(ZoneInfo("UTC"))
+    chara_dasha = JaiminiEngine.calculate_chara_dasha(chart, target_date=now_utc)
 
     # Vimshottari Dashas
     moon_lon = chart.planets[PlanetEnum.MOON].longitude
@@ -642,6 +644,53 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "current_pratyantardashas": current_pratyantardashas,
     }
 
+    # Format Jaimini Chara Dasha (K.N. Rao System)
+    chara_dasha_summary = {
+        "lagna_sign": chara_dasha.lagna_sign_english if req.sign_mode == "english" else chara_dasha.lagna_sign_name,
+        "ninth_sign": chara_dasha.ninth_sign_english if req.sign_mode == "english" else chara_dasha.ninth_sign_name,
+        "order": "Direct (Savya)" if chara_dasha.is_direct_order else "Reverse (Apasavya)",
+        "active_md": (
+            chara_dasha.active_mahadasha.sign_english if req.sign_mode == "english" else chara_dasha.active_mahadasha.sign_name
+        ) if chara_dasha.active_mahadasha else "-",
+        "active_md_lord": chara_dasha.active_mahadasha.sign_lord if chara_dasha.active_mahadasha else "-",
+        "active_ad": (
+            chara_dasha.active_antardasha.sign_english if req.sign_mode == "english" else chara_dasha.active_antardasha.sign_name
+        ) if chara_dasha.active_antardasha else "-",
+        "active_ad_lord": chara_dasha.active_antardasha.sign_lord if chara_dasha.active_antardasha else "-",
+        "md_range": f"{chara_dasha.active_mahadasha.start_date.strftime('%b %Y')} → {chara_dasha.active_mahadasha.end_date.strftime('%b %Y')}" if chara_dasha.active_mahadasha else "-",
+        "ad_range": f"{chara_dasha.active_antardasha.start_date.strftime('%d %b %Y')} → {chara_dasha.active_antardasha.end_date.strftime('%d %b %Y')}" if chara_dasha.active_antardasha else "-",
+    }
+
+    chara_dasha_periods = []
+    for md_idx, md in enumerate(chara_dasha.mahadashas):
+        ad_rows = []
+        for ad in md.antardashas:
+            ad_status = "ACTIVE" if ad.is_active else ("COMPLETED" if ad.end_date < now_utc else "UPCOMING")
+            ad_rows.append({
+                "sign_id": ad.sign_id,
+                "sign": ad.sign_english if req.sign_mode == "english" else ad.sign_name,
+                "lord": ad.sign_lord,
+                "duration": f"{ad.duration_months:.0f} Mo",
+                "start": ad.start_date.strftime("%d %b %Y"),
+                "end": ad.end_date.strftime("%d %b %Y"),
+                "is_active": ad.is_active,
+                "status": ad_status,
+            })
+        md_status = "ACTIVE" if md.is_active else ("COMPLETED" if md.end_date < now_utc else "UPCOMING")
+        chara_dasha_periods.append({
+            "idx": md_idx,
+            "cycle": md.cycle,
+            "sign_id": md.sign_id,
+            "sign": md.sign_english if req.sign_mode == "english" else md.sign_name,
+            "lord": md.sign_lord,
+            "duration": f"{md.duration_years} Yrs",
+            "start": md.start_date.strftime("%d %b %Y"),
+            "end": md.end_date.strftime("%d %b %Y"),
+            "is_active": md.is_active,
+            "status": md_status,
+            "antardashas": ad_rows,
+        })
+
     # AI Ground-Truth Context Dossier & Serializer
     ai_dossier = AIContextEngine.generate(
         chart=chart,
@@ -657,6 +706,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         birth_city=req.city,
         effective_time_str=effective_dt.strftime("%H:%M:%S"),
         effective_date_str=effective_dt.strftime("%Y-%m-%d"),
+        chara_dasha=chara_dasha,
     )
 
     mahadashas = []
@@ -754,6 +804,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "chara_karakas_7": chara_karakas_7,
         "chara_karakas_8": chara_karakas_8,
         "arudha_padas": arudha_padas,
+        "chara_dasha_summary": chara_dasha_summary,
+        "chara_dasha_periods": chara_dasha_periods,
         "dasha_summary": dasha_summary,
         "mahadashas": mahadashas,
         "yogas_summary": yogas_report.summary.model_dump(),

@@ -264,6 +264,75 @@ class TestJaiminiEngine:
         # Gemini (3, Dual) aspects Virgo (6), Sagittarius (9), Pisces (12)
         assert aspects.sign_aspects_map[3] == [6, 9, 12]
 
+    def test_chara_dasha_calculation_reference_chart(self, reference_chart) -> None:
+        """Validates K.N. Rao Chara Dasha Mahadasha progression, durations, and dual-lord resolutions."""
+        result = JaiminiEngine.calculate_chara_dasha(reference_chart, cycles=2)
+
+        # Lagna is Capricorn (10), 9th from Lagna is Virgo (6)
+        assert result.lagna_sign_id == 10
+        assert result.ninth_sign_id == 6
+        # Virgo (6) is in Apasavya group -> Progression is reverse (indirect)
+        assert result.is_direct_order is False
+
+        expected_order = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11]
+        assert result.progression_signs == expected_order
+
+        # Verify Cycle 1 durations match canonical K.N. Rao rules
+        expected_durations = {
+            10: 11,  # Capricorn: Saturn in Aquarius (12 - 1 = 11)
+            9: 11,   # Sagittarius: Jupiter in Scorpio (12 - 1 = 11)
+            8: 5,    # Scorpio: Mars in Scorpio -> use Ketu in Aries (6 - 1 = 5)
+            7: 12,   # Libra: Venus in Libra (own sign = 12)
+            6: 12,   # Virgo: Mercury in Virgo (own sign = 12)
+            5: 11,   # Leo: Sun in Virgo (12 - 1 = 11)
+            4: 1,    # Cancer: Moon in Gemini (2 - 1 = 1)
+            3: 3,    # Gemini: Mercury in Virgo (4 - 1 = 3)
+            2: 5,    # Taurus: Venus in Libra (6 - 1 = 5)
+            1: 7,    # Aries: Mars in Scorpio (8 - 1 = 7)
+            12: 4,   # Pisces: Jupiter in Scorpio (5 - 1 = 4)
+            11: 4,   # Aquarius: Saturn in Aquarius -> use Rahu in Libra (5 - 1 = 4)
+        }
+
+        cycle_1_mds = result.mahadashas[:12]
+        for md in cycle_1_mds:
+            assert md.duration_years == expected_durations[md.sign_id]
+            assert md.cycle == 1
+
+        # Total Cycle 1 years: 11+11+5+12+12+11+1+3+5+7+4+4 = 86 years
+        total_c1_years = sum(md.duration_years for md in cycle_1_mds)
+        assert total_c1_years == 86
+
+        # Cycle 2 should also contain 12 signs
+        assert len(result.mahadashas) == 24
+        assert result.mahadashas[12].cycle == 2
+
+    def test_chara_dasha_antardashas(self, reference_chart) -> None:
+        """Validates 12 Antardashas per Mahadasha with the Mahadasha sign positioned last."""
+        result = JaiminiEngine.calculate_chara_dasha(reference_chart)
+        first_md = result.mahadashas[0]  # Capricorn (10)
+
+        assert len(first_md.antardashas) == 12
+        # 9th from Capricorn is Virgo (Apasavya) -> Antardashas move reverse, Capricorn is last
+        expected_ad_signs = [9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10]
+        actual_ad_signs = [ad.sign_id for ad in first_md.antardashas]
+        assert actual_ad_signs == expected_ad_signs
+
+        # Each Antardasha duration = 11 months
+        for ad in first_md.antardashas:
+            assert ad.duration_months == 11.0
+
+        # Continuous chronological sequence
+        for i in range(len(first_md.antardashas) - 1):
+            assert first_md.antardashas[i].end_date == first_md.antardashas[i + 1].start_date
+
+    def test_chara_dasha_active_period(self, reference_chart) -> None:
+        """Validates active Mahadasha and Antardasha resolution at birth."""
+        result = JaiminiEngine.calculate_chara_dasha(reference_chart, target_date=reference_chart.utc_datetime)
+        assert result.active_mahadasha is not None
+        assert result.active_mahadasha.sign_id == 10  # Capricorn
+        assert result.active_antardasha is not None
+        assert result.active_antardasha.sign_id == 9   # Sagittarius
+
 
 # =========================================================================
 # 5. Classical Yogas & Doshas Engine Tests

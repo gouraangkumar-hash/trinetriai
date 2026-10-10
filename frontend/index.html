@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="/static/favicon.png?v=2.4.0">
-  <link rel="apple-touch-icon" href="/static/favicon.png?v=2.4.0">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.4.0">
+  <link rel="icon" type="image/png" href="/static/favicon.png?v=2.5.0">
+  <link rel="apple-touch-icon" href="/static/favicon.png?v=2.5.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.5.0">
 </head>
 <body>
 
@@ -19,7 +19,7 @@
   <!-- ======================================================================= -->
   <header class="header-bar">
     <div class="brand-section" id="brand-home-btn" style="cursor: pointer;" title="Trinetri AI Home">
-      <img src="/static/favicon.png?v=2.4.0" alt="Trinetri AI Logo" class="brand-logo" width="36" height="36" />
+      <img src="/static/favicon.png?v=2.5.0" alt="Trinetri AI Logo" class="brand-logo" width="36" height="36" />
       <span class="brand-title">TRINETRI AI</span>
     </div>
 
@@ -299,6 +299,7 @@
       <button class="tab-btn" data-tab="jaimini">Jaimini Sutras</button>
       <button class="tab-btn" data-tab="yogas">Yogas & Doshas</button>
       <button class="tab-btn" data-tab="ashtakavarga">Ashtakavarga</button>
+      <button class="tab-btn" data-tab="ai-consult" id="tab-btn-ai-consult" style="color: var(--accent-primary); font-weight: 700;">✦ AI Reading</button>
     </div>
   </nav>
 
@@ -973,6 +974,195 @@
       </div>
     </section>
 
+    <!-- ------------------------------------------------------------------- -->
+    <!-- TAB 8: Trinetri AI Multi-Agent Reading                              -->
+    <!-- ------------------------------------------------------------------- -->
+    <section id="tab-ai-consult" class="tab-content">
+      
+      <!-- Top Control & Status Bar -->
+      <div class="ai-consult-header-card">
+        <div class="ai-consult-title-group">
+          <div class="ai-consult-icon">✦</div>
+          <div>
+            <h2 class="ai-consult-title">Trinetri Multi-Agent Synthesis</h2>
+            <p class="ai-consult-subtitle">
+              Three-Eye Vedic Intelligence: Parashari (Macro) • KP (Cuspal Timing) • Jaimini (Soul & Maya)
+            </p>
+          </div>
+        </div>
+
+        <div class="ai-api-status-group">
+          <span id="ai-key-status-badge" class="status-badge" title="Gemini API Key Status">
+            <span class="status-dot"></span> Checking API...
+          </span>
+          <button id="btn-open-api-key-modal" class="action-pill" style="font-size: 0.75rem;" title="Configure Gemini API Key">
+            ⚙️ API Key
+          </button>
+        </div>
+      </div>
+
+      <!-- Parameter Update Invalidation Alert Banner -->
+      <div id="ai-stale-banner" class="ai-stale-banner" style="display: none;">
+        <span>⚡ Chart parameters updated. Click to generate fresh synthesis for the active chart.</span>
+        <button id="btn-recalc-synthesis" class="action-pill" style="background: var(--accent-primary); color: #000; font-weight: 700; border: none;">
+          ✦ Regenerate Reading
+        </button>
+      </div>
+
+      <!-- 4 Consultation Pillars Grid -->
+      <div class="card" style="margin-top: 1rem;">
+        <div class="card-header">
+          <span class="card-title">Select Consultation Focus</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Choose a pillar or ask a custom question below</span>
+        </div>
+
+        <div class="ai-pillars-grid">
+          <!-- Pillar 1 -->
+          <div class="ai-pillar-card active" data-pillar="comprehensive">
+            <div class="ai-pillar-icon">🌟</div>
+            <div class="ai-pillar-title">Comprehensive Life Synthesis</div>
+            <div class="ai-pillar-desc">
+              Karmic canvas, soul trajectory, dominant strengths, major obstacles, and dasha lifecycle.
+            </div>
+          </div>
+
+          <!-- Pillar 2 -->
+          <div class="ai-pillar-card" data-pillar="career">
+            <div class="ai-pillar-icon">💼</div>
+            <div class="ai-pillar-title">Career, Wealth & Professional Rise</div>
+            <div class="ai-pillar-desc">
+              10th/2nd/11th cusps, D10 Dasamsa, KP 2/6/10/11 sub-lords, Amatyakaraka & financial surge windows.
+            </div>
+          </div>
+
+          <!-- Pillar 3 -->
+          <div class="ai-pillar-card" data-pillar="relationships">
+            <div class="ai-pillar-icon">❤️</div>
+            <div class="ai-pillar-title">Relationships & Marriage</div>
+            <div class="ai-pillar-desc">
+              7th house/cusp, D9 Navamsha, Darakaraka, Upapada Lagna (UL), marital stability & timing.
+            </div>
+          </div>
+
+          <!-- Pillar 4 -->
+          <div class="ai-pillar-card" data-pillar="dasha">
+            <div class="ai-pillar-icon">⏳</div>
+            <div class="ai-pillar-title">Current Dasha & Upcoming Shifts</div>
+            <div class="ai-pillar-desc">
+              Active Vimshottari MD/AD/PD + Active Chara Dasha + immediate Gochar planetary transit triggers.
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Query Input & Generate Row -->
+        <div class="ai-query-form-row">
+          <div class="ai-query-input-wrap">
+            <input 
+              type="text" 
+              id="ai-custom-query-input" 
+              class="form-input" 
+              placeholder="Ask a specific question (e.g. When will I buy a house? or leave blank for full pillar reading)..." 
+            />
+          </div>
+          <button id="ai-generate-synthesis-btn" class="btn-hero-primary" style="padding: 0.65rem 1.5rem; font-size: 0.9rem; flex-shrink: 0;">
+            ✦ Generate Synthesis ➔
+          </button>
+        </div>
+      </div>
+
+      <!-- Synthesis Workspace Card -->
+      <div class="card" id="ai-synthesis-workspace" style="margin-top: 1.5rem;">
+        
+        <!-- Three Eyes & Synthesis Perspective Tabs -->
+        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+          <div class="ai-perspective-tabs">
+            <button class="ai-persp-btn active" data-persp="synthesis">
+              ✦ Maha-Synthesis
+            </button>
+            <button class="ai-persp-btn" data-persp="parashari">
+              👁️ Parashari (BPHS)
+            </button>
+            <button class="ai-persp-btn" data-persp="kp">
+              👁️ KP Stellar
+            </button>
+            <button class="ai-persp-btn" data-persp="jaimini">
+              👁️ Jaimini Sutras
+            </button>
+          </div>
+
+          <!-- Action buttons -->
+          <div style="display: flex; gap: 0.5rem; align-items: center; margin-left: auto;">
+            <button id="btn-copy-synthesis" class="action-pill" onclick="copyAiSynthesis()" title="Copy current reading">
+              📋 Copy
+            </button>
+            <button id="btn-download-synthesis" class="action-pill" onclick="downloadAiSynthesis()" title="Download reading as Markdown">
+              ⬇ Download .md
+            </button>
+          </div>
+        </div>
+
+        <!-- Confluence Gauge Bar -->
+        <div id="ai-confluence-card" class="ai-confluence-card" style="display: none;">
+          <div class="ai-confluence-header">
+            <div>
+              <span class="ai-confluence-title">Triangulated Confluence Score:</span>
+              <span id="ai-confluence-score-text" class="ai-confluence-score">92%</span>
+              <span id="ai-confluence-level-badge" class="status-badge active" style="margin-left: 0.5rem;">Triple Confluence</span>
+            </div>
+            <div id="ai-confluence-summary-verdict" class="ai-confluence-verdict">
+              All three classical schools confirm positive manifestation.
+            </div>
+          </div>
+          <div class="ai-confluence-bar-track">
+            <div id="ai-confluence-bar-fill" class="ai-confluence-bar-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Status / Progress Banner -->
+        <div id="ai-synthesis-status" class="ai-synthesis-status" style="display: none;">
+          <span class="ai-spinner"></span>
+          <span id="ai-synthesis-status-text">Awakening the Three Eyes...</span>
+        </div>
+
+        <!-- Rendered Content Box -->
+        <div class="ai-synthesis-content-box">
+          <!-- Synthesis Markdown Tab -->
+          <div id="persp-view-synthesis" class="persp-view active">
+            <div id="ai-synthesis-rendered" class="markdown-body">
+              <div class="ai-empty-placeholder">
+                <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">🔱</span>
+                <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">Trinetri Multi-Agent Astrological Synthesis</h3>
+                <p>Select a consultation focus above and click <strong>Generate Synthesis</strong> to awaken the Three Eyes (Parashari, KP, and Jaimini) and receive a unified, zero-hallucination reading.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Parashari Eye Tab -->
+          <div id="persp-view-parashari" class="persp-view" style="display: none;">
+            <div id="ai-parashari-rendered" class="markdown-body">
+              <div class="ai-empty-placeholder">Parashari evaluation will appear here once synthesis is generated.</div>
+            </div>
+          </div>
+
+          <!-- KP Eye Tab -->
+          <div id="persp-view-kp" class="persp-view" style="display: none;">
+            <div id="ai-kp-rendered" class="markdown-body">
+              <div class="ai-empty-placeholder">KP Stellar evaluation will appear here once synthesis is generated.</div>
+            </div>
+          </div>
+
+          <!-- Jaimini Eye Tab -->
+          <div id="persp-view-jaimini" class="persp-view" style="display: none;">
+            <div id="ai-jaimini-rendered" class="markdown-body">
+              <div class="ai-empty-placeholder">Jaimini Sutras evaluation will appear here once synthesis is generated.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
   </main>
   </div> <!-- /#studio-view -->
 
@@ -1330,7 +1520,99 @@
     </div>
   </footer>
 
+  <!-- ======================================================================= -->
+  <!-- Floating Chat Button & Expandable Drawer                                -->
+  <!-- ======================================================================= -->
+  <button id="trinetri-floating-chat-btn" class="floating-chat-btn" title="Open Trinetri Astrological Chat">
+    <span class="chat-btn-icon">✦</span>
+    <span class="chat-btn-label">Ask Trinetri</span>
+  </button>
+
+  <div id="trinetri-chat-drawer" class="trinetri-chat-drawer" style="display: none;">
+    <div class="chat-drawer-header">
+      <div class="chat-drawer-title-group">
+        <span style="color: var(--accent-primary); font-size: 1.1rem;">✦</span>
+        <div>
+          <div class="chat-drawer-title">Trinetri AI Advisor</div>
+          <div id="chat-capsule-subtitle" class="chat-drawer-sub">Chart Loaded</div>
+        </div>
+      </div>
+      <div class="chat-drawer-actions">
+        <button id="chat-clear-btn" class="chat-icon-btn" title="Clear Conversation">🗑️</button>
+        <button id="chat-minimize-btn" class="chat-icon-btn" title="Minimize Chat">—</button>
+        <button id="chat-close-btn" class="chat-icon-btn" title="Close Chat">✕</button>
+      </div>
+    </div>
+
+    <!-- Re-anchor Notice (Shown if chart parameters change mid-chat) -->
+    <div id="chat-reanchor-banner" class="chat-reanchor-banner" style="display: none;">
+      ⚡ Chart updated. Subsequent questions will reflect revised coordinates.
+    </div>
+
+    <!-- Messages Container -->
+    <div id="chat-messages-container" class="chat-messages-container">
+      <div class="chat-msg system-msg">
+        ✦ Welcome to Trinetri AI. Your complete astrological dossier is loaded. Ask any question regarding your natal potentials, career, marriage, or upcoming dasha timing.
+      </div>
+    </div>
+
+    <!-- Chat Input Form -->
+    <form id="chat-input-form" class="chat-input-form">
+      <textarea 
+        id="chat-input-textarea" 
+        class="chat-input-textarea" 
+        rows="1" 
+        placeholder="Ask a question about your horoscope..."
+      ></textarea>
+      <button type="submit" id="chat-send-btn" class="chat-send-btn" title="Send Question">➔</button>
+    </form>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- API Key Settings Modal                                                  -->
+  <!-- ======================================================================= -->
+  <div id="api-key-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-container" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Gemini API Key Configuration</h3>
+        <button id="api-key-modal-close" class="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+          You can use a free Google Gemini API key to power Trinetri AI's Three Eyes multi-agent synthesis and interactive chat.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="input-custom-gemini-key">Google Gemini API Key</label>
+          <input 
+            type="password" 
+            id="input-custom-gemini-key" 
+            class="form-input" 
+            placeholder="AIzaSy..." 
+            autocomplete="off"
+          />
+          <span style="font-size: 0.75rem; color: var(--text-muted);">
+            Stored securely in your local browser storage. Never saved to any database.
+          </span>
+        </div>
+
+        <div id="api-key-server-status-info" style="font-size: 0.8rem; padding: 0.6rem; border-radius: 6px; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);">
+          Checking server environment key...
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+          <button type="button" id="btn-clear-api-key" class="btn-hero-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
+            Clear Key
+          </button>
+          <button type="button" id="btn-save-api-key" class="btn-hero-primary" style="padding: 0.5rem 1.25rem; font-size: 0.8rem;">
+            Save Key
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=2.4.0"></script>
+  <script src="/static/js/app.js?v=2.5.0"></script>
 </body>
 </html>

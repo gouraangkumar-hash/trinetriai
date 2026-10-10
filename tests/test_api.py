@@ -241,7 +241,7 @@ def test_serve_index_and_static():
     assert "app.js" in response.text
 
     # Test static files cache headers
-    static_res = client.get("/static/js/app.js?v=2.4.0")
+    static_res = client.get("/static/js/app.js?v=2.5.0")
     assert static_res.status_code == 200
     assert "no-cache" in static_res.headers.get("cache-control", "")
 
@@ -335,8 +335,8 @@ def test_frontend_markup_and_scripts():
     assert response.headers.get("cache-control") == "no-cache, no-store, must-revalidate"
 
     # Check cache-busting query strings on static assets
-    assert "/static/css/style.css?v=2.4.0" in html
-    assert "/static/js/app.js?v=2.4.0" in html
+    assert "/static/css/style.css?v=2.5.0" in html
+    assert "/static/js/app.js?v=2.5.0" in html
 
     # Check clickable overview dasha strip to jump to dasha tab
     assert "overview-dasha-strip" in html
@@ -457,6 +457,21 @@ def test_frontend_markup_and_scripts():
     assert "toggleCharaAntardashaRow" in js
     assert "window.toggleCharaAntardashaRow" in js
 
+    # Check Trinetri Multi-Agent AI Reading & Chat Drawer markup and scripts
+    assert "tab-ai-consult" in html
+    assert "ai-pillars-grid" in html
+    assert "ai-confluence-card" in html
+    assert "trinetri-floating-chat-btn" in html
+    assert "trinetri-chat-drawer" in html
+    assert "api-key-modal" in html
+    assert ".ai-consult-header-card" in css
+    assert ".floating-chat-btn" in css
+    assert ".trinetri-chat-drawer" in css
+    assert "triggerAiSynthesis" in js
+    assert "sendChatMessage" in js
+    assert "toggleChatDrawer" in js
+
+
 
 def test_calculate_endpoint_target_date():
     """Test POST /api/calculate with a historic target_date parameter."""
@@ -528,6 +543,108 @@ def test_vargas_endpoint_vargottama_restricted_to_d9():
     sun_row = next(r for r in data_d9["varga_table"] if r["planet"] == "Sun")
     assert sun_row["is_vargottama"] is True
     assert "[V]" in sun_row["dignity_short"]
+
+
+def test_ai_config_endpoint():
+    """Test GET /api/ai/config returns configuration info."""
+    response = client.get("/api/ai/config")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "has_server_key" in data
+    assert "default_model" in data
+    assert "fallback_model" in data
+
+
+def test_orchestrator_fact_slicers():
+    """Test TrinetriOrchestrator domain fact slicing for the Three Eyes."""
+    from engines.trinetri_orchestrator import TrinetriOrchestrator
+
+    payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+    }
+    resp = client.post("/api/calculate", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # Eye 1: Parashari slicing
+    p_facts = TrinetriOrchestrator.slice_parashari_facts(data)
+    assert "Lagna (Ascendant)" in p_facts
+    assert "Vedic Yogas Summary" in p_facts
+    assert "Vimshottari" in p_facts
+
+    # Eye 2: KP slicing
+    kp_facts = TrinetriOrchestrator.slice_kp_facts(data)
+    assert "Placidus House Cusps" in kp_facts
+    assert "Sub-Lord (CSL)" in kp_facts
+    assert "Significator Levels" in kp_facts
+
+    # Eye 3: Jaimini slicing
+    j_facts = TrinetriOrchestrator.slice_jaimini_facts(data)
+    assert "Chara Karakas" in j_facts
+    assert "Arudha Padas" in j_facts
+    assert "Chara Dasha" in j_facts
+
+
+def test_ai_synthesize_endpoint_validation():
+    """Test POST /api/ai/synthesize returns SSE stream."""
+    payload = {
+        "chart_params": {
+            "year": 1995,
+            "month": 10,
+            "day": 15,
+            "hour": 14,
+            "minute": 30,
+            "second": 0.0,
+            "city": "Jaipur, India",
+            "latitude": 26.9124,
+            "longitude": 75.7873,
+            "timezone_str": "Asia/Kolkata",
+        },
+        "pillar": "comprehensive",
+    }
+    response = client.post("/api/ai/synthesize", json=payload)
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers.get("content-type", "")
+    content = response.text
+    # When no key is set in test env, stream emits awakening status or error event
+    assert "event:" in content
+
+
+def test_ai_chat_endpoint_validation():
+    """Test POST /api/ai/chat returns SSE stream."""
+    payload = {
+        "chart_params": {
+            "year": 1995,
+            "month": 10,
+            "day": 15,
+            "hour": 14,
+            "minute": 30,
+            "second": 0.0,
+            "city": "Jaipur, India",
+            "latitude": 26.9124,
+            "longitude": 75.7873,
+            "timezone_str": "Asia/Kolkata",
+        },
+        "messages": [
+            {"role": "user", "content": "What are my main strengths?"}
+        ],
+    }
+    response = client.post("/api/ai/chat", json=payload)
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers.get("content-type", "")
+    content = response.text
+    assert "event:" in content
+
 
 
 

@@ -7,12 +7,12 @@ Vimshottari and Chara Dashas, Ashtakavarga, transits, and AI dossier export.
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -42,6 +42,8 @@ from engines.yogas import YogaDetectorEngine
 from engines.functional import FunctionalNatureEngine
 from engines.strength import PlanetaryStrengthEngine
 from engines.ai_context import AIContextEngine
+from engines.trinetri_orchestrator import TrinetriOrchestrator
+from services.llm import get_effective_api_key, DEFAULT_MODEL, FALLBACK_MODEL
 from schemas.models import BirthInput, GeoLocationModel, UnifiedChartData
 from visualizers.ashtakavarga_svg import generate_ashtakavarga_svg
 from visualizers.north_indian_svg import generate_north_indian_svg
@@ -105,6 +107,19 @@ class ChartCalculationRequest(BaseModel):
 class VargaCalculationRequest(BaseModel):
     varga: str = Field(default="D9")
     chart_params: ChartCalculationRequest
+
+
+class AISynthesizeRequest(BaseModel):
+    chart_params: ChartCalculationRequest
+    pillar: str = Field(default="comprehensive")
+    custom_query: Optional[str] = Field(default=None)
+    user_api_key: Optional[str] = Field(default=None)
+
+
+class AIChatRequest(BaseModel):
+    chart_params: ChartCalculationRequest
+    messages: List[Dict[str, str]] = Field(default_factory=list)
+    user_api_key: Optional[str] = Field(default=None)
 
 
 # --- Chart Calculation Pipeline ---
@@ -860,6 +875,63 @@ def get_ai_dossier(req: ChartCalculationRequest):
             "status": "success",
             "ai_dossier": data["ai_dossier"],
         }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/api/ai/config")
+def get_ai_config():
+    """Returns AI configuration status (whether a server API key is configured)."""
+    server_key = get_effective_api_key()
+    return {
+        "status": "success",
+        "has_server_key": bool(server_key),
+        "default_model": DEFAULT_MODEL,
+        "fallback_model": FALLBACK_MODEL,
+    }
+
+
+@app.post("/api/ai/synthesize")
+async def ai_synthesize(req: AISynthesizeRequest):
+    """Streams multi-agent Three Eyes analysis and Maha-Synthesis via SSE."""
+    try:
+        data = _compute_chart_and_visuals(req.chart_params)
+        return StreamingResponse(
+            TrinetriOrchestrator.stream_synthesis(
+                data=data,
+                pillar=req.pillar,
+                custom_query=req.custom_query or "",
+                api_key=req.user_api_key,
+            ),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/api/ai/chat")
+async def ai_chat(req: AIChatRequest):
+    """Streams conversational astrological dialogue with ground-truth dossier anchor."""
+    try:
+        data = _compute_chart_and_visuals(req.chart_params)
+        return StreamingResponse(
+            TrinetriOrchestrator.stream_chat(
+                data=data,
+                messages=req.messages,
+                api_key=req.user_api_key,
+            ),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

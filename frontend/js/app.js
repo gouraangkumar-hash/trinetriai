@@ -27,6 +27,13 @@ const state = {
   target_date: null,
   activeRayPlanet: null,
   currentData: null,
+  selected_pillar: "comprehensive",
+  active_ai_persp: "synthesis",
+  ai_readings_cache: {},
+  last_ai_chart_sig: null,
+  chat_messages: [],
+  is_generating_synthesis: false,
+  is_sending_chat: false,
 };
 
 // --- Glyph & Coordinate Mappings ---
@@ -241,6 +248,7 @@ function renderAll() {
   renderJaiminiWorkspace();
   renderYogasWorkspace();
   renderAshtakavargaWorkspace();
+  renderAiConsultationWorkspace();
 }
 
 function renderHeaderCapsule() {
@@ -2310,6 +2318,656 @@ function renderGocharWorkspace() {
   });
 }
 
+// =============================================================================
+// Trinetri Multi-Agent AI Reading & Synthesis Controller
+// =============================================================================
+
+function formatMarkdown(text) {
+  if (!text) return "";
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Headings
+  html = html.replace(/^### (.*$)/gim, '<h3 style="font-family: var(--font-heading); margin-top: 1.25rem; margin-bottom: 0.5rem; color: var(--accent-primary); font-size: 1.1rem;">$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2 style="font-family: var(--font-heading); margin-top: 1.5rem; margin-bottom: 0.65rem; color: var(--accent-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.35rem; font-size: 1.25rem;">$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1 style="font-family: var(--font-heading); margin-top: 1.75rem; margin-bottom: 0.75rem; color: var(--accent-primary); font-size: 1.45rem;">$1</h1>');
+
+  // Bold & Italic
+  html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--text-primary);">$1</strong>');
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  // Blockquotes
+  html = html.replace(/^\> (.*$)/gim, '<blockquote style="border-left: 3px solid var(--accent-primary); padding: 0.5rem 1rem; margin: 0.75rem 0; background: rgba(200, 155, 60, 0.08); border-radius: 0 4px 4px 0;">$1</blockquote>');
+
+  // Bullet points
+  html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li style="margin-bottom: 0.35rem;">$1</li>');
+
+  // Paragraphs
+  const paragraphs = html.split(/\n{2,}/);
+  html = paragraphs.map(p => {
+    p = p.trim();
+    if (!p) return "";
+    if (p.startsWith("<h") || p.startsWith("<ul") || p.startsWith("<li") || p.startsWith("<blockquote") || p.startsWith("<div") || p.startsWith("<pre")) {
+      return p;
+    }
+    return `<p style="margin-bottom: 0.85rem; line-height: 1.65;">${p.replace(/\n/g, '<br/>')}</p>`;
+  }).join("\n");
+
+  return html;
+}
+
+function extractConfluenceMetadata(markdown) {
+  const jsonMatch = markdown.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+  if (jsonMatch) {
+    try {
+      return {
+        metadata: JSON.parse(jsonMatch[1]),
+        cleanMarkdown: markdown.replace(jsonMatch[0], "").trim(),
+      };
+    } catch (_) {}
+  }
+  return { metadata: null, cleanMarkdown: markdown };
+}
+
+function updateConfluenceCard(metadata) {
+  const card = document.getElementById("ai-confluence-card");
+  const scoreText = document.getElementById("ai-confluence-score-text");
+  const levelBadge = document.getElementById("ai-confluence-level-badge");
+  const verdictText = document.getElementById("ai-confluence-summary-verdict");
+  const barFill = document.getElementById("ai-confluence-bar-fill");
+
+  if (!card) return;
+  card.style.display = "block";
+
+  const score = metadata.confluence_score || 85;
+  const level = metadata.confluence_level || "Triple Confluence";
+  const verdict = metadata.summary_verdict || "Consensus reached across Parashari, KP, and Jaimini.";
+
+  if (scoreText) scoreText.textContent = `${score}%`;
+  if (levelBadge) {
+    levelBadge.textContent = level;
+    if (score >= 85) {
+      levelBadge.className = "status-badge active";
+      levelBadge.style.backgroundColor = "";
+      levelBadge.style.color = "";
+    } else if (score >= 60) {
+      levelBadge.className = "status-badge";
+      levelBadge.style.backgroundColor = "rgba(229, 184, 105, 0.15)";
+      levelBadge.style.color = "#E5B869";
+    } else {
+      levelBadge.className = "status-badge";
+      levelBadge.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
+      levelBadge.style.color = "#EF4444";
+    }
+  }
+  if (verdictText) verdictText.textContent = verdict;
+  if (barFill) barFill.style.width = `${score}%`;
+}
+
+function renderSynthesisProgressive(markdown) {
+  const { metadata, cleanMarkdown } = extractConfluenceMetadata(markdown);
+  if (metadata) {
+    updateConfluenceCard(metadata);
+  }
+  const box = document.getElementById("ai-synthesis-rendered");
+  if (box) {
+    box.innerHTML = formatMarkdown(cleanMarkdown);
+  }
+}
+
+function updateEyesRendered(eyes) {
+  const pBox = document.getElementById("ai-parashari-rendered");
+  const kpBox = document.getElementById("ai-kp-rendered");
+  const jBox = document.getElementById("ai-jaimini-rendered");
+
+  if (pBox && eyes.parashari) pBox.innerHTML = formatMarkdown(eyes.parashari);
+  if (kpBox && eyes.kp) kpBox.innerHTML = formatMarkdown(eyes.kp);
+  if (jBox && eyes.jaimini) jBox.innerHTML = formatMarkdown(eyes.jaimini);
+}
+
+function renderAiConsultationWorkspace() {
+  const d = state.currentData;
+  if (!d) return;
+
+  const chartSig = `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.time_offset_seconds}_${state.ayanamsha}`;
+  
+  // Update floating chat drawer subtitle
+  const chatSub = document.getElementById("chat-capsule-subtitle");
+  if (chatSub) {
+    chatSub.textContent = `${state.city} • ${state.hour.toString().padStart(2, "0")}:${state.minute.toString().padStart(2, "0")}`;
+  }
+
+  // Check invalidation
+  const staleBanner = document.getElementById("ai-stale-banner");
+  const reanchorBanner = document.getElementById("chat-reanchor-banner");
+  if (state.last_ai_chart_sig && state.last_ai_chart_sig !== chartSig) {
+    if (staleBanner) staleBanner.style.display = "flex";
+    if (reanchorBanner) reanchorBanner.style.display = "block";
+  } else {
+    if (staleBanner) staleBanner.style.display = "none";
+    if (reanchorBanner) reanchorBanner.style.display = "none";
+  }
+
+  // Check if active pillar reading is cached
+  const cacheKey = `${chartSig}_${state.selected_pillar}_`;
+  if (state.ai_readings_cache[cacheKey]) {
+    displayAiReading(state.ai_readings_cache[cacheKey]);
+  }
+}
+
+function selectAiPillar(pillar) {
+  state.selected_pillar = pillar;
+  document.querySelectorAll(".ai-pillar-card").forEach(c => {
+    c.classList.toggle("active", c.dataset.pillar === pillar);
+  });
+
+  const chartSig = `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.time_offset_seconds}_${state.ayanamsha}`;
+  const customQuery = document.getElementById("ai-custom-query-input")?.value.trim() || "";
+  const cacheKey = `${chartSig}_${pillar}_${customQuery}`;
+
+  if (state.ai_readings_cache[cacheKey]) {
+    displayAiReading(state.ai_readings_cache[cacheKey]);
+  }
+}
+
+function selectAiPerspective(persp) {
+  state.active_ai_persp = persp;
+  document.querySelectorAll(".ai-persp-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.persp === persp);
+  });
+  document.querySelectorAll(".persp-view").forEach(v => {
+    v.classList.remove("active");
+    v.style.display = "none";
+  });
+  const target = document.getElementById(`persp-view-${persp}`);
+  if (target) {
+    target.classList.add("active");
+    target.style.display = "block";
+  }
+}
+
+function displayAiReading(readingData) {
+  updateEyesRendered(readingData.eyeVerdicts || {});
+  renderSynthesisProgressive(readingData.fullSynthesisMarkdown || "");
+}
+
+async function triggerAiSynthesis() {
+  if (state.is_generating_synthesis) return;
+  const d = state.currentData;
+  if (!d) {
+    alert("Please calculate a chart first.");
+    return;
+  }
+
+  const pillar = state.selected_pillar || "comprehensive";
+  const customQueryInput = document.getElementById("ai-custom-query-input");
+  const customQuery = customQueryInput ? customQueryInput.value.trim() : "";
+  const userKey = localStorage.getItem("trinetri_gemini_key") || "";
+
+  const chartSig = `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.time_offset_seconds}_${state.ayanamsha}`;
+  const cacheKey = `${chartSig}_${pillar}_${customQuery}`;
+
+  // UI loading states
+  state.is_generating_synthesis = true;
+  const statusEl = document.getElementById("ai-synthesis-status");
+  const statusText = document.getElementById("ai-synthesis-status-text");
+  const btn = document.getElementById("ai-generate-synthesis-btn");
+  const renderBox = document.getElementById("ai-synthesis-rendered");
+  const confluenceCard = document.getElementById("ai-confluence-card");
+
+  if (statusEl) statusEl.style.display = "flex";
+  if (statusText) statusText.textContent = "Awakening the Three Eyes (Parashara, KP, Jaimini)...";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "✦ Analyzing...";
+  }
+  if (confluenceCard) confluenceCard.style.display = "none";
+
+  // Switch to synthesis perspective tab
+  selectAiPerspective("synthesis");
+
+  if (renderBox) {
+    renderBox.innerHTML = '<div style="color: var(--text-muted); font-style: italic; padding: 2rem; text-align: center;"><span class="ai-spinner"></span> Consulting classical canons & evaluating cusps...</div>';
+  }
+
+  let eyeVerdicts = { parashari: "", kp: "", jaimini: "" };
+  let fullSynthesisMarkdown = "";
+
+  const payload = {
+    chart_params: {
+      year: state.year,
+      month: state.month,
+      day: state.day,
+      hour: state.hour,
+      minute: state.minute,
+      second: state.second,
+      city: state.city,
+      latitude: state.latitude,
+      longitude: state.longitude,
+      timezone_str: state.timezone_str,
+      time_offset_seconds: state.time_offset_seconds,
+      ayanamsha: state.ayanamsha,
+      node_type: state.node_type,
+      chart_style: state.chart_style,
+      sign_mode: state.sign_mode,
+      theme_mode: state.theme_mode,
+      selected_varga: state.selected_varga,
+      show_gochar: state.show_gochar,
+      target_date: state.target_date,
+    },
+    pillar: pillar,
+    custom_query: customQuery,
+    user_api_key: userKey || null,
+  };
+
+  try {
+    const res = await fetch("/api/ai/synthesize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.detail || `Server error (${res.status})`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop();
+
+      for (const rawEvt of events) {
+        if (!rawEvt.trim()) continue;
+        const lines = rawEvt.split("\n");
+        let eventName = "message";
+        let eventData = "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            eventName = line.substring(7).trim();
+          } else if (line.startsWith("data: ")) {
+            eventData = line.substring(6).trim();
+          }
+        }
+
+        if (eventName === "status") {
+          try {
+            const parsed = JSON.parse(eventData);
+            if (statusText) statusText.textContent = parsed.message;
+          } catch (_) {}
+        } else if (eventName === "eyes_ready") {
+          try {
+            eyeVerdicts = JSON.parse(eventData);
+            updateEyesRendered(eyeVerdicts);
+          } catch (_) {}
+        } else if (eventName === "token") {
+          try {
+            const parsed = JSON.parse(eventData);
+            fullSynthesisMarkdown += parsed.token;
+            renderSynthesisProgressive(fullSynthesisMarkdown);
+          } catch (_) {}
+        } else if (eventName === "error") {
+          try {
+            const parsed = JSON.parse(eventData);
+            throw new Error(parsed.error);
+          } catch (e) {
+            throw new Error(eventData || "Unknown AI error");
+          }
+        }
+      }
+    }
+
+    // Success
+    state.last_ai_chart_sig = chartSig;
+    const staleEl = document.getElementById("ai-stale-banner");
+    if (staleEl) staleEl.style.display = "none";
+
+    const readingData = {
+      pillar,
+      customQuery,
+      chartSig,
+      eyeVerdicts,
+      fullSynthesisMarkdown,
+    };
+    state.ai_readings_cache[cacheKey] = readingData;
+    displayAiReading(readingData);
+
+  } catch (err) {
+    console.error("AI synthesis failed:", err);
+    let msg = err.message || "Failed to generate AI synthesis.";
+    if (msg.includes("Gemini API Key is not configured") || msg.includes("API key not valid")) {
+      msg = `Gemini API Key is not configured. Please enter your personal Google Gemini API key to start generating readings.`;
+    }
+    if (renderBox) {
+      renderBox.innerHTML = `
+        <div style="padding: 1.5rem; background: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 8px; color: #EF4444;">
+          <strong style="display: block; font-size: 1rem; margin-bottom: 0.35rem;">⚠️ Synthesis Generation Notice</strong>
+          <p style="margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.5;">${msg}</p>
+          <button class="action-pill" onclick="openApiKeyModal()" style="margin-top: 0.75rem; background: var(--accent-primary); color: #000; font-weight: 700; border: none;">
+            ⚙️ Configure Gemini API Key
+          </button>
+        </div>
+      `;
+    }
+  } finally {
+    state.is_generating_synthesis = false;
+    if (statusEl) statusEl.style.display = "none";
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "✦ Generate Synthesis ➔";
+    }
+  }
+}
+
+// API Key Modal Management
+function openApiKeyModal() {
+  const modal = document.getElementById("api-key-modal");
+  const input = document.getElementById("input-custom-gemini-key");
+  if (modal) modal.style.display = "flex";
+  if (input) input.value = localStorage.getItem("trinetri_gemini_key") || "";
+  checkAiConfig();
+}
+
+function closeApiKeyModal() {
+  const modal = document.getElementById("api-key-modal");
+  if (modal) modal.style.display = "none";
+}
+
+function saveApiKey() {
+  const input = document.getElementById("input-custom-gemini-key");
+  const val = input ? input.value.trim() : "";
+  if (val) {
+    localStorage.setItem("trinetri_gemini_key", val);
+  } else {
+    localStorage.removeItem("trinetri_gemini_key");
+  }
+  closeApiKeyModal();
+  checkAiConfig();
+}
+
+function clearApiKey() {
+  localStorage.removeItem("trinetri_gemini_key");
+  const input = document.getElementById("input-custom-gemini-key");
+  if (input) input.value = "";
+  checkAiConfig();
+}
+
+async function checkAiConfig() {
+  const badge = document.getElementById("ai-key-status-badge");
+  const serverInfo = document.getElementById("api-key-server-status-info");
+  const userKey = localStorage.getItem("trinetri_gemini_key");
+
+  try {
+    const res = await fetch("/api/ai/config");
+    const data = await res.json();
+    const hasServerKey = data.has_server_key;
+
+    if (userKey) {
+      if (badge) {
+        badge.className = "status-badge active";
+        badge.style.backgroundColor = "";
+        badge.style.color = "";
+        badge.innerHTML = '<span class="status-dot"></span> User Key Active';
+      }
+      if (serverInfo) {
+        serverInfo.innerHTML = `✓ Custom key active in local browser storage. (Server default: ${hasServerKey ? "Available" : "None"})`;
+      }
+    } else if (hasServerKey) {
+      if (badge) {
+        badge.className = "status-badge active";
+        badge.style.backgroundColor = "";
+        badge.style.color = "";
+        badge.innerHTML = '<span class="status-dot"></span> Server Key Active';
+      }
+      if (serverInfo) {
+        serverInfo.innerHTML = '✓ Using default server GEMINI_API_KEY. You may optionally enter your own personal key below.';
+      }
+    } else {
+      if (badge) {
+        badge.className = "status-badge";
+        badge.style.backgroundColor = "rgba(245, 158, 11, 0.15)";
+        badge.style.color = "#F59E0B";
+        badge.innerHTML = '<span class="status-dot warning"></span> Key Missing';
+      }
+      if (serverInfo) {
+        serverInfo.innerHTML = '⚠️ No Gemini API key detected on server. Please enter your Google Gemini API key below to enable AI readings.';
+      }
+    }
+  } catch (err) {
+    console.warn("Could not check AI config:", err);
+  }
+}
+
+function copyAiSynthesis() {
+  const activePersp = state.active_ai_persp || "synthesis";
+  let elId = "ai-synthesis-rendered";
+  if (activePersp === "parashari") elId = "ai-parashari-rendered";
+  else if (activePersp === "kp") elId = "ai-kp-rendered";
+  else if (activePersp === "jaimini") elId = "ai-jaimini-rendered";
+
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const text = el.innerText || el.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    alert("Reading copied to clipboard!");
+  }).catch(() => {
+    alert("Failed to copy reading.");
+  });
+}
+
+function downloadAiSynthesis() {
+  const chartSig = `${state.year}-${state.month}-${state.day}_${state.city}`;
+  const customQuery = document.getElementById("ai-custom-query-input")?.value.trim() || "";
+  const cacheKey = `${chartSig}_${state.selected_pillar}_${customQuery}`;
+  const cached = state.ai_readings_cache[cacheKey];
+  const content = cached ? cached.fullSynthesisMarkdown : (document.getElementById("ai-synthesis-rendered")?.innerText || "");
+  
+  const blob = new Blob([content], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `TrinetriAI_${state.selected_pillar}_${chartSig}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Floating Chat Drawer Controller
+function toggleChatDrawer() {
+  const drawer = document.getElementById("trinetri-chat-drawer");
+  if (!drawer) return;
+  const isHidden = drawer.style.display === "none" || !drawer.style.display;
+  drawer.style.display = isHidden ? "flex" : "none";
+  if (isHidden) {
+    document.getElementById("chat-input-textarea")?.focus();
+    scrollChatToBottom();
+  }
+}
+
+function openChatDrawer() {
+  const drawer = document.getElementById("trinetri-chat-drawer");
+  if (drawer) {
+    drawer.style.display = "flex";
+    document.getElementById("chat-input-textarea")?.focus();
+    scrollChatToBottom();
+  }
+}
+
+function closeChatDrawer() {
+  const drawer = document.getElementById("trinetri-chat-drawer");
+  if (drawer) drawer.style.display = "none";
+}
+
+function clearChatMessages() {
+  state.chat_messages = [];
+  const container = document.getElementById("chat-messages-container");
+  if (container) {
+    container.innerHTML = `
+      <div class="chat-msg system-msg">
+        ✦ Conversation cleared. Your complete astrological dossier remains loaded. Ask any question to begin.
+      </div>
+    `;
+  }
+}
+
+function scrollChatToBottom() {
+  const container = document.getElementById("chat-messages-container");
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+function appendChatBubble(role, content) {
+  const container = document.getElementById("chat-messages-container");
+  if (!container) return null;
+
+  const bubble = document.createElement("div");
+  bubble.className = `chat-msg ${role === "user" ? "user-msg" : "ai-msg"}`;
+  bubble.innerHTML = role === "user" ? content : formatMarkdown(content);
+  container.appendChild(bubble);
+  scrollChatToBottom();
+  return bubble;
+}
+
+async function sendChatMessage() {
+  if (state.is_sending_chat) return;
+  const textarea = document.getElementById("chat-input-textarea");
+  if (!textarea) return;
+  const text = textarea.value.trim();
+  if (!text) return;
+
+  const d = state.currentData;
+  if (!d) {
+    alert("Please calculate a chart first before consulting.");
+    return;
+  }
+
+  // Clear input
+  textarea.value = "";
+  textarea.style.height = "auto";
+
+  // Append user bubble
+  appendChatBubble("user", text);
+  state.chat_messages.push({ role: "user", content: text });
+
+  // Append placeholder AI bubble
+  const aiBubble = appendChatBubble("ai", '<span class="ai-spinner" style="width: 12px; height: 12px;"></span> Consulting planetary anchors...');
+  state.is_sending_chat = true;
+
+  const userKey = localStorage.getItem("trinetri_gemini_key") || "";
+
+  const payload = {
+    chart_params: {
+      year: state.year,
+      month: state.month,
+      day: state.day,
+      hour: state.hour,
+      minute: state.minute,
+      second: state.second,
+      city: state.city,
+      latitude: state.latitude,
+      longitude: state.longitude,
+      timezone_str: state.timezone_str,
+      time_offset_seconds: state.time_offset_seconds,
+      ayanamsha: state.ayanamsha,
+      node_type: state.node_type,
+      chart_style: state.chart_style,
+      sign_mode: state.sign_mode,
+      theme_mode: state.theme_mode,
+      selected_varga: state.selected_varga,
+      show_gochar: state.show_gochar,
+      target_date: state.target_date,
+    },
+    messages: state.chat_messages,
+    user_api_key: userKey || null,
+  };
+
+  let assistantResponse = "";
+
+  try {
+    const res = await fetch("/api/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.detail || `Server error (${res.status})`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop();
+
+      for (const rawEvt of events) {
+        if (!rawEvt.trim()) continue;
+        const lines = rawEvt.split("\n");
+        let eventName = "message";
+        let eventData = "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.substring(7).trim();
+          else if (line.startsWith("data: ")) eventData = line.substring(6).trim();
+        }
+
+        if (eventName === "token") {
+          try {
+            const parsed = JSON.parse(eventData);
+            assistantResponse += parsed.token;
+            aiBubble.innerHTML = formatMarkdown(assistantResponse);
+            scrollChatToBottom();
+          } catch (_) {}
+        } else if (eventName === "error") {
+          try {
+            const parsed = JSON.parse(eventData);
+            throw new Error(parsed.error);
+          } catch (e) {
+            throw new Error(eventData || "Chat streaming error");
+          }
+        }
+      }
+    }
+
+    state.chat_messages.push({ role: "assistant", content: assistantResponse });
+
+  } catch (err) {
+    console.error("Chat error:", err);
+    let errMsg = err.message || "Failed to get response.";
+    if (errMsg.includes("Gemini API Key is not configured") || errMsg.includes("API key not valid")) {
+      errMsg = "Gemini API Key is not configured. Please click the ⚙️ API Key button to configure your key.";
+    }
+    aiBubble.innerHTML = `<span style="color: #EF4444;">⚠️ ${errMsg}</span>`;
+  } finally {
+    state.is_sending_chat = false;
+  }
+}
+
+// Window bindings
+window.copyAiSynthesis = copyAiSynthesis;
+window.downloadAiSynthesis = downloadAiSynthesis;
+window.openApiKeyModal = openApiKeyModal;
+window.closeApiKeyModal = closeApiKeyModal;
+window.triggerAiSynthesis = triggerAiSynthesis;
+
 // --- Initialization & Event Listeners ---
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -2342,6 +3000,8 @@ document.addEventListener("DOMContentLoaded", () => {
         renderYogasWorkspace();
       } else if (tabId === "ashtakavarga") {
         renderAshtakavargaWorkspace();
+      } else if (tabId === "ai-consult") {
+        renderAiConsultationWorkspace();
       }
     });
   });
@@ -2586,12 +3246,64 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.id === "ai-dossier-modal") closeAiDossierModal();
   });
 
-  // 16c. Keyboard ESC Handler for Modals and Drawer
+  // 16c. AI Consultation & Multi-Agent Event Listeners
+  checkAiConfig();
+
+  document.querySelectorAll(".ai-pillar-card").forEach(card => {
+    card.addEventListener("click", () => {
+      selectAiPillar(card.dataset.pillar);
+    });
+  });
+
+  document.querySelectorAll(".ai-persp-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectAiPerspective(btn.dataset.persp);
+    });
+  });
+
+  document.getElementById("ai-generate-synthesis-btn")?.addEventListener("click", triggerAiSynthesis);
+  document.getElementById("btn-recalc-synthesis")?.addEventListener("click", triggerAiSynthesis);
+
+  document.getElementById("ai-custom-query-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      triggerAiSynthesis();
+    }
+  });
+
+  // API Key Settings Modal
+  document.getElementById("btn-open-api-key-modal")?.addEventListener("click", openApiKeyModal);
+  document.getElementById("api-key-modal-close")?.addEventListener("click", closeApiKeyModal);
+  document.getElementById("btn-save-api-key")?.addEventListener("click", saveApiKey);
+  document.getElementById("btn-clear-api-key")?.addEventListener("click", clearApiKey);
+  document.getElementById("api-key-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "api-key-modal") closeApiKeyModal();
+  });
+
+  // Floating Chat Drawer Listeners
+  document.getElementById("trinetri-floating-chat-btn")?.addEventListener("click", toggleChatDrawer);
+  document.getElementById("chat-close-btn")?.addEventListener("click", closeChatDrawer);
+  document.getElementById("chat-minimize-btn")?.addEventListener("click", toggleChatDrawer);
+  document.getElementById("chat-clear-btn")?.addEventListener("click", clearChatMessages);
+  document.getElementById("chat-input-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    sendChatMessage();
+  });
+  document.getElementById("chat-input-textarea")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  });
+
+  // 16d. Keyboard ESC Handler for Modals and Drawer
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeAiDossierModal();
       closePlanetDrawer();
       closeBirthModal();
+      closeApiKeyModal();
+      closeChatDrawer();
     }
   });
 

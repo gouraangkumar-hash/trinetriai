@@ -2674,14 +2674,40 @@ async function triggerAiSynthesis() {
 function openApiKeyModal() {
   const modal = document.getElementById("api-key-modal");
   const input = document.getElementById("input-custom-gemini-key");
-  if (modal) modal.style.display = "flex";
-  if (input) input.value = localStorage.getItem("trinetri_gemini_key") || "";
+  if (modal) {
+    modal.classList.add("open");
+  }
+  if (input) {
+    input.value = localStorage.getItem("trinetri_gemini_key") || "";
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 100);
+  }
   checkAiConfig();
 }
 
 function closeApiKeyModal() {
   const modal = document.getElementById("api-key-modal");
-  if (modal) modal.style.display = "none";
+  if (modal) {
+    modal.classList.remove("open");
+  }
+}
+
+window.openApiKeyModal = openApiKeyModal;
+window.closeApiKeyModal = closeApiKeyModal;
+
+function toggleApiKeyVisibility() {
+  const input = document.getElementById("input-custom-gemini-key");
+  const btn = document.getElementById("btn-toggle-key-visibility");
+  if (!input) return;
+  if (input.type === "password") {
+    input.type = "text";
+    if (btn) btn.textContent = "🙈";
+  } else {
+    input.type = "password";
+    if (btn) btn.textContent = "👁️";
+  }
 }
 
 function saveApiKey() {
@@ -2689,8 +2715,10 @@ function saveApiKey() {
   const val = input ? input.value.trim() : "";
   if (val) {
     localStorage.setItem("trinetri_gemini_key", val);
+    showCopyToast("✓ Gemini API Key saved to browser storage!");
   } else {
     localStorage.removeItem("trinetri_gemini_key");
+    showCopyToast("Custom Gemini API Key removed.");
   }
   closeApiKeyModal();
   checkAiConfig();
@@ -2700,11 +2728,13 @@ function clearApiKey() {
   localStorage.removeItem("trinetri_gemini_key");
   const input = document.getElementById("input-custom-gemini-key");
   if (input) input.value = "";
+  showCopyToast("Gemini API Key cleared.");
   checkAiConfig();
 }
 
 async function checkAiConfig() {
   const badge = document.getElementById("ai-key-status-badge");
+  const headerDot = document.getElementById("header-api-dot");
   const serverInfo = document.getElementById("api-key-server-status-info");
   const userKey = localStorage.getItem("trinetri_gemini_key");
 
@@ -2720,6 +2750,9 @@ async function checkAiConfig() {
         badge.style.color = "";
         badge.innerHTML = '<span class="status-dot"></span> User Key Active';
       }
+      if (headerDot) {
+        headerDot.style.background = "#10B981";
+      }
       if (serverInfo) {
         serverInfo.innerHTML = `✓ Custom key active in local browser storage. (Server default: ${hasServerKey ? "Available" : "None"})`;
       }
@@ -2729,6 +2762,9 @@ async function checkAiConfig() {
         badge.style.backgroundColor = "";
         badge.style.color = "";
         badge.innerHTML = '<span class="status-dot"></span> Server Key Active';
+      }
+      if (headerDot) {
+        headerDot.style.background = "#10B981";
       }
       if (serverInfo) {
         serverInfo.innerHTML = '✓ Using default server GEMINI_API_KEY. You may optionally enter your own personal key below.';
@@ -2740,12 +2776,18 @@ async function checkAiConfig() {
         badge.style.color = "#F59E0B";
         badge.innerHTML = '<span class="status-dot warning"></span> Key Missing';
       }
+      if (headerDot) {
+        headerDot.style.background = "#F59E0B";
+      }
       if (serverInfo) {
         serverInfo.innerHTML = '⚠️ No Gemini API key detected on server. Please enter your Google Gemini API key below to enable AI readings.';
       }
     }
   } catch (err) {
     console.warn("Could not check AI config:", err);
+    if (headerDot) {
+      headerDot.style.background = userKey ? "#10B981" : "#F59E0B";
+    }
   }
 }
 
@@ -2953,9 +2995,9 @@ async function sendChatMessage() {
     console.error("Chat error:", err);
     let errMsg = err.message || "Failed to get response.";
     if (errMsg.includes("Gemini API Key is not configured") || errMsg.includes("API key not valid")) {
-      errMsg = "Gemini API Key is not configured. Please click the ⚙️ API Key button to configure your key.";
+      errMsg = 'Gemini API Key is not configured. <button onclick="openApiKeyModal()" class="action-pill" style="display:inline-block; margin-top:0.35rem; font-size:0.75rem; background:var(--accent-primary); color:#000; font-weight:700; border:none; cursor:pointer;">⚙️ Configure Gemini Key</button>';
     }
-    aiBubble.innerHTML = `<span style="color: #EF4444;">⚠️ ${errMsg}</span>`;
+    aiBubble.innerHTML = `<span style="color: #EF4444; line-height: 1.5; display: block;">⚠️ ${errMsg}</span>`;
   } finally {
     state.is_sending_chat = false;
   }
@@ -3272,10 +3314,19 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // API Key Settings Modal
+  document.getElementById("btn-header-api-key")?.addEventListener("click", openApiKeyModal);
+  document.getElementById("chat-api-key-btn")?.addEventListener("click", openApiKeyModal);
   document.getElementById("btn-open-api-key-modal")?.addEventListener("click", openApiKeyModal);
   document.getElementById("api-key-modal-close")?.addEventListener("click", closeApiKeyModal);
   document.getElementById("btn-save-api-key")?.addEventListener("click", saveApiKey);
   document.getElementById("btn-clear-api-key")?.addEventListener("click", clearApiKey);
+  document.getElementById("btn-toggle-key-visibility")?.addEventListener("click", toggleApiKeyVisibility);
+  document.getElementById("input-custom-gemini-key")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveApiKey();
+    }
+  });
   document.getElementById("api-key-modal")?.addEventListener("click", (e) => {
     if (e.target.id === "api-key-modal") closeApiKeyModal();
   });

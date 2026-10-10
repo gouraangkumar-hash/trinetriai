@@ -646,5 +646,21 @@ def test_ai_chat_endpoint_validation():
     assert "event:" in content
 
 
-
-
+def test_api_key_modal_and_entry_points():
+    """Verify that Gemini API Key modal and its access entry points are present and correctly configured."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+    # Header entry point
+    assert "btn-header-api-key" in html
+    assert "header-api-dot" in html
+    # Chat drawer entry point
+    assert "chat-api-key-btn" in html
+    # Tab 8 entry point
+    assert "btn-open-api-key-modal" in html
+    # Modal structure: must not be hardcoded to display:none inline
+    assert 'id="api-key-modal" class="modal-overlay"' in html
+    assert "btn-toggle-key-visibility" in html
+    assert "btn-save-api-key" in html
+    assert "btn-clear-api-key" in html
+    assert "input-custom-gemini-key" in html

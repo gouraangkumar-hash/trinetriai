@@ -1,12 +1,8 @@
-"""Swiss Ephemeris High-Precision Astronomical Computational Engine.
+"""Swiss Ephemeris calculation engine.
 
-Provides:
-- Julian Day (UT & ET) computation
-- Dynamic Ayanamsha configuration (Lahiri, Krishnamurti/KP New, Raman, Yukteshwar, etc.)
-- 9 Grahas computation with sidereal positions, speeds, retrogrades, and combustion checks
-- Ketu derived exactly at 180° opposition to Rahu
-- Placidus and Whole Sign house cusp calculations with polar latitude fallback
-- End-to-end unified chart generation
+Handles Julian Day conversions, sidereal ayanamsha calculations (Lahiri, KP, Raman, etc.),
+positions and speeds for 9 Grahas and outer planets, combustion checks, and Placidus / Whole Sign
+house cusps with polar fallback.
 """
 
 from datetime import datetime
@@ -217,14 +213,14 @@ class EphemerisEngine:
         if ayanamsha != AyanamshaType.TROPICAL:
             flags |= SWE_FLG_SIDEREAL
 
-        # 1. Compute Sun first for combustion evaluations
+        # Compute Sun first so other planets can be checked for combustion
         sun_res, _ = swe.calc_ut(jd_ut, SWE_SUN, flags)
         sun_lon = normalize_degrees(sun_res[0])
         sun_speed = sun_res[3]
 
         planets_data: dict[PlanetEnum, PlanetPositionModel] = {}
 
-        # 2. Compute 7 Classical Planets + Outers
+        # Classical planets and modern outers
         for p_enum, p_id in self.CLASSICAL_PLANETS:
             res, _ = swe.calc_ut(jd_ut, p_id, flags)
             lon = normalize_degrees(res[0])
@@ -254,7 +250,7 @@ class EphemerisEngine:
                 dms=self._build_dms_model(lon),
             )
 
-        # 3. Compute Lunar Node (Rahu)
+        # Lunar node (Rahu)
         rahu_swe_id = SWE_TRUE_NODE if node_type == NodeType.TRUE else SWE_MEAN_NODE
         rahu_res, _ = swe.calc_ut(jd_ut, rahu_swe_id, flags)
         rahu_lon = normalize_degrees(rahu_res[0])
@@ -277,7 +273,7 @@ class EphemerisEngine:
             dms=self._build_dms_model(rahu_lon),
         )
 
-        # 4. Derive Ketu strictly at 180° opposition to Rahu
+        # Ketu is placed directly opposite Rahu (180°)
         ketu_lon = normalize_degrees(rahu_lon + 180.0)
         ketu_lat = -rahu_lat
         ketu_dist = rahu_dist
@@ -396,7 +392,7 @@ class EphemerisEngine:
         Returns:
             UnifiedChartData model with all planetary, angular, and cuspal data.
         """
-        # 1. Resolve local datetime to UTC
+        # Convert birth time to UTC
         local_dt = datetime(
             year=birth_input.year,
             month=birth_input.month,
@@ -408,21 +404,16 @@ class EphemerisEngine:
         )
         utc_dt = to_utc_datetime(local_dt, birth_input.location.timezone_str)
 
-        # 2. Julian Day computation
         jd_ut, jd_et = self.calculate_julian_day(utc_dt)
-
-        # 3. Ayanamsha calculation
         ayan_val = self.get_ayanamsha_value(jd_ut, birth_input.ayanamsha)
         ayan_dms = self._build_dms_model(ayan_val)
 
-        # 4. Planets calculation
         planets = self.calculate_planets(
             jd_ut=jd_ut,
             ayanamsha=birth_input.ayanamsha,
             node_type=birth_input.node_type,
         )
 
-        # 5. Houses and Angles calculation
         angles, placidus_houses, whole_sign_houses, hsys_used, is_polar = self.calculate_houses_and_angles(
             jd_ut=jd_ut,
             latitude=birth_input.location.latitude,

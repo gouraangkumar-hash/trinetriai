@@ -66,9 +66,7 @@ class HouseSystemType(str, Enum):
     REGIOMONTANUS = "Regiomontanus"
 
 
-# ==========================================
-# Typed Dictionaries for Detailed Metadata
-# ==========================================
+# --- Metadata Types ---
 
 class ZodiacSignInfo(TypedDict):
     id: int
@@ -90,9 +88,7 @@ class NakshatraInfo(TypedDict):
     end_deg: float
 
 
-# ==========================================
-# 12 Zodiac Signs (Rashi) Metadata Table
-# ==========================================
+# --- 12 Zodiac Signs (Rashi) ---
 
 ZODIAC_SIGNS: Final[dict[int, ZodiacSignInfo]] = {
     1: {
@@ -217,14 +213,10 @@ ZODIAC_SIGNS: Final[dict[int, ZodiacSignInfo]] = {
     },
 }
 
-# ==========================================
-# 27 Nakshatras Metadata Table
-# ==========================================
-# 1 Nakshatra = 13° 20' = 800 arcminutes = 13.333333333333334 degrees
-# 1 Pada = 3° 20' = 200 arcminutes = 3.3333333333333335 degrees
-
-NAKSHATRA_ARC_DEG: Final[float] = 360.0 / 27.0  # 13.333333333333334 degrees (13°20')
-PADA_ARC_DEG: Final[float] = NAKSHATRA_ARC_DEG / 4.0  # 3.3333333333333335 degrees (3°20')
+# --- 27 Nakshatras ---
+# 1 Nakshatra = 13° 20' (800 arcmin), 1 Pada = 3° 20' (200 arcmin)
+NAKSHATRA_ARC_DEG: Final[float] = 360.0 / 27.0
+PADA_ARC_DEG: Final[float] = NAKSHATRA_ARC_DEG / 4.0
 
 NAKSHATRAS: Final[dict[int, NakshatraInfo]] = {
     1: {
@@ -445,9 +437,7 @@ NAKSHATRAS: Final[dict[int, NakshatraInfo]] = {
     },
 }
 
-# ==========================================
-# Vimshottari Mahadasha Sequence
-# ==========================================
+# --- Vimshottari Mahadasha Sequence ---
 VIMSHOTTARI_DASHA_ORDER: Final[list[tuple[PlanetEnum, int]]] = [
     (PlanetEnum.KETU, 7),
     (PlanetEnum.VENUS, 20),
@@ -462,10 +452,8 @@ VIMSHOTTARI_DASHA_ORDER: Final[list[tuple[PlanetEnum, int]]] = [
 
 TOTAL_VIMSHOTTARI_YEARS: Final[int] = 120
 
-# ==========================================
-# Planetary Combustion Thresholds (Astangata)
-# ==========================================
-# Distances from Sun within which a planet is considered combust (in degrees)
+# --- Combustion Thresholds (Astangata) ---
+# Angular distance from Sun within which a planet is considered combust
 COMBUSTION_THRESHOLDS: Final[dict[PlanetEnum, float | dict[str, float]]] = {
     PlanetEnum.MOON: 12.0,
     PlanetEnum.MARS: 17.0,
@@ -481,9 +469,7 @@ COMBUSTION_THRESHOLDS: Final[dict[PlanetEnum, float | dict[str, float]]] = {
     PlanetEnum.SATURN: 15.0,
 }
 
-# ==========================================
-# Swiss Ephemeris IDs & Sidereal Mode Constants
-# ==========================================
+# --- Swiss Ephemeris IDs and Flags ---
 # Swiss Ephemeris standard constants (matching C sweph library)
 SWE_SUN: Final[int] = 0
 SWE_MOON: Final[int] = 1

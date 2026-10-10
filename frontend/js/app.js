@@ -1,11 +1,6 @@
-/**
- * TrinetriAI Vedic Studio — Pure Vanilla JavaScript Application Logic
- * Fast, lightweight, zero-dependency browser controller.
- */
+// TrinetriAI Vedic Studio - Frontend Controller
 
-// =============================================================================
-// State Management
-// =============================================================================
+// --- Application State ---
 
 const state = {
   year: 1995,
@@ -29,13 +24,12 @@ const state = {
   active_yoga_filter: "all",
   selected_bav_planet: "Jupiter",
   show_gochar: false,
+  target_date: null,
   activeRayPlanet: null,
   currentData: null,
 };
 
-// =============================================================================
-// Astronomical & Glyph Dictionaries
-// =============================================================================
+// --- Glyph & Coordinate Mappings ---
 
 const PLANET_GLYPHS = {
   "Ascendant (Lagna)": "✧",
@@ -94,9 +88,7 @@ const SOUTH_SIGN_GRID = {
   11: { col: 0, row: 1 },
 };
 
-// =============================================================================
-// API Communication
-// =============================================================================
+// --- API Calls ---
 
 async function calculateChart() {
   const payload = {
@@ -118,6 +110,7 @@ async function calculateChart() {
     theme_mode: state.theme_mode,
     selected_varga: state.selected_varga,
     show_gochar: state.show_gochar,
+    target_date: state.target_date,
   };
 
   try {
@@ -173,6 +166,7 @@ async function selectVarga(varga) {
       theme_mode: state.theme_mode,
       selected_varga: varga,
       show_gochar: state.show_gochar,
+      target_date: state.target_date,
     },
   };
 
@@ -226,9 +220,7 @@ async function geocodeLocation(query) {
   }
 }
 
-// =============================================================================
-// DOM Rendering Functions
-// =============================================================================
+// --- View Rendering ---
 
 function renderAll() {
   if (!state.currentData) return;
@@ -769,8 +761,16 @@ function renderJaiminiWorkspace() {
   const charaDates = document.getElementById("chara-hero-dates");
   if (d.chara_dasha_summary) {
     const cs = d.chara_dasha_summary;
-    if (charaMd) charaMd.textContent = `${cs.active_md} (${cs.active_md_lord})`;
-    if (charaAd) charaAd.textContent = `${cs.active_ad} (${cs.active_ad_lord})`;
+    if (charaMd) {
+      charaMd.textContent = (cs.active_md && cs.active_md !== "-")
+        ? `${cs.active_md} (${cs.active_md_lord})`
+        : "—";
+    }
+    if (charaAd) {
+      charaAd.textContent = (cs.active_ad && cs.active_ad !== "-")
+        ? `${cs.active_ad} (${cs.active_ad_lord})`
+        : "—";
+    }
     if (charaDates) {
       charaDates.textContent = `Current Mahadasha: ${cs.md_range} • Active Antardasha: ${cs.ad_range}`;
     }
@@ -1259,9 +1259,7 @@ function renderAshtakavargaWorkspace() {
   }
 }
 
-// =============================================================================
-// Slide-Over Drawer Controller
-// =============================================================================
+// --- Planet Detail Drawer ---
 
 function openPlanetDrawer(planetName) {
   const d = state.currentData;
@@ -1542,9 +1540,7 @@ function closePlanetDrawer() {
 window.openPlanetDrawer = openPlanetDrawer;
 window.closePlanetDrawer = closePlanetDrawer;
 
-// =============================================================================
-// AI Dossier Modal Controller
-// =============================================================================
+// --- AI Dossier Modal ---
 
 let activeDossierTab = "md"; // "md" | "prompt" | "json"
 
@@ -1645,9 +1641,7 @@ window.switchDossierTab = switchDossierTab;
 window.copyAiDossier = copyAiDossier;
 window.downloadAiDossier = downloadAiDossier;
 
-// =============================================================================
-// Planetary Aspects & Visual Rays Controller
-// =============================================================================
+// --- Aspect Rays & Highlighting ---
 
 function togglePlanetAspectRays(planetName, event) {
   if (event) event.stopPropagation();
@@ -1943,9 +1937,7 @@ window.togglePlanetAspectRays = togglePlanetAspectRays;
 window.clearAspectRays = clearAspectRays;
 window.toggleBhavaAspectsCard = toggleBhavaAspectsCard;
 
-// =============================================================================
-// Modal Dialog Controller
-// =============================================================================
+// --- Birth Data Modal ---
 
 function populateDateTimeSelects(prefix) {
   const daySelect = document.getElementById(`select-${prefix}-day`);
@@ -2205,9 +2197,7 @@ function closeBirthModal() {
   document.getElementById("birth-modal").classList.remove("open");
 }
 
-// =============================================================================
-// Classical Gochar (Real-Time Transits) Workspace
-// =============================================================================
+// --- Transit (Gochar) Workspace ---
 
 function updateGocharButtonStates() {
   const btns = document.querySelectorAll(".gochar-pill");
@@ -2320,15 +2310,12 @@ function renderGocharWorkspace() {
   });
 }
 
-// =============================================================================
-// Event Listeners & Bootstrapping
-// =============================================================================
+// --- Initialization & Event Listeners ---
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 0. Initialize Birth Date & Time Dropdowns
   initDateTimeDropdowns();
 
-  // 1. Tab Navigation switching
+  // Tab navigation
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
@@ -2359,7 +2346,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 1b. Gochar (Real-Time Transit) Toggle Buttons
+  // Transit toggle
   document.querySelectorAll(".gochar-pill").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.show_gochar = !state.show_gochar;
@@ -2368,14 +2355,29 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 2. Quick Varga Pills (Overview)
+  // Target date picker for transits and dashas
+  document.getElementById("btn-target-date-apply")?.addEventListener("click", () => {
+    const val = document.getElementById("input-target-date")?.value;
+    if (val) {
+      state.target_date = val;
+      calculateChart();
+    }
+  });
+
+  document.getElementById("btn-target-date-now")?.addEventListener("click", () => {
+    state.target_date = null;
+    const inp = document.getElementById("input-target-date");
+    if (inp) inp.value = "";
+    calculateChart();
+  });
+
+  // Varga selection shortcuts
   document.querySelectorAll(".quick-varga-pill").forEach((btn) => {
     btn.addEventListener("click", () => {
       selectVarga(btn.dataset.varga);
     });
   });
 
-  // 3. Divisional Harmonic Pills
   document.querySelectorAll(".varga-pill-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       selectVarga(btn.dataset.varga);

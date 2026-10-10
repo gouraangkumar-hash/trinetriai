@@ -1,8 +1,7 @@
-"""Minimalist Architectural North Indian Diamond SVG Visualizer.
+"""North Indian diamond chart SVG visualizer.
 
-Renders pure geometry and high-contrast typography on Ivory (Light)
-and Deep Espresso (Dark) canvas without blues or flashy colors.
-Supports Sanskrit and English sign name toggling.
+Generates scalable SVG charts in ivory (light) and dark themes,
+supporting both Sanskrit and English sign notation.
 """
 
 from typing import Optional

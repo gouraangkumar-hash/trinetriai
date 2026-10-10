@@ -1,22 +1,10 @@
-﻿"""Classical Vedic Gochar (Planetary Transits) Engine.
+"""Classical Vedic Gochar (planetary transits) engine.
 
-Adheres to classical Phaladeepika (Chapter 26) and Brihat Samhita:
-- Real-time Sidereal Transits for 9 Grahas (Sun, Moon, Mars, Mercury, Jupiter,
-  Venus, Saturn, Rahu, Ketu)
-- Dual-reference house placements:
-  * House from Natal Lagna (Ascendant)
-  * House from Natal Moon (Janma Rashi - classical primary transit reference)
-- Phaladeepika Gochar Benefic/Malefic evaluation from Janma Rashi:
-  * Sun: 3, 6, 10, 11
-  * Moon: 1, 3, 6, 7, 10, 11 (8th is Chandrashtama)
-  * Mars: 3, 6, 11
-  * Mercury: 2, 4, 6, 8, 10, 11
-  * Jupiter: 2, 5, 7, 9, 11
-  * Venus: 1, 2, 3, 4, 5, 8, 9, 11, 12
-  * Saturn: 3, 6, 11 (Sade Sati in 12, 1, 2; Kantaka in 4; Ashtama in 8)
-  * Rahu / Ketu: 3, 6, 10, 11
-- Integration with Sarvashtakavarga (SAV) bindu strength and Bhinnashtakavarga (BAV)
-- Kaksha subdivision tracking at transit longitude
+Evaluates transits against natal Lagna and Moon (Janma Rashi) according to Phaladeepika (Ch. 26):
+- Benefic vs malefic house transits relative to Janma Rashi
+- Special transit conditions: Sade Sati, Kantaka Shani, Ashtama Shani, and Chandrashtama
+- Ashtakavarga transit validation (SAV total bindus and BAV contributor bindus in transit sign)
+- Active Kaksha subdivision tracking at transit longitude
 """
 
 from datetime import datetime
@@ -30,9 +18,7 @@ from schemas.models import BirthInput, GeoLocationModel, UnifiedChartData
 from engines.ashtakavarga import AshtakavargaEngine, AshtakavargaFullReport, KAKSHA_LORDS, KAKSHA_LORDS_SANSKRIT
 
 
-# =============================================================================
-# Classical Phaladeepika Chapter 26 Benefic Houses from Janma Rashi (Natal Moon)
-# =============================================================================
+# --- Phaladeepika Benefic Houses from Janma Rashi ---
 
 PHALADEEPIKA_BENEFIC_HOUSES: Dict[PlanetEnum, Set[int]] = {
     PlanetEnum.SUN: {3, 6, 10, 11},
@@ -59,9 +45,7 @@ PLANET_GLYPHS: Dict[str, str] = {
 }
 
 
-# =============================================================================
-# Pydantic Output Schemas
-# =============================================================================
+# --- Output Schemas ---
 
 class GocharGrahaDetail(BaseModel):
     planet: str
@@ -109,12 +93,10 @@ class GocharReport(BaseModel):
     transit_chart: Optional[Any] = None
 
 
-# =============================================================================
-# Core Gochar Engine
-# =============================================================================
+# --- Transit Evaluation Engine ---
 
 class GocharEngine:
-    """Evaluates real-time planetary transits against natal chart."""
+    """Evaluates planetary transits against natal chart."""
 
     _ephemeris = EphemerisEngine()
 
@@ -356,7 +338,7 @@ class GocharEngine:
                 5: "Birth of noble progeny, intellectual honors, divine grace",
                 7: "Marital happiness, auspicious partnerships, respected standing",
                 9: "Spiritual pilgrimage, luck, patron support, righteous acts",
-                11: "Supreme wealth, honors, fulfillment of deep ambitions",
+                11: "Financial gains, honors, fulfillment of deep ambitions",
             },
             PlanetEnum.VENUS: {
                 1: "Sensory bliss, fragrance, fine apparel, romantic happiness",

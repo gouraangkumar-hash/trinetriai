@@ -1,9 +1,7 @@
-"""AI Ground-Truth Context Engine (Vedic Dossier & Prompt Serializer).
+"""AI context serialization engine.
 
-Compiles exhaustive, deterministic astronomical and astrological facts from all domain
-engines into a dense, token-optimized Markdown dossier and structured JSON payload.
-Enables external LLMs (Gemini, Claude, GPT) to perform authoritative, non-hallucinatory
-Vedic astrological synthesis.
+Compiles calculated astrological factors across all engines into a structured markdown dossier
+and JSON dictionary for AI synthesis and report generation.
 """
 
 from typing import Any, Dict, List, Optional
@@ -23,14 +21,14 @@ from schemas.models import UnifiedChartData
 
 
 class AIDossierReport(BaseModel):
-    """Complete serialized AI context payload and system prompt recommendation."""
+    """Serialized context payload and recommended system prompt."""
     markdown_dossier: str
     system_prompt_recommendation: str
     structured_payload: Dict[str, Any]
 
 
 class AIContextEngine:
-    """Serializes complete multi-engine astrological state into zero-hallucination AI prompts."""
+    """Builds structured Markdown and JSON summaries for LLM consumption."""
 
     @classmethod
     def generate(
@@ -55,9 +53,8 @@ class AIContextEngine:
         asc_sign_id = asc.id
         loc = chart.input_data.location
 
-        # 1. Build Markdown Dossier
         lines: List[str] = []
-        lines.append("# TRINETRIAI VEDIC ASTROLOGICAL DOSSIER (GROUND-TRUTH EPHEMERIS)")
+        lines.append("# TRINETRIAI VEDIC ASTROLOGICAL DOSSIER")
         lines.append("")
         lines.append("## 1. NATAL BASELINE & ASTRONOMICAL ANCHORS")
         lines.append(f"- **Birth Location**: {birth_city} ({loc.latitude:.4f}°N, {loc.longitude:.4f}°E)")

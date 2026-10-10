@@ -1,10 +1,10 @@
-"""Parashari Classical Vedic Astrology Computational Engine.
+"""Classical Parashari divisional charts and Vimshottari Dasha engine.
 
-Provides:
-- Harmonic Divisional Chart Generator (Shodashavarga) for D1, D2, D3, D7, D9, D10, D12, D30, and D60
-  following Brihat Parashara Hora Shastra (BPHS) sign-assignment algorithms.
-- 120-Year Recursive Vimshottari Dasha Engine calculating Mahadasha (MD), Antardasha (AD/Bhukti),
-  and Pratyantardasha (PD) timeline hierarchies down to exact calendar timestamps.
+Implements:
+- Harmonic divisional charts (Shodashavarga subsets: D1, D2, D3, D7, D9, D10, D12, D30, D60)
+  following BPHS sign mapping rules.
+- 120-year Vimshottari Dasha calculations (Mahadasha, Antardasha/Bhukti, Pratyantardasha)
+  anchored to birth Moon nakshatra balance.
 """
 
 from datetime import datetime, timedelta
@@ -104,9 +104,7 @@ class VimshottariDashaTree(BaseModel):
     mahadashas: list[MahadashaNode]
 
 
-# =========================================================================
-# Varga Chart Engine
-# =========================================================================
+# --- Divisional Charts Engine (Vargas) ---
 
 class VargaChartEngine:
     """Calculates classical BPHS divisional charts."""
@@ -294,9 +292,7 @@ class VargaChartEngine:
         )
 
 
-# =========================================================================
-# Vimshottari Dasha Engine
-# =========================================================================
+# --- Vimshottari Dasha Engine ---
 
 DAYS_PER_SOLAR_YEAR = 365.2425
 

@@ -1,14 +1,8 @@
-"""Geolocation and Timezone Resolution Subsystem.
+"""Geolocation and timezone resolution utilities.
 
-Provides:
-- Multi-tier resilient geocoding:
-  1. Instant offline curated database of major Indian cities, sacred Vedic centers, and global capitals
-  2. Open-Meteo Geocoding API (free, cloud-friendly, zero rate limits for web apps, no API key required)
-  3. Photon Geocoding API by Komoot (free OSM-based secondary fallback)
-  4. Nominatim with custom User-Agent and timeout handling (tertiary fallback)
-  5. Direct coordinate input parsing (e.g. "26.9124, 75.7873")
-- Offline IANA timezone lookup via TimezoneFinder
-- DST-aware and timezone-aware conversion from local datetime to UTC using zoneinfo
+Provides offline coordinates for major Indian cities and international hubs,
+with fallbacks to Open-Meteo, Photon, and Nominatim for general queries.
+Timezones are resolved using TimezoneFinder and converted with zoneinfo.
 """
 
 from datetime import datetime
@@ -24,10 +18,7 @@ from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 
 
-# =============================================================================
-# Curated Offline Cities Database (Tier 1 - Instant 0ms Resolution)
-# =============================================================================
-
+# --- Curated Offline Cities ---
 # Format: key -> (lat, lon, display_city, country, timezone_str)
 OFFLINE_CITIES: dict[str, tuple[float, float, str, str, str]] = {
     # Major Indian Metros & State Capitals

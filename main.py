@@ -1,8 +1,7 @@
-"""TrinetriAI Vedic Studio - FastAPI High-Performance Backend.
+"""TrinetriAI Vedic Studio - FastAPI backend.
 
-Exposes REST endpoints for Swiss Ephemeris calculations, Parashari Vargas,
-Vimshottari Dashas, KP System, and Jaimini Sutras, serving a lightweight
-pure HTML/CSS/Vanilla JS frontend with zero Node.js dependencies.
+Exposes REST endpoints for chart calculations, divisional Vargas,
+Vimshottari and Chara Dashas, Ashtakavarga, transits, and AI dossier export.
 """
 
 from datetime import datetime, timedelta
@@ -50,7 +49,7 @@ from visualizers.south_indian_svg import generate_south_indian_svg
 
 app = FastAPI(
     title="TrinetriAI Vedic Studio API",
-    description="High-precision DE431 astronomical and Vedic astrological calculation engine.",
+    description="Vedic astrological calculation engine.",
     version="2.0.0",
 )
 
@@ -79,9 +78,7 @@ ephemeris_engine = EphemerisEngine()
 geo_resolver = GeoResolver()
 
 
-# =============================================================================
-# Request / Response Schemas
-# =============================================================================
+# --- Request & Response Schemas ---
 
 class ChartCalculationRequest(BaseModel):
     year: int = Field(default=1995, ge=1, le=9999)
@@ -102,6 +99,7 @@ class ChartCalculationRequest(BaseModel):
     theme_mode: str = Field(default="light")  # "light" or "dark"
     selected_varga: str = Field(default="D1")
     show_gochar: bool = Field(default=False)
+    target_date: Optional[str] = Field(default=None, description="Optional target date for Dasha/transit lookup (YYYY-MM-DD or ISO)")
 
 
 class VargaCalculationRequest(BaseModel):
@@ -109,9 +107,7 @@ class VargaCalculationRequest(BaseModel):
     chart_params: ChartCalculationRequest
 
 
-# =============================================================================
-# Core Calculation Pipeline Helpers
-# =============================================================================
+# --- Chart Calculation Pipeline ---
 
 def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     """Runs complete end-to-end calculations and serializes data for frontend consumption."""
@@ -136,7 +132,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         day=effective_dt.day,
         hour=effective_dt.hour,
         minute=effective_dt.minute,
-        second=float(effective_dt.second),
+        second=float(effective_dt.second) + (effective_dt.microsecond / 1_000_000.0),
         location=GeoLocationModel(
             latitude=req.latitude,
             longitude=req.longitude,
@@ -163,8 +159,20 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     karakas_7 = JaiminiEngine.calculate_chara_karakas(chart, scheme=7)
     karakas_8 = JaiminiEngine.calculate_chara_karakas(chart, scheme=8)
     arudhas = JaiminiEngine.calculate_arudha_padas(chart)
+
+    # Resolve target evaluation datetime for Dashas & Transits (defaults to current UTC)
     now_utc = datetime.now(ZoneInfo("UTC"))
-    chara_dasha = JaiminiEngine.calculate_chara_dasha(chart, target_date=now_utc)
+    target_dt = now_utc
+    if req.target_date:
+        try:
+            parsed_td = datetime.fromisoformat(req.target_date.replace("Z", "+00:00"))
+            if parsed_td.tzinfo is None:
+                parsed_td = parsed_td.replace(tzinfo=ZoneInfo("UTC"))
+            target_dt = parsed_td
+        except Exception:
+            target_dt = now_utc
+
+    chara_dasha = JaiminiEngine.calculate_chara_dasha(chart, target_date=target_dt)
 
     # Vimshottari Dashas
     moon_lon = chart.planets[PlanetEnum.MOON].longitude
@@ -176,8 +184,13 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     # Classical Ashtakavarga Evaluation
     ashtakavarga_report = AshtakavargaEngine.evaluate(chart, sign_mode=req.sign_mode)
 
-    # Classical Gochar (Real-Time Planetary Transits) Evaluation
-    gochar_report = GocharEngine.evaluate(chart, ashtakavarga_report, sign_mode=req.sign_mode)
+    # Classical Gochar (Planetary Transits) Evaluation
+    gochar_report = GocharEngine.evaluate(
+        chart,
+        ashtakavarga_report,
+        transit_dt=target_dt,
+        sign_mode=req.sign_mode,
+    )
     transit_overlay = gochar_report.transit_chart if req.show_gochar else None
 
     # Classical Parashari Planetary Aspects (Graha Drishti)
@@ -434,7 +447,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     if varga_chart is not None:
         asc_v = varga_chart.ascendant
         asc_v_sign = ZODIAC_SIGNS[asc_v.sign_id]["english_name"] if req.sign_mode == "english" else asc_v.sign_name
-        is_asc_v = bool(asc_sign.id == asc_v.sign_id)
+        is_asc_v = bool(varga_enum == VargaType.D9 and asc_sign.id == asc_v.sign_id)
         varga_table.append({
             "planet": "Ascendant (Lagna)",
             "sign": asc_v_sign,
@@ -467,7 +480,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
                 degree_in_sign=v_deg,
             )
             d1_sign_id = chart.planets[p_enum].sign.id
-            is_varg = bool(d1_sign_id == v_pos.sign_id)
+            is_varg = bool(varga_enum == VargaType.D9 and d1_sign_id == v_pos.sign_id)
 
             badges = []
             if v_dignity.is_exalted:
@@ -623,14 +636,13 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     ]
 
     # 6. Vimshottari Dashas with 120-year tree
-    now_utc = datetime.now(ZoneInfo("UTC"))
-    active_dasha = VimshottariDashaEngine.get_current_dasha(dashas, now_utc)
+    active_dasha = VimshottariDashaEngine.get_current_dasha(dashas, target_dt)
 
     current_pratyantardashas = []
     if active_dasha and active_dasha[1]:
         for pd in active_dasha[1].pratyantardashas:
-            is_active_pd = pd.start_date <= now_utc <= pd.end_date
-            pd_status = "ACTIVE" if is_active_pd else ("COMPLETED" if pd.end_date < now_utc else "UPCOMING")
+            is_active_pd = pd.start_date <= target_dt <= pd.end_date
+            pd_status = "ACTIVE" if is_active_pd else ("COMPLETED" if pd.end_date < target_dt else "UPCOMING")
             pd_days = pd.duration_days
             pd_duration_str = f"{pd_days:.1f}d" if pd_days >= 1 else f"{pd_days * 24:.0f}h"
             current_pratyantardashas.append({
@@ -673,7 +685,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     for md_idx, md in enumerate(chara_dasha.mahadashas):
         ad_rows = []
         for ad in md.antardashas:
-            ad_status = "ACTIVE" if ad.is_active else ("COMPLETED" if ad.end_date < now_utc else "UPCOMING")
+            ad_status = "ACTIVE" if ad.is_active else ("COMPLETED" if ad.end_date < target_dt else "UPCOMING")
             ad_rows.append({
                 "sign_id": ad.sign_id,
                 "sign": ad.sign_english if req.sign_mode == "english" else ad.sign_name,
@@ -684,7 +696,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
                 "is_active": ad.is_active,
                 "status": ad_status,
             })
-        md_status = "ACTIVE" if md.is_active else ("COMPLETED" if md.end_date < now_utc else "UPCOMING")
+        md_status = "ACTIVE" if md.is_active else ("COMPLETED" if md.end_date < target_dt else "UPCOMING")
         chara_dasha_periods.append({
             "idx": md_idx,
             "cycle": md.cycle,
@@ -719,21 +731,21 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
 
     mahadashas = []
     for md in dashas.mahadashas:
-        is_active_md = md.start_date <= now_utc <= md.end_date
-        md_status = "ACTIVE" if is_active_md else ("COMPLETED" if md.end_date < now_utc else "UPCOMING")
+        is_active_md = md.start_date <= target_dt <= md.end_date
+        md_status = "ACTIVE" if is_active_md else ("COMPLETED" if md.end_date < target_dt else "UPCOMING")
         md_duration_years = md.duration_days / 365.2425
 
         antardashas = []
         for ad in md.antardashas:
-            is_active_ad = ad.start_date <= now_utc <= ad.end_date
-            ad_status = "ACTIVE" if is_active_ad else ("COMPLETED" if ad.end_date < now_utc else "UPCOMING")
+            is_active_ad = ad.start_date <= target_dt <= ad.end_date
+            ad_status = "ACTIVE" if is_active_ad else ("COMPLETED" if ad.end_date < target_dt else "UPCOMING")
             ad_months = ad.duration_days / 30.4375
             ad_duration_str = f"{ad_months:.1f}m" if ad_months >= 1 else f"{int(ad.duration_days)}d"
 
             pratyantardashas = []
             for pd in ad.pratyantardashas:
-                is_active_pd = pd.start_date <= now_utc <= pd.end_date
-                pd_status = "ACTIVE" if is_active_pd else ("COMPLETED" if pd.end_date < now_utc else "UPCOMING")
+                is_active_pd = pd.start_date <= target_dt <= pd.end_date
+                pd_status = "ACTIVE" if is_active_pd else ("COMPLETED" if pd.end_date < target_dt else "UPCOMING")
                 pd_days = pd.duration_days
                 pd_duration_str = f"{pd_days:.1f}d" if pd_days >= 1 else f"{pd_days * 24:.0f}h"
                 pratyantardashas.append({
@@ -828,9 +840,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     }
 
 
-# =============================================================================
-# API Endpoints
-# =============================================================================
+# --- API Endpoints ---
 
 @app.post("/api/calculate")
 def calculate_chart(req: ChartCalculationRequest):
@@ -843,7 +853,7 @@ def calculate_chart(req: ChartCalculationRequest):
 
 @app.post("/api/ai/dossier")
 def get_ai_dossier(req: ChartCalculationRequest):
-    """Generates the authoritative ground-truth AI dossier and system prompt for LLMs."""
+    """Generates the ground-truth AI dossier for LLM interpretation."""
     try:
         data = _compute_chart_and_visuals(req)
         return {
@@ -889,9 +899,7 @@ def geocode_city(query: str = Query(..., min_length=2)):
         raise HTTPException(status_code=400, detail=f"Location lookup failed: {str(exc)}")
 
 
-# =============================================================================
-# Static Files & SPA Frontend Serving
-# =============================================================================
+# --- Static Assets & Frontend Serving ---
 
 if FRONTEND_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")

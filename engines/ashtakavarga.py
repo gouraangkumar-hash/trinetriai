@@ -1,14 +1,11 @@
-"""Classical Vedic Ashtakavarga Calculation Engine.
+"""Classical Vedic Ashtakavarga calculation engine.
 
-Adheres to Brihat Parashara Hora Shastra (BPHS Chapters 66–72) and Phaladeepika:
-- 8 Contribution sources (7 Grahas + Lagna)
-- 7 Individual Bhinnashtakavarga (BAV) tables (Sun: 48, Moon: 49, Mars: 39,
-  Mercury: 54, Jupiter: 56, Venus: 52, Saturn: 39)
-- Master Sarvashtakavarga (SAV) with cosmic invariant sum of strictly 337 bindus
-- Bhavashtakavarga (house-wise distribution relative to natal Lagna)
-- Trikona Shodhana (Triplicity Reduction across Agni, Prithvi, Vayu, Jala trines)
-- Ekadhipatya Shodhana (Dual-ownership Reduction with planetary occupancy rules)
-- Pinda Sadhana: Rashi Pinda, Graha Pinda, and Yoga Pinda (Shodya Pinda)
+Implements BPHS chapters 66-72 and Phaladeepika rules:
+- 7 Bhinnashtakavarga (BAV) tables with 8 reference contributors (7 planets + Lagna)
+- Master Sarvashtakavarga (SAV) summing to 337 bindus
+- Trikona Shodhana (triplicity reduction) and Ekadhipatya Shodhana (dual lordship reduction)
+- Pinda Sadhana (Rashi Pinda, Graha Pinda, and Yoga Pinda)
+- Prastarashtakavarga Kaksha divisions for Lagna
 """
 
 from typing import Any, Dict, List, Set, Tuple
@@ -18,9 +15,7 @@ from core.constants import PlanetEnum, ZODIAC_SIGNS
 from schemas.models import UnifiedChartData
 
 
-# =============================================================================
-# Classical BPHS Bindu Contribution Matrix (7 Grahas from 8 Reference Sources)
-# =============================================================================
+# --- Classical BPHS Bindu Contribution Rules ---
 
 BPHS_CONTRIBUTIONS: Dict[PlanetEnum, Dict[Any, Set[int]]] = {
     PlanetEnum.SUN: {
@@ -139,9 +134,7 @@ KAKSHA_LORDS_SANSKRIT: List[str] = [
 ]
 
 
-# =============================================================================
-# Pydantic Output Schemas
-# =============================================================================
+# --- Output Schemas ---
 
 class KakshaItem(BaseModel):
     kaksha_number: int
@@ -224,18 +217,16 @@ class AshtakavargaFullReport(BaseModel):
     lagna_kaksha: LagnaKakshaReport
 
 
-# =============================================================================
-# Classical Calculation Engine
-# =============================================================================
+# --- Calculation Engine ---
 
 class AshtakavargaEngine:
-    """Core BPHS Classical Ashtakavarga Calculation Engine."""
+    """Computes Bhinnashtakavarga, Sarvashtakavarga, and Shodhana reductions."""
 
     @classmethod
     def evaluate(cls, chart: UnifiedChartData, sign_mode: str = "sanskrit") -> AshtakavargaFullReport:
         lagna_sign = chart.angles.ascendant_sign.id
 
-        # 1. Resolve 8 Reference Signs
+        # Reference signs for the 7 planets and Lagna
         ref_signs: Dict[Any, int] = {
             PlanetEnum.SUN: chart.planets[PlanetEnum.SUN].sign.id,
             PlanetEnum.MOON: chart.planets[PlanetEnum.MOON].sign.id,
@@ -274,7 +265,7 @@ class AshtakavargaEngine:
             raw_bav_maps[planet] = p_map
             sources_breakdown[planet] = s_map
 
-        # 3. Compute Sarvashtakavarga (SAV) by summing all 7 BAVs
+        # Sarvashtakavarga: sum of all 7 BAVs across each sign
         sav_totals: Dict[int, int] = {s: 0 for s in range(1, 13)}
         sav_breakdowns: Dict[int, Dict[str, int]] = {s: {} for s in range(1, 13)}
 
@@ -283,7 +274,7 @@ class AshtakavargaEngine:
                 sav_totals[s] += p_map[s]
                 sav_breakdowns[s][planet.value] = p_map[s]
 
-        # 4. Perform Trikona & Ekadhipatya Shodhana and Pinda Sadhana
+        # Reductions: Trikona, Ekadhipatya, and Shodya Pinda per planet
         bhinna_reports: Dict[str, PlanetBAVReport] = {}
 
         for planet, raw_map in raw_bav_maps.items():
@@ -319,7 +310,7 @@ class AshtakavargaEngine:
                 signs=sign_details,
             )
 
-        # 5. Build Sarvashtakavarga (SAV) Sign Details
+        # SAV sign and house details
         sav_sign_details: List[SAVSignDetail] = []
         house_sav_map: Dict[int, int] = {}
 
@@ -342,7 +333,7 @@ class AshtakavargaEngine:
                 )
             )
 
-        # 6. Build Summary Metrics
+        # High/low sign and house distribution
         sorted_signs = sorted(sav_totals.items(), key=lambda item: item[1])
         weakest_s_id, weakest_s_val = sorted_signs[0]
         strongest_s_id, strongest_s_val = sorted_signs[-1]
@@ -369,7 +360,7 @@ class AshtakavargaEngine:
             challenging_signs_count=sum(1 for v in sav_totals.values() if v < 28),
         )
 
-        # 7. Compute Lagna Kaksha (Prastarashtakavarga 8 Subdivisions - BPHS Ch. 68)
+        # Lagna Kaksha (Prastarashtakavarga 8 subdivisions of 3°45')
         lagna_deg = chart.angles.ascendant_sign.intra_sign_degree
         active_k_idx = min(7, max(0, int(lagna_deg / 3.75)))
         active_k_num = active_k_idx + 1
@@ -496,18 +487,11 @@ class AshtakavargaEngine:
                     m = min(b1, b2)
                     res[s1] = m
                     res[s2] = m
-            # Case 3: One sign occupied, one unoccupied
+            # Case 3: One sign occupied, one unoccupied (BPHS Ch. 69: Graha yukte tu na shodhanam)
             else:
                 unocc = s1 if not occ1 else s2
-                occ = s2 if not occ1 else s1
-                b_unocc = res[unocc]
-                b_occ = res[occ]
-
-                if b_unocc >= b_occ:
-                    res[unocc] = 0
-                else:
-                    res[unocc] = 0
-                    res[occ] = b_occ - b_unocc
+                res[unocc] = 0
+                # The occupied house retains all its bindus intact under classical BPHS rules
 
         return res
 

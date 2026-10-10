@@ -1,10 +1,4 @@
-"""Astronomical Utility Functions.
-
-Provides:
-- High-precision DMS (Degrees, Minutes, Seconds) formatting and conversion
-- Intra-sign (0° - 30°) calculation and zodiac sign resolution
-- Nakshatra subdivision calculation (Nakshatra 1-27, Pada 1-4, and elapsed balance fraction)
-"""
+"""Angle normalization, DMS formatting, and sign/nakshatra placement utilities."""
 
 import math
 from typing import Any

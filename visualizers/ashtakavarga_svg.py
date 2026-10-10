@@ -1,8 +1,6 @@
-"""Minimalist Architectural Sarvashtakavarga (SAV) SVG Visualizer.
+"""Sarvashtakavarga (SAV) SVG visualizer.
 
-Generates high-contrast, publication-quality North Indian Diamond and
-South Indian Fixed Grid SVGs for Sarvashtakavarga (SAV) macro-zodiac
-bindu distribution (strictly 337 bindus).
+Generates North and South Indian chart representations of the SAV 337-bindu distribution.
 """
 
 from typing import Dict

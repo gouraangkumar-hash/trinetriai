@@ -1,22 +1,10 @@
-"""Algorithmic Planetary Strength Engine (Composite Vedic Bala Index).
+"""Composite planetary strength index (Bala).
 
-Synthesizes classical Parashari principles into a normalized 0-100% composite strength score:
-1. Sthana Bala / Sign Dignity & Placement (0-35 points):
-   - Exaltation (35), Moolatrikona (30), Own Sign (26), Great Friend (21), Friend (17),
-     Neutral (13), Enemy (8), Great Enemy (4), Debilitation (0 or 18 with Neechabhanga).
-   - Vargottama bonus (+5 pts, capped at 35).
-2. Dik Bala / Directional Strength (0-25 points):
-   - Sun & Mars peak in 10th House (South / Zenith)
-   - Jupiter & Mercury peak in 1st House (East / Lagna)
-   - Venus & Moon peak in 4th House (North / Nadir)
-   - Saturn peaks in 7th House (West / Setting)
-   - Linear attenuation across intervening houses to 0 at opposite house.
-3. Ashtakavarga BAV Strength (0-25 points):
-   - 0 to 8 bindus scaled proportionally (8 bindus = 25.0 pts, 4 bindus = 12.5 pts).
-4. Drishti Bala / Aspect Balance (0-15 points):
-   - Baseline 7.5 points.
-   - Benefic aspects received (+2.5 pts per benefic aspect from Jupiter, Venus, Mercury).
-   - Malefic aspects received (-2.0 pts per malefic aspect from Saturn, Mars, Rahu, Ketu, Sun).
+Combines key classical Parashari strength factors into a normalized 0-100% index:
+- Sthana Bala: Sign dignity, Pancha-Dha Maitri, and Vargottama placement (max 35)
+- Dik Bala: Directional strength relative to cardinal houses (max 25)
+- BAV Strength: Ashtakavarga bindu count in the occupied sign (max 25)
+- Drishti Bala: Aspect balance from benefics and malefics (max 15)
 """
 
 from typing import Dict, Optional

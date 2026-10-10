@@ -1,13 +1,13 @@
-"""Jaimini Upadesha Sutras Computational Engine.
+"""Jaimini Upadesha Sutras calculation engine.
 
-Provides:
-- 7 and 8 Chara Karaka Ranking Engine (Atmakaraka AK down to Darakaraka DK)
-  with Rahu degree inversion for the 8-karaka scheme.
-- Arudha Pada Calculation Engine (A1–A12, AL, UL) with standard BPHS 1st/7th shift exceptions.
-- Rashi Drishti (Sign Aspect) Matrix and Planetary Sign Aspects.
+Implements core Jaimini techniques:
+- 7 and 8 Chara Karaka assignments with Rahu degree inversion for the 8-karaka scheme
+- Arudha Pada calculations (A1 through A12, Arudha Lagna, Upapada Lagna) with 1st/7th shift exceptions
+- Rashi Drishti (sign aspects between movable, fixed, and dual signs)
+- Chara Dasha system following K.N. Rao's methodology
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Final, Literal, Optional
 
@@ -140,9 +140,7 @@ class CharaDashaResult(BaseModel):
     active_antardasha: Optional[CharaAntardashaItem] = None
 
 
-# =========================================================================
-# Jaimini Computational Engine
-# =========================================================================
+# --- Jaimini Calculation Engine ---
 
 class JaiminiEngine:
     """Core Jaimini astrological algorithms."""
@@ -152,9 +150,7 @@ class JaiminiEngine:
         d, m, s, formatted = decimal_to_dms(degrees)
         return DMSModel(degrees=d, minutes=m, seconds=s, formatted=formatted)
 
-    # =========================================================================
-    # 1. Chara Karaka Engine
-    # =========================================================================
+    # --- Chara Karakas ---
 
     @classmethod
     def calculate_chara_karakas(
@@ -255,9 +251,7 @@ class JaiminiEngine:
             by_role=by_role,
         )
 
-    # =========================================================================
-    # 2. Arudha Padas Engine
-    # =========================================================================
+    # --- Arudha Padas ---
 
     @classmethod
     def calculate_arudha_padas(cls, chart: UnifiedChartData) -> ArudhaPadasResult:
@@ -353,9 +347,7 @@ class JaiminiEngine:
             by_house=by_house,
         )
 
-    # =========================================================================
-    # 3. Rashi Drishti (Sign Aspects)
-    # =========================================================================
+    # --- Rashi Drishti (Sign Aspects) ---
 
     @classmethod
     def calculate_rashi_drishti(cls, chart: Optional[UnifiedChartData] = None) -> RashiDrishtiAspects:
@@ -397,13 +389,22 @@ class JaiminiEngine:
             planets_aspecting_signs=planets_aspecting_signs,
         )
 
-    # =========================================================================
-    # 4. Jaimini Chara Dasha Engine (K.N. Rao System)
-    # =========================================================================
+    # --- Chara Dasha (K.N. Rao System) ---
 
     DAYS_PER_SOLAR_YEAR: float = 365.2425
     SAVYA_SIGNS: Final[set[int]] = {1, 2, 3, 7, 8, 9}
     APASAVYA_SIGNS: Final[set[int]] = {4, 5, 6, 10, 11, 12}
+    VEDIC_GRAHAS: Final[set[PlanetEnum]] = {
+        PlanetEnum.SUN,
+        PlanetEnum.MOON,
+        PlanetEnum.MARS,
+        PlanetEnum.MERCURY,
+        PlanetEnum.JUPITER,
+        PlanetEnum.VENUS,
+        PlanetEnum.SATURN,
+        PlanetEnum.RAHU,
+        PlanetEnum.KETU,
+    }
 
     @classmethod
     def _resolve_dual_lord(cls, chart: UnifiedChartData, sign_id: int) -> tuple[PlanetEnum, int]:
@@ -413,7 +414,7 @@ class JaiminiEngine:
         1. If one lord is in the sign itself and the other is outside, pick the one OUTSIDE.
         2. If both are in the sign itself, pick Mars for Scorpio / Saturn for Aquarius (giving 12 years).
         3. If both are outside, determine the stronger lord:
-           a) Associated with a greater number of planets (conjunctions).
+           a) Associated with a greater number of planets (conjunctions with Vedic Grahas only).
            b) If tied, lord in its sign of exaltation (Mars in 10, Ketu in 9; Saturn in 7, Rahu in 2).
            c) If still tied, lord with higher intra-sign degree.
         """
@@ -429,9 +430,9 @@ class JaiminiEngine:
             if s1 == 8 and s2 == 8:
                 return p1, 8
 
-            # Both outside: compare conjunctions
-            c1 = sum(1 for p, pos in chart.planets.items() if p != p1 and pos.sign.id == s1)
-            c2 = sum(1 for p, pos in chart.planets.items() if p != p2 and pos.sign.id == s2)
+            # Both outside: compare conjunctions with other authentic Vedic Grahas
+            c1 = sum(1 for p, pos in chart.planets.items() if p in cls.VEDIC_GRAHAS and p not in (p1, p2) and pos.sign.id == s1)
+            c2 = sum(1 for p, pos in chart.planets.items() if p in cls.VEDIC_GRAHAS and p not in (p1, p2) and pos.sign.id == s2)
             if c1 > c2:
                 return p1, s1
             if c2 > c1:
@@ -460,9 +461,9 @@ class JaiminiEngine:
             if s1 == 11 and s2 == 11:
                 return p1, 11
 
-            # Both outside: compare conjunctions
-            c1 = sum(1 for p, pos in chart.planets.items() if p != p1 and pos.sign.id == s1)
-            c2 = sum(1 for p, pos in chart.planets.items() if p != p2 and pos.sign.id == s2)
+            # Both outside: compare conjunctions with other authentic Vedic Grahas
+            c1 = sum(1 for p, pos in chart.planets.items() if p in cls.VEDIC_GRAHAS and p not in (p1, p2) and pos.sign.id == s1)
+            c2 = sum(1 for p, pos in chart.planets.items() if p in cls.VEDIC_GRAHAS and p not in (p1, p2) and pos.sign.id == s2)
             if c1 > c2:
                 return p1, s1
             if c2 > c1:
@@ -484,26 +485,32 @@ class JaiminiEngine:
             return lord, chart.planets[lord].sign.id
 
     @classmethod
-    def _calculate_sign_duration(cls, chart: UnifiedChartData, sign_id: int) -> tuple[int, PlanetEnum]:
+    def _calculate_sign_duration(cls, chart: UnifiedChartData, sign_id: int, cycle: int = 1) -> tuple[int, PlanetEnum]:
         """Calculates Mahadasha duration (1-12 years) and ruling lord for a sign in Chara Dasha.
 
-        Rules:
+        Rules (K.N. Rao system):
         - If lord is in the sign itself: 12 years.
         - If sign is Savya (1, 2, 3, 7, 8, 9): count forward from sign to lord sign, subtract 1.
         - If sign is Apasavya (4, 5, 6, 10, 11, 12): count backward from sign to lord sign, subtract 1.
+        - If count - 1 <= 0: duration is 12 years.
+        - In Cycle 2: duration = 12 if duration == 12 else (12 - duration).
         """
         lord_planet, lord_sign_id = cls._resolve_dual_lord(chart, sign_id)
         if lord_sign_id == sign_id:
-            return 12, lord_planet
-
-        if sign_id in cls.SAVYA_SIGNS:
-            count = ((lord_sign_id - sign_id) % 12) + 1
-        else:
-            count = ((sign_id - lord_sign_id) % 12) + 1
-
-        duration = count - 1
-        if duration <= 0:
             duration = 12
+        else:
+            if sign_id in cls.SAVYA_SIGNS:
+                count = ((lord_sign_id - sign_id) % 12) + 1
+            else:
+                count = ((sign_id - lord_sign_id) % 12) + 1
+
+            duration = count - 1
+            if duration <= 0:
+                duration = 12
+
+        if cycle == 2:
+            duration = 12 if duration == 12 else (12 - duration)
+
         return duration, lord_planet
 
     @classmethod
@@ -542,10 +549,11 @@ class JaiminiEngine:
         for idx, s_id in enumerate(ad_signs):
             if idx == 11:
                 cur_end = md_end
+                is_active = cur_start <= target_date <= cur_end
             else:
                 cur_end = cur_start + timedelta(seconds=ad_seconds)
+                is_active = cur_start <= target_date < cur_end
 
-            is_active = cur_start <= target_date <= cur_end
             sign_info = ZODIAC_SIGNS[s_id]
             lord_planet, _ = cls._resolve_dual_lord(chart, s_id)
 
@@ -584,6 +592,9 @@ class JaiminiEngine:
         """
         if target_date is None:
             target_date = chart.utc_datetime
+        elif target_date.tzinfo is None:
+            # Prevent TypeError: can't compare offset-naive and offset-aware datetimes
+            target_date = target_date.replace(tzinfo=chart.utc_datetime.tzinfo or timezone.utc)
 
         lagna_sign_id = chart.angles.ascendant_sign.id
         lagna_info = ZODIAC_SIGNS[lagna_sign_id]
@@ -603,14 +614,20 @@ class JaiminiEngine:
         active_ad: Optional[CharaAntardashaItem] = None
 
         cur_start = chart.utc_datetime
+        total_mds = len(progression_signs) * cycles
+        md_counter = 0
 
         for cycle in range(1, cycles + 1):
             for s_id in progression_signs:
-                dur_years, lord_planet = cls._calculate_sign_duration(chart, s_id)
+                md_counter += 1
+                dur_years, lord_planet = cls._calculate_sign_duration(chart, s_id, cycle=cycle)
                 dur_days = dur_years * cls.DAYS_PER_SOLAR_YEAR
                 cur_end = cur_start + timedelta(days=dur_days)
 
-                is_md_active = cur_start <= target_date <= cur_end
+                if md_counter == total_mds:
+                    is_md_active = cur_start <= target_date <= cur_end
+                else:
+                    is_md_active = cur_start <= target_date < cur_end
 
                 sign_info = ZODIAC_SIGNS[s_id]
                 ad_list = cls._generate_antardashas(
@@ -641,6 +658,11 @@ class JaiminiEngine:
                         if ad.is_active:
                             active_ad = ad
                             break
+                    if active_ad is None and ad_list:
+                        if target_date <= ad_list[0].start_date:
+                            active_ad = ad_list[0]
+                        else:
+                            active_ad = ad_list[-1]
 
                 mahadashas.append(md_item)
                 cur_start = cur_end

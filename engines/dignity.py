@@ -1,12 +1,11 @@
-"""Classical Vedic Planetary Dignity Engine (Brihat Parashara Hora Shastra Standards).
+"""Classical Vedic planetary dignity engine.
 
-Evaluates planetary dignity states:
-- Exalted (Uccha / Param Uccha)
-- Debilitated (Neecha / Param Neecha)
-- Moolatrikona
+Evaluates planetary dignity states according to BPHS standards:
+- Exaltation (Uccha) and deep exaltation points
+- Debilitation (Neecha) and deep debilitation points
+- Moolatrikona degree ranges
 - Own Sign (Swa Kshetra)
-- Neutral / Sama
-Integrates Neechabhanga cancellation recognition.
+- Neechabhanga cancellation status
 """
 
 from enum import Enum
@@ -16,9 +15,7 @@ from pydantic import BaseModel, Field
 from core.constants import PlanetEnum, ZODIAC_SIGNS
 
 
-# =============================================================================
-# Classical Dignity Tables (BPHS Canonical Rules)
-# =============================================================================
+# --- Classical Dignity Placements (BPHS) ---
 
 # Zodiac Sign IDs (1 = Mesha / Aries, 12 = Meena / Pisces)
 EXALTATION_SIGNS: Dict[PlanetEnum, int] = {
@@ -139,7 +136,16 @@ class DignityEngine:
         nb_planets = neechabhanga_planets or set()
         has_nb = p_val in nb_planets
 
-        is_ex = bool(sign_id == EXALTATION_SIGNS.get(planet))
+        # In BPHS, Moon in Taurus is Exalted 0°-3° and Moolatrikona 3°-30°.
+        # Mercury in Virgo is Exalted 0°-15°, Moolatrikona 15°-20°, and Own Sign 20°-30°.
+        is_ex = False
+        if sign_id == EXALTATION_SIGNS.get(planet):
+            if planet == PlanetEnum.MOON:
+                is_ex = (degree_in_sign <= 3.0)
+            elif planet == PlanetEnum.MERCURY:
+                is_ex = (degree_in_sign <= 15.0)
+            else:
+                is_ex = True
         is_deb = bool(sign_id == DEBILITATION_SIGNS.get(planet))
 
         # Check Moolatrikona range

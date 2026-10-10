@@ -1,9 +1,7 @@
-"""Minimalist Architectural South Indian Fixed Grid SVG Visualizer.
+"""South Indian fixed-grid chart SVG visualizer.
 
-Generates an expansive, high-contrast SVG on an 800x800 canvas with large typography,
-crisp 200x200 grid cells, center HUD, and high-visibility planet details on Ivory (Light)
-and Deep Espresso (Dark) canvas without blues or flashy colors.
-Supports Sanskrit and English sign name toggling.
+Generates scalable SVG charts on an 800x800 canvas with center HUD,
+supporting light and dark themes and both Sanskrit and English sign notation.
 """
 
 from typing import Optional

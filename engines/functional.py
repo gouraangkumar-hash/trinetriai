@@ -1,15 +1,11 @@
-"""Classical Parashari Functional Nature Engine (Brihat Parashara Hora Shastra Chapter 34).
+"""Classical Parashari functional nature engine.
 
-Evaluates the functional beneficence or maleficence of planets for all 12 Lagnas:
-1. Yogakaraka: Single planet simultaneously owning a Kendra (1, 4, 7, 10) and a Trikona (5, 9).
-2. Functional Benefics (Shubha Grahas): Trikona lords (1, 5, 9), natural benefics without Kendradhipati Dosha.
-3. Functional Malefics (Ashubha / Papi Grahas): Trishadaya lords (3, 6, 11), 8th and 12th lords under Parashari rules.
-4. Maraka Lords (Death/Vulnerability Inflicting): Lords of 2nd and 7th houses.
-5. Badhaka Lord & Badhaka Sthana (Obstruction Principle):
-   - Movable Lagnas (Chara: Aries, Cancer, Libra, Capricorn) -> 11th House & Lord
-   - Fixed Lagnas (Sthira: Taurus, Leo, Scorpio, Aquarius) -> 9th House & Lord
-   - Dual Lagnas (Dvisvabhava: Gemini, Virgo, Sagittarius, Pisces) -> 7th House & Lord
-6. Kendradhipati Dosha: Natural benefics owning kendras lose pure beneficence unless co-ruling a trikona.
+Evaluates the functional status of planets for each of the 12 Ascendants (BPHS Ch. 34):
+- Yogakaraka planets simultaneously ruling a Kendra (1, 4, 7, 10) and a Trikona (5, 9)
+- Functional Benefics (Trikona lords) and Functional Malefics (Trishadaya lords 3, 6, 11)
+- Maraka lords (2nd and 7th house rulers)
+- Badhaka sthana and badhaka lords based on Lagna modality (Movable: 11th, Fixed: 9th, Dual: 7th)
+- Kendradhipati Dosha modifications for natural benefics owning kendras
 """
 
 from enum import Enum
@@ -62,7 +58,7 @@ BPHS_CH34_RULES = {
         PlanetEnum.MOON: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "शुभ (Kendra Lord)", "4th house Kendra ruler; mother, happiness, and mental peace.", False, False),
         PlanetEnum.MARS: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "लग्नेश (Lagna Lord)", "1st & 8th lord; moolatrikona in 1st house confers vitality; protects life.", False, False),
         PlanetEnum.MERCURY: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अशुभ (Trishadaya Lord)", "3rd & 6th lord; pure Trishadaya functional malefic; obstacles and conflicts.", False, False),
-        PlanetEnum.JUPITER: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "भाग्येश (Bhagyesh)", "9th & 12th lord; moolatrikona in 9th house yields supreme auspiciousness.", False, False),
+        PlanetEnum.JUPITER: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "भाग्येश (Bhagyesh)", "9th & 12th lord; moolatrikona in 9th house yields auspiciousness and spiritual fortune.", False, False),
         PlanetEnum.VENUS: (FunctionalNatureEnum.MARAKA, "मारक (Maraka Lord)", "2nd & 7th lord; prime Maraka ruler and natural enemy of Mars.", False, True),
         PlanetEnum.SATURN: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "बाधक / त्रिषडाय", "10th & 11th lord; Badhaka lord (11th) for movable sign; creates impediments.", False, False),
         PlanetEnum.RAHU: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "पाप", "Shadow planet acting through dispositor; malefic propensity for Aries.", False, False),
@@ -75,7 +71,7 @@ BPHS_CH34_RULES = {
         PlanetEnum.MERCURY: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "शुभ (Trikona Lord)", "2nd & 5th lord; 5th Trikona confers wealth and education.", False, False),
         PlanetEnum.JUPITER: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अति अशुभ", "8th & 11th lord; Trishadaya + Randhra lord; prime malefic for Taurus.", False, False),
         PlanetEnum.VENUS: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "लग्नेश (Lagna Lord)", "1st & 6th lord; 1st house lordship overrides 6th house blemish.", False, False),
-        PlanetEnum.SATURN: (FunctionalNatureEnum.YOGAKARAKA, "योगकारक (Yogakaraka)", "9th Trikona & 10th Kendra ruler; supreme Yogakaraka for Taurus.", True, False),
+        PlanetEnum.SATURN: (FunctionalNatureEnum.YOGAKARAKA, "योगकारक (Yogakaraka)", "9th Trikona & 10th Kendra ruler; primary Yogakaraka for Taurus.", True, False),
         PlanetEnum.RAHU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "शुभ (Co-ruler)", "Acts through Venus and Saturn; favorable in Kendra/Trikona.", False, False),
         PlanetEnum.KETU: (FunctionalNatureEnum.NEUTRAL, "तटस्थ", "Acts through dispositors; spiritual detachment.", False, False),
     },
@@ -85,7 +81,7 @@ BPHS_CH34_RULES = {
         PlanetEnum.MARS: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अति अशुभ (Trishadaya)", "6th & 11th lord; acute functional malefic for Gemini.", False, False),
         PlanetEnum.MERCURY: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "लग्नेश (Lagna Lord)", "1st & 4th lord; Lagna lord dominance cancels Kendradhipati Dosha.", False, False),
         PlanetEnum.JUPITER: (FunctionalNatureEnum.MARAKA, "केन्द्राधिपति / मारक", "7th & 10th lord; dual Kendra dosha, prime Maraka and Badhaka.", False, True),
-        PlanetEnum.VENUS: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "शुभ (5th Lord)", "5th Trikona & 12th lord; supreme intellect and creative fruition.", False, False),
+        PlanetEnum.VENUS: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "शुभ (5th Lord)", "5th Trikona & 12th lord; intellect, artistic talent, and creative fruition.", False, False),
         PlanetEnum.SATURN: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "भाग्येश (Bhagyesh)", "8th & 9th lord; moolatrikona in 9th house confers fortune.", False, False),
         PlanetEnum.RAHU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "शुभ (Mitra)", "Exalted/Friendly in Gemini; highly intellectual and opportunistic.", False, False),
         PlanetEnum.KETU: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "पाप", "Adverse to Mercury's rational intellect unless well-aspected.", False, False),
@@ -104,7 +100,7 @@ BPHS_CH34_RULES = {
     5: {  # Leo (Simha) - Fixed. Badhaka = 9th (Mars)
         PlanetEnum.SUN: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "लग्नेश (Lagna Lord)", "1st house sovereign ruler; vitality, leadership, and nobility.", False, False),
         PlanetEnum.MOON: (FunctionalNatureEnum.NEUTRAL, "व्ययेश (12th Lord)", "12th house Moksha ruler; neutral disposition.", False, False),
-        PlanetEnum.MARS: (FunctionalNatureEnum.YOGAKARAKA, "योगकारक (4th & 9th)", "4th Kendra & 9th Trikona ruler; supreme Yogakaraka (also Badhaka for fixed sign).", True, False),
+        PlanetEnum.MARS: (FunctionalNatureEnum.YOGAKARAKA, "योगकारक (4th & 9th)", "4th Kendra & 9th Trikona ruler; primary Yogakaraka (also Badhaka for fixed Leo).", True, False),
         PlanetEnum.MERCURY: (FunctionalNatureEnum.MARAKA, "धन / मारक (2nd & 11th)", "2nd & 11th house ruler; wealth builder with secondary Maraka capacity.", False, True),
         PlanetEnum.JUPITER: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "पंचमेश (5th & 8th)", "5th Trikona & 8th lord; moolatrikona in 5th yields genius and intuition.", False, False),
         PlanetEnum.VENUS: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अशुभ (3rd & 10th)", "3rd & 10th lord; enemy of Sun; creates professional friction.", False, False),
@@ -130,7 +126,7 @@ BPHS_CH34_RULES = {
         PlanetEnum.MERCURY: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "भाग्येश (9th & 12th)", "9th Trikona & 12th lord; auspicious fortune and higher studies.", False, False),
         PlanetEnum.JUPITER: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अति अशुभ (3rd & 6th)", "3rd & 6th lord; Trishadaya malefic creating litigation and debt.", False, False),
         PlanetEnum.VENUS: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "लग्नेश (1st & 8th)", "1st & 8th lord; moolatrikona in 1st house confers beauty and charm.", False, False),
-        PlanetEnum.SATURN: (FunctionalNatureEnum.YOGAKARAKA, "परम योगकारक (4th & 5th)", "4th Kendra & 5th Trikona ruler; supreme Yogakaraka for Libra.", True, False),
+        PlanetEnum.SATURN: (FunctionalNatureEnum.YOGAKARAKA, "परम योगकारक (4th & 5th)", "4th Kendra & 5th Trikona ruler; primary Yogakaraka for Libra.", True, False),
         PlanetEnum.RAHU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "मित्र", "Friendly to Venus and Saturn; bestows diplomacy and trade success.", False, False),
         PlanetEnum.KETU: (FunctionalNatureEnum.NEUTRAL, "तटस्थ", "Detachment from worldly luxury and relationships.", False, False),
     },
@@ -143,10 +139,10 @@ BPHS_CH34_RULES = {
         PlanetEnum.VENUS: (FunctionalNatureEnum.MARAKA, "मारक (7th & 12th)", "7th & 12th lord; prime Maraka and source of emotional turbulence.", False, True),
         PlanetEnum.SATURN: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अशुभ (3rd & 4th)", "3rd & 4th lord; enemy to Mars; brings heavy burdens and labor.", False, False),
         PlanetEnum.RAHU: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "पाप", "Debilitated in Scorpio; triggers paranoia and sudden upheavals.", False, False),
-        PlanetEnum.KETU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "शुभ (Exalted)", "Exalted in Scorpio; supreme mystical and occult insight.", False, False),
+        PlanetEnum.KETU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "शुभ (Exalted)", "Exalted in Scorpio; deep mystical and intuitive insight.", False, False),
     },
     9: {  # Sagittarius (Dhanu) - Dual. Badhaka = 7th (Mercury)
-        PlanetEnum.SUN: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "भाग्येश (9th Lord)", "9th house Trikona ruler; supreme patron of righteousness and truth.", False, False),
+        PlanetEnum.SUN: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "भाग्येश (9th Lord)", "9th house Trikona ruler; patron of righteousness and dharma.", False, False),
         PlanetEnum.MOON: (FunctionalNatureEnum.NEUTRAL, "अष्टमेश (8th Lord)", "8th house ruler; friendly to Jupiter; transforms through occult wisdom.", False, False),
         PlanetEnum.MARS: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "पंचमेश (5th & 12th)", "5th Trikona & 12th lord; creative vitality and spiritual courage.", False, False),
         PlanetEnum.MERCURY: (FunctionalNatureEnum.MARAKA, "केन्द्राधिपति / मारक", "7th & 10th lord; Kendradhipati Dosha, prime Maraka and Badhaka.", False, True),
@@ -162,7 +158,7 @@ BPHS_CH34_RULES = {
         PlanetEnum.MARS: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "बाधक / मारक (4th & 11th)", "4th Kendra & 11th Badhaka ruler; creates domestic and physical friction.", False, False),
         PlanetEnum.MERCURY: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "भाग्येश (6th & 9th)", "6th & 9th lord; 9th Trikona Bestows executive intellect and success.", False, False),
         PlanetEnum.JUPITER: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अति अशुभ (3rd & 12th)", "3rd & 12th house ruler; unnecessary expenses and losses.", False, False),
-        PlanetEnum.VENUS: (FunctionalNatureEnum.YOGAKARAKA, "परम योगकारक (5th & 10th)", "5th Trikona & 10th Kendra ruler; supreme Yogakaraka for Capricorn.", True, False),
+        PlanetEnum.VENUS: (FunctionalNatureEnum.YOGAKARAKA, "परम योगकारक (5th & 10th)", "5th Trikona & 10th Kendra ruler; primary Yogakaraka for Capricorn.", True, False),
         PlanetEnum.SATURN: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "लग्नेश (1st & 2nd)", "1st Lagna & 2nd Dhana lord; foundations of perseverance and longevity.", False, False),
         PlanetEnum.RAHU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "मित्र", "Friendly to Saturn; grants ambition and organizational dominance.", False, False),
         PlanetEnum.KETU: (FunctionalNatureEnum.NEUTRAL, "तटस्थ", "Detachment from societal structures.", False, False),
@@ -173,7 +169,7 @@ BPHS_CH34_RULES = {
         PlanetEnum.MARS: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अशुभ (3rd & 10th)", "3rd & 10th house ruler; aggressive professional conflicts.", False, False),
         PlanetEnum.MERCURY: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "पंचमेश (5th & 8th)", "5th Trikona & 8th lord; profound research intellect and intuition.", False, False),
         PlanetEnum.JUPITER: (FunctionalNatureEnum.MARAKA, "धन / मारक (2nd & 11th)", "2nd & 11th house ruler; financial accumulator with secondary Maraka role.", False, True),
-        PlanetEnum.VENUS: (FunctionalNatureEnum.YOGAKARAKA, "योगकारक / बाधक (4th & 9th)", "4th Kendra & 9th Trikona ruler; supreme Yogakaraka (also Badhaka for fixed Aquarius).", True, False),
+        PlanetEnum.VENUS: (FunctionalNatureEnum.YOGAKARAKA, "योगकारक / बाधक (4th & 9th)", "4th Kendra & 9th Trikona ruler; primary Yogakaraka (also Badhaka for fixed Aquarius).", True, False),
         PlanetEnum.SATURN: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "लग्नेश (1st & 12th)", "1st Lagna & 12th Moksha lord; humanitarian wisdom and endurance.", False, False),
         PlanetEnum.RAHU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "सह-लग्नेश", "Co-ruler of Aquarius; extraordinary visionary and scientific intellect.", False, False),
         PlanetEnum.KETU: (FunctionalNatureEnum.NEUTRAL, "तटस्थ", "Universal consciousness and ego-dissolution.", False, False),
@@ -187,7 +183,7 @@ BPHS_CH34_RULES = {
         PlanetEnum.VENUS: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अति अशुभ (3rd & 8th)", "3rd & 8th house ruler; most dangerous functional malefic for Pisces.", False, False),
         PlanetEnum.SATURN: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "अशुभ (11th & 12th)", "11th Trishadaya & 12th Vyaya lord; discipline through isolation.", False, False),
         PlanetEnum.RAHU: (FunctionalNatureEnum.FUNCTIONAL_MALEFIC, "पाप", "Illusion and psychic vulnerabilities in the cosmic ocean.", False, False),
-        PlanetEnum.KETU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "मोक्षकारक", "Exalted in watery Pisces; ultimate liberation and spiritual enlightenment.", False, False),
+        PlanetEnum.KETU: (FunctionalNatureEnum.FUNCTIONAL_BENEFIC, "मोक्षकारक", "Exalted in watery Pisces; liberation (moksha) and spiritual detachment.", False, False),
     },
 }
 

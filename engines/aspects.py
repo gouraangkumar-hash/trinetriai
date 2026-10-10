@@ -1,16 +1,8 @@
-"""Classical Parashari Graha Drishti (Planetary Aspects) Engine.
+"""Classical Parashari Graha Drishti (planetary aspects) engine.
 
-Computes canonical Vedic aspects:
-- 100% Full Aspect (Purna Drishti) on the 7th house for all 9 Grahas
-- Vishesha Purna Drishti (Special Full Aspects):
-  * Mars (Mangal): 4th, 7th, 8th houses
-  * Jupiter (Guru): 5th, 7th, 9th houses
-  * Saturn (Shani): 3rd, 7th, 10th houses
-  * Rahu & Ketu: 5th, 7th, 9th houses
-- Graha-to-Graha Aspects with angular distance
-- 12 Bhavas (House) Aspect Influences (Benefic vs Malefic tally)
-- Mutual Aspects (Paraspara Drishti) and Conjunctions (Yuti)
-- Coordinates for North and South Indian visual aspect rays
+Computes 7th house aspects for all Grahas along with special full aspects (Vishesha Drishti)
+for Mars (4, 7, 8), Jupiter (5, 7, 9), Saturn (3, 7, 10), and the lunar nodes (5, 7, 9).
+Also evaluates Bhava aspect tallies, mutual aspects (Paraspara Drishti), and conjunctions (Yuti).
 """
 
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -20,9 +12,7 @@ from core.constants import PlanetEnum, ZODIAC_SIGNS
 from schemas.models import UnifiedChartData
 
 
-# =============================================================================
-# Classical Parashari Aspect Rules
-# =============================================================================
+# --- Classical Parashari Aspect Rules ---
 
 # Houses aspected counting inclusively from the planet's house (1-based)
 PARASHARI_FULL_ASPECTS: Dict[PlanetEnum, List[int]] = {
@@ -90,9 +80,7 @@ RAY_COLORS_DARK: Dict[str, str] = {
 }
 
 
-# =============================================================================
-# Pydantic Schemas
-# =============================================================================
+# --- Output Schemas ---
 
 class GrahaAspectCast(BaseModel):
     target_house: int = Field(..., ge=1, le=12, description="Target house number (1-12)")
@@ -165,19 +153,17 @@ def _format_ordinal(n: int) -> str:
     return f"{n}th"
 
 
-# =============================================================================
-# Aspect Engine Implementation
-# =============================================================================
+# --- Aspects Engine ---
 
 class AspectsEngine:
-    """Evaluates canonical Vedic Graha Drishti and Bhava aspects."""
+    """Evaluates Vedic Graha Drishti and house aspects."""
 
     @classmethod
     def evaluate(cls, chart: UnifiedChartData, sign_mode: str = "sanskrit") -> AspectsReport:
         """Computes all planetary aspects, house aspects, and mutual relationships."""
         asc_sign_id = chart.angles.ascendant_sign.id
 
-        # 1. Map planets to their natal houses (Whole Sign from Ascendant)
+        # Map planets to houses (Whole Sign from Ascendant)
         planet_houses: Dict[PlanetEnum, int] = {}
         house_occupants: Dict[int, List[PlanetEnum]] = {h: [] for h in range(1, 13)}
 
@@ -186,7 +172,7 @@ class AspectsEngine:
             planet_houses[p_enum] = h
             house_occupants[h].append(p_enum)
 
-        # 2. Compute Aspects Cast for each planet
+        # Aspects cast and received by each planet
         planets_cast_map: Dict[PlanetEnum, List[GrahaAspectCast]] = {}
         planets_received_map: Dict[PlanetEnum, List[GrahaAspectReceived]] = {p: [] for p in chart.planets.keys()}
         bhava_benefics_map: Dict[int, List[str]] = {h: [] for h in range(1, 13)}
@@ -292,7 +278,7 @@ class AspectsEngine:
                     "count": len(graha_names),
                 })
 
-        # 4. Construct GrahaAspectDetail for each planet
+        # Planet aspect details and badge payloads
         planets_aspects_dict: Dict[str, GrahaAspectDetail] = {}
         for p_enum, p_pos in chart.planets.items():
             p_name = p_enum.value
@@ -300,17 +286,14 @@ class AspectsEngine:
             casts = planets_cast_map[p_enum]
             received = planets_received_map[p_enum]
 
-            # Conjunctions for this planet
             other_conjuncts = [g.value for g in house_occupants[p_house] if g != p_enum]
 
-            # Mutual aspect partners for this planet
             mutuals = [
                 m.planet2 if m.planet1 == p_name else m.planet1
                 for m in mutual_aspects_list
                 if m.planet1 == p_name or m.planet2 == p_name
             ]
 
-            # Badges for UI table display: e.g. [{"target_house": 4, "label": "H4 (4th)", "is_special": True, "aspected_planets": ["Moon"]}]
             badges: List[Dict[str, Any]] = []
             for c in casts:
                 graha_suffix = f": {', '.join(c.aspected_planets)}" if c.aspected_planets else ""
@@ -345,7 +328,7 @@ class AspectsEngine:
                 ray_color_dark=RAY_COLORS_DARK.get(p_name, "#FBBF24"),
             )
 
-        # 5. Construct BhavaAspectDetail for all 12 houses
+        # House aspect breakdown across 12 Bhavas
         bhava_aspects_list: List[BhavaAspectDetail] = []
         for h in range(1, 13):
             sign_id = ((asc_sign_id - 1 + h - 1) % 12) + 1

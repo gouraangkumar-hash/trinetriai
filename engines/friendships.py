@@ -1,15 +1,10 @@
-"""Classical Vedic Planetary Friendships Engine (Brihat Parashara Hora Shastra Standards).
+"""Planetary friendship calculations (Pancha-Dha Maitri).
 
-Computes:
-1. Natural Relationships (Naisargika Sambandha / Maitri)
-2. Temporal Relationships (Tatkalika Sambandha / Maitri)
-3. Five-Fold Compound Relationships (Pancha-Dha Maitri):
-   - Great Friend (Adhi Mitra, +2)
-   - Friend (Mitra, +1)
-   - Neutral (Sama, 0)
-   - Enemy (Shatru, -1)
-   - Great Enemy (Adhi Shatru, -2)
-4. Dispositor Sign Kshetra Placement Analysis
+Evaluates:
+- Natural relationships (Naisargika Maitri, BPHS Ch. 3)
+- Temporal relationships (Tatkalika Maitri: 2nd, 3rd, 4th, 10th, 11th, 12th houses from planet)
+- Compound five-fold relationships (Pancha-Dha Maitri: Adhi Mitra down to Adhi Shatru)
+- Dispositor relationship for each planet
 """
 
 from enum import Enum
@@ -20,9 +15,7 @@ from core.constants import PlanetEnum, ZODIAC_SIGNS
 from schemas.models import UnifiedChartData
 
 
-# =============================================================================
-# Classical Natural Relationships (Naisargika Maitri - BPHS Ch. 3)
-# =============================================================================
+# --- Natural Relationships (Naisargika Maitri) ---
 
 class RelationshipType(str, Enum):
     GREAT_FRIEND = "Great Friend"      # Adhi Mitra (+2)

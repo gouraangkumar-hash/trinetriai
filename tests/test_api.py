@@ -458,4 +458,76 @@ def test_frontend_markup_and_scripts():
     assert "window.toggleCharaAntardashaRow" in js
 
 
+def test_calculate_endpoint_target_date():
+    """Test POST /api/calculate with a historic target_date parameter."""
+    payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+        "selected_varga": "D1",
+        "target_date": "2020-01-01T00:00:00Z",
+    }
+    response = client.post("/api/calculate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    # Dasha summary should resolve for 2020
+    dasha_summary = data["dasha_summary"]
+    assert dasha_summary["md"] != "-"
+    # Jaimini Chara Dasha should have an active MD for 2020
+    chara_summary = data["chara_dasha_summary"]
+    assert chara_summary["active_md"] != "-"
+
+
+def test_vargas_endpoint_vargottama_restricted_to_d9():
+    """Test POST /api/vargas to ensure Vargottama is strictly restricted to D9 Navamsha."""
+    base_params = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+        "selected_varga": "D10",
+    }
+
+    # Request D10 (Dasamsha)
+    payload_d10 = {
+        "varga": "D10",
+        "chart_params": base_params,
+    }
+    resp_d10 = client.post("/api/vargas", json=payload_d10)
+    assert resp_d10.status_code == 200
+    data_d10 = resp_d10.json()
+    # No row in D10 should have is_vargottama=True
+    for row in data_d10["varga_table"]:
+        assert row["is_vargottama"] is False
+        assert "[V]" not in row["dignity_short"]
+
+    # Request D9 (Navamsha)
+    base_params["selected_varga"] = "D9"
+    payload_d9 = {
+        "varga": "D9",
+        "chart_params": base_params,
+    }
+    resp_d9 = client.post("/api/vargas", json=payload_d9)
+    assert resp_d9.status_code == 200
+    data_d9 = resp_d9.json()
+    # In reference chart, Sun is Vargottama in D9 (Virgo in both D1 and D9)
+    sun_row = next(r for r in data_d9["varga_table"] if r["planet"] == "Sun")
+    assert sun_row["is_vargottama"] is True
+    assert "[V]" in sun_row["dignity_short"]
+
+
 

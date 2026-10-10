@@ -1,10 +1,9 @@
-"""Krishnamurti Paddhati (KP) Astrology Computational Engine.
+"""Krishnamurti Paddhati (KP) calculation engine.
 
-Provides:
-- Generation of the canonical 1–249 KP Sub-Lord boundary table with sign cusp splitting.
-- High-precision Sub-Lord and Sub-Sub-Lord resolution functions for any given longitude.
-- 4-Fold Significator Matrix (Level A: Planet in Star of Occupant, Level B: Occupant,
-  Level C: Planet in Star of Owner, Level D: Owner).
+Implements core KP principles:
+- Canonical 1-249 Sub-Lord division table with sign-boundary splits
+- Sub-Lord and Sub-Sub-Lord resolution for any sidereal longitude
+- 4-Fold House Significators matrix (Levels A, B, C, D) using Placidus cusps
 """
 
 from typing import Optional
@@ -39,6 +38,8 @@ class KPSubTableEntry(BaseModel):
     end_longitude: float
     start_dms: DMSModel
     end_dms: DMSModel
+    unsplit_start_longitude: Optional[float] = None
+    unsplit_end_longitude: Optional[float] = None
 
 
 class KPSubDivisionResult(BaseModel):
@@ -83,9 +84,7 @@ class KP4FoldSignificatorsMatrix(BaseModel):
     )
 
 
-# =========================================================================
-# KP Sub Table & Resolver Engine
-# =========================================================================
+# --- KP Calculation Engine ---
 
 class KPEngine:
     """Core Krishnamurti Paddhati (KP) computation engine."""
@@ -148,6 +147,8 @@ class KPEngine:
                             end_longitude=sign_boundary,
                             start_dms=cls._build_dms(current_sub_start),
                             end_dms=cls._build_dms(sign_boundary),
+                            unsplit_start_longitude=current_sub_start,
+                            unsplit_end_longitude=current_sub_end,
                         )
                     )
                     sub_counter += 1
@@ -167,6 +168,8 @@ class KPEngine:
                             end_longitude=current_sub_end,
                             start_dms=cls._build_dms(sign_boundary),
                             end_dms=cls._build_dms(current_sub_end),
+                            unsplit_start_longitude=current_sub_start,
+                            unsplit_end_longitude=current_sub_end,
                         )
                     )
                     sub_counter += 1
@@ -186,6 +189,8 @@ class KPEngine:
                             end_longitude=current_sub_end,
                             start_dms=cls._build_dms(current_sub_start),
                             end_dms=cls._build_dms(current_sub_end),
+                            unsplit_start_longitude=current_sub_start,
+                            unsplit_end_longitude=current_sub_end,
                         )
                     )
                     sub_counter += 1
@@ -228,21 +233,29 @@ class KPEngine:
 
         sub_lord = matched_entry.sub_lord
         sub_start_idx = order_lords.index(sub_lord)
-        total_sub_span = matched_entry.end_longitude - matched_entry.start_longitude
+        unsplit_start = (
+            matched_entry.unsplit_start_longitude
+            if matched_entry.unsplit_start_longitude is not None
+            else matched_entry.start_longitude
+        )
+        unsplit_end = (
+            matched_entry.unsplit_end_longitude
+            if matched_entry.unsplit_end_longitude is not None
+            else matched_entry.end_longitude
+        )
+        total_sub_span = unsplit_end - unsplit_start
 
-        # Find position within this sub entry
-        pos_in_sub = lon_norm - matched_entry.start_longitude
         accumulated_sub_sub = 0.0
         sub_sub_lord = sub_lord
-        ss_start_deg = matched_entry.start_longitude
-        ss_end_deg = matched_entry.end_longitude
+        ss_start_deg = unsplit_start
+        ss_end_deg = unsplit_end
 
         for k in range(9):
             candidate_ss_lord = order_lords[(sub_start_idx + k) % 9]
             candidate_years = order_years[candidate_ss_lord]
             ss_span = total_sub_span * (candidate_years / TOTAL_VIMSHOTTARI_YEARS)
 
-            seg_start = matched_entry.start_longitude + accumulated_sub_sub
+            seg_start = unsplit_start + accumulated_sub_sub
             seg_end = seg_start + ss_span
 
             if seg_start <= lon_norm < seg_end or (k == 8 and lon_norm >= seg_start):
@@ -271,9 +284,7 @@ class KPEngine:
             dms=cls._build_dms(lon_norm),
         )
 
-    # =========================================================================
-    # 4-Fold Significators (ABCD Matrix)
-    # =========================================================================
+    # --- 4-Fold Significators (ABCD Matrix) ---
 
     @classmethod
     def calculate_4fold_significators(cls, chart: UnifiedChartData) -> KP4FoldSignificatorsMatrix:
@@ -284,13 +295,13 @@ class KPEngine:
         Level C: Planets in the Star of the House Owner (Lord).
         Level D: Planet owning (ruling) the House Cusp sign.
         """
-        # 1. Determine Star Lords for all planets
+        # Map star lord for each planet
         planet_star_lords: dict[PlanetEnum, PlanetEnum] = {}
         for p_name, p_pos in chart.planets.items():
             star_lord = p_pos.nakshatra.lord
             planet_star_lords[p_name] = star_lord
 
-        # 2. Determine House Cusp boundaries and House Owners
+        # House cusp rulers and occupants
         cusps = chart.placidus_houses
         house_owners: dict[int, PlanetEnum] = {}
         house_occupants: dict[int, list[PlanetEnum]] = {h: [] for h in range(1, 13)}
@@ -299,7 +310,7 @@ class KPEngine:
             cusp = cusps[h - 1]
             house_owners[h] = cusp.sign.lord
 
-        # 3. Determine House Occupants for each planet
+        # Assign planets to Placidus houses based on cuspal spans
         for p_name, p_pos in chart.planets.items():
             p_lon = p_pos.longitude
             assigned_house = 12  # fallback

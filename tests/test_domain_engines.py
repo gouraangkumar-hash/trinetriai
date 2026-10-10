@@ -184,6 +184,23 @@ class TestKPEngine:
         assert res.sub_start_deg <= 177.7325 <= res.sub_end_deg
         assert res.sub_sub_start_deg <= 177.7325 <= res.sub_sub_end_deg
 
+    def test_kp_sub_sub_split_boundary_continuity(self) -> None:
+        """Validates KP Sub-Sub Lord continuity across 30° zodiac boundaries."""
+        # Krittika (Star lord Sun) Rahu sub crosses 30° boundary (Part 1 in Aries, Part 2 in Taurus)
+        # Part 1 just before boundary: 29.95°
+        res_before = KPEngine.resolve_kp_sub(29.95)
+        # Part 2 just after boundary: 30.05°
+        res_after = KPEngine.resolve_kp_sub(30.05)
+
+        assert res_before.sub_lord == PlanetEnum.RAHU
+        assert res_after.sub_lord == PlanetEnum.RAHU
+        assert res_before.sign_name == "Mesha"
+        assert res_after.sign_name == "Vrishabha"
+
+        # Both points must properly resolve sub-sub intervals
+        assert res_before.sub_sub_start_deg <= 29.95 <= res_before.sub_sub_end_deg
+        assert res_after.sub_sub_start_deg <= 30.05 <= res_after.sub_sub_end_deg
+
     def test_kp_4fold_significators(self, reference_chart) -> None:
         """Validates 4-Fold Significators Matrix across all 12 houses."""
         matrix = KPEngine.calculate_4fold_significators(reference_chart)
@@ -306,6 +323,14 @@ class TestJaiminiEngine:
         assert len(result.mahadashas) == 24
         assert result.mahadashas[12].cycle == 2
 
+        # Validate Cycle 2 durations (12 if Cycle 1 was 12, else 12 - Cycle 1)
+        cycle_2_mds = result.mahadashas[12:]
+        for md2 in cycle_2_mds:
+            c1_dur = expected_durations[md2.sign_id]
+            expected_c2_dur = 12 if c1_dur == 12 else (12 - c1_dur)
+            assert md2.duration_years == expected_c2_dur
+            assert md2.cycle == 2
+
     def test_chara_dasha_antardashas(self, reference_chart) -> None:
         """Validates 12 Antardashas per Mahadasha with the Mahadasha sign positioned last."""
         result = JaiminiEngine.calculate_chara_dasha(reference_chart)
@@ -332,6 +357,29 @@ class TestJaiminiEngine:
         assert result.active_mahadasha.sign_id == 10  # Capricorn
         assert result.active_antardasha is not None
         assert result.active_antardasha.sign_id == 9   # Sagittarius
+
+    def test_chara_dasha_naive_target_date(self, reference_chart) -> None:
+        """Verifies naive datetime inputs do not raise TypeError and resolve active periods cleanly."""
+        naive_target = datetime(2000, 6, 15, 12, 0, 0)
+        result = JaiminiEngine.calculate_chara_dasha(reference_chart, target_date=naive_target)
+        assert result.active_mahadasha is not None
+        assert result.active_antardasha is not None
+
+    def test_chara_dasha_boundary_uniqueness(self, reference_chart) -> None:
+        """Verifies that on an exact boundary transition, only one Mahadasha is marked active."""
+        result = JaiminiEngine.calculate_chara_dasha(reference_chart)
+        # Test exact boundary of first Mahadasha
+        boundary_dt = result.mahadashas[0].end_date
+        res_at_boundary = JaiminiEngine.calculate_chara_dasha(reference_chart, target_date=boundary_dt)
+        active_mds = [md for md in res_at_boundary.mahadashas if md.is_active]
+        assert len(active_mds) == 1
+
+    def test_chara_dasha_dual_lord_vedic_graha_filtering(self, reference_chart) -> None:
+        """Verifies outer planets (Uranus, Neptune, Pluto) do not affect dual-lord conjunction resolution."""
+        # Scorpio: Mars in Scorpio (own sign), Ketu in Aries.
+        lord, sign_id = JaiminiEngine._resolve_dual_lord(reference_chart, sign_id=8)
+        assert lord == PlanetEnum.KETU
+        assert sign_id == 1  # Aries
 
 
 # =========================================================================
@@ -763,6 +811,53 @@ class TestDignityEngine:
         assert rep_sun_own.is_own_sign is True
         assert rep_sun_own.dignity == DignityState.OWN_SIGN
         assert rep_sun_own.dignity_short == "Own"
+
+        # Moon in Taurus: 2° is Exalted (0°-3°), 10° is Moolatrikona (3°-30°)
+        rep_moon_ex = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.MOON,
+            sign_id=2,
+            sign_name="Vrishabha",
+            degree_in_sign=2.0,
+        )
+        assert rep_moon_ex.is_exalted is True
+        assert rep_moon_ex.dignity == DignityState.EXALTED
+
+        rep_moon_mt = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.MOON,
+            sign_id=2,
+            sign_name="Vrishabha",
+            degree_in_sign=10.0,
+        )
+        assert rep_moon_mt.is_moolatrikona is True
+        assert rep_moon_mt.dignity == DignityState.MOOLATRIKONA
+
+        # Mercury in Virgo: 10° is Exalted (0°-15°), 18° is Moolatrikona (15°-20°), 25° is Own Sign (20°-30°)
+        rep_merc_ex = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.MERCURY,
+            sign_id=6,
+            sign_name="Kanya",
+            degree_in_sign=10.0,
+        )
+        assert rep_merc_ex.is_exalted is True
+        assert rep_merc_ex.dignity == DignityState.EXALTED
+
+        rep_merc_mt = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.MERCURY,
+            sign_id=6,
+            sign_name="Kanya",
+            degree_in_sign=18.0,
+        )
+        assert rep_merc_mt.is_moolatrikona is True
+        assert rep_merc_mt.dignity == DignityState.MOOLATRIKONA
+
+        rep_merc_own = DignityEngine.evaluate_planet_dignity(
+            planet=PlanetEnum.MERCURY,
+            sign_id=6,
+            sign_name="Kanya",
+            degree_in_sign=25.0,
+        )
+        assert rep_merc_own.is_own_sign is True
+        assert rep_merc_own.dignity == DignityState.OWN_SIGN
 
     def test_reference_chart_dignities(self, reference_chart) -> None:
         """Validates dignities of planets in the standard reference chart."""

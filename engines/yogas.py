@@ -1,18 +1,10 @@
-"""Classical Vedic Astrological Yogas and Doshas Detection Engine.
+"""Classical Vedic Yogas and Doshas detection engine.
 
-Implements BPHS (Brihat Parashara Hora Shastra) rules for:
-- 5 Pancha Mahapurusha Yogas (Ruchaka, Bhadra, Hamsa, Malavya, Sasa)
-- 15+ Major Raja, Dhana, and Auspicious Yogas (Gajakesari, Budhaditya,
-  Dharma-Karmadhipati, Kendra-Trikona, Neechabhanga, Vipareeta, Amala, Parivartana, etc.)
-- Solar and Lunar Stream Yogas (Veshi, Vosi, Ubhayachari, Sunapha, Anapha, Durudhura)
-- 6 Major Doshas with classical cancellation (Apavada) logic:
-  - Manglik / Kuja Dosha (with 8 cancellation conditions)
-  - Kaal Sarp Dosha (all 12 types: Anant to Sheshnag, Purna vs. Anshik)
-  - Kemadruma Yoga (with Kendra cancellation checks)
-  - Guru Chandal Dosha
-  - Grahan (Eclipse) Dosha
-  - Visha (Shani-Chandra) Dosha
-  - Sade Sati status (Rising, Peak, Setting, Dhaiya, Inactive)
+Implements BPHS rules for:
+- Pancha Mahapurusha Yogas (Ruchaka, Bhadra, Hamsa, Malavya, Sasa)
+- Major Raja, Dhana, and auspicious combinations (Gajakesari, Budhaditya, Dharma-Karmadhipati, Vipareeta, etc.)
+- Solar and Lunar stream configurations (Sunapha, Anapha, Durudhura, Veshi, Vosi, Ubhayachari)
+- Major Doshas and classical cancellations (Manglik/Kuja Dosha, Kaal Sarp, Kemadruma, Guru Chandal, Grahan, Sade Sati)
 """
 
 from enum import Enum
@@ -69,9 +61,7 @@ class YogaEvaluationReport(BaseModel):
     yogas: List[YogaItem] = Field(default_factory=list)
 
 
-# =============================================================================
-# Classical Dignity Tables (BPHS Standards)
-# =============================================================================
+# --- Classical Dignity Placements (BPHS) ---
 
 EXALTATION_SIGNS: Dict[PlanetEnum, int] = {
     PlanetEnum.SUN: 1,       # Aries / Mesha
@@ -146,22 +136,14 @@ class YogaDetectorEngine:
 
         yogas: List[YogaItem] = []
 
-        # 1. Pancha Mahapurusha Yogas
+        # Evaluate yogas across categories
         yogas.extend(cls._detect_mahapurusha(chart, planet_houses, planet_signs))
-
-        # 2. Raja & Royal Auspicious Yogas
         yogas.extend(cls._detect_raja_yogas(chart, planet_houses, planet_signs, house_lords))
-
-        # 3. Dhana & Wealth Yogas
         yogas.extend(cls._detect_dhana_yogas(chart, planet_houses, planet_signs, house_lords))
-
-        # 4. Solar & Lunar Stream Yogas
         yogas.extend(cls._detect_solar_lunar_yogas(chart, planet_houses, planet_signs))
-
-        # 5. Doshas & Afflictions
         yogas.extend(cls._detect_doshas(chart, planet_houses, planet_signs, house_lords))
 
-        # 6. Build Summary Statistics
+        # Summary tallies
         auspicious_cnt = sum(1 for y in yogas if y.nature in (YogaNature.AUSPICIOUS, YogaNature.RAJA, YogaNature.DHANA, YogaNature.MAHAPURUSHA) and not y.is_cancelled)
         raja_cnt = sum(1 for y in yogas if y.nature == YogaNature.RAJA and not y.is_cancelled)
         dhana_cnt = sum(1 for y in yogas if y.nature == YogaNature.DHANA and not y.is_cancelled)
@@ -1150,35 +1132,35 @@ class YogaDetectorEngine:
             sade_sati_name = "Shani Sade Sati — 1st Phase (Rising / Aardha)"
             sade_sati_intensity = "Rising (12th)"
             sade_sati_desc = (
-                f"Saturn in {sat_name} is transiting the 12th house from natal Moon ({moon_name}). "
+                f"Saturn in {sat_name} is situated in the 12th house from natal Moon ({moon_name}) at birth. "
                 "Marks the inception of the 7.5-year cycle, testing expenses, foreign matters, sleep patterns, and inward detachment."
             )
         elif sat_from_moon == 1:
             sade_sati_name = "Shani Sade Sati — 2nd Phase (Peak / Janma Shani)"
             sade_sati_intensity = "Peak (Janma)"
             sade_sati_desc = (
-                f"Saturn in {sat_name} transits directly over natal Moon ({moon_name}). "
+                f"Saturn in {sat_name} is placed conjunct natal Moon ({moon_name}) at birth. "
                 "The core peak phase of the 7.5-year cycle, demanding immense mental resilience, emotional maturity, and personal responsibility."
             )
         elif sat_from_moon == 2:
             sade_sati_name = "Shani Sade Sati — 3rd Phase (Setting / Antya)"
             sade_sati_intensity = "Setting (2nd)"
             sade_sati_desc = (
-                f"Saturn in {sat_name} is transiting the 2nd house from natal Moon ({moon_name}). "
+                f"Saturn in {sat_name} is situated in the 2nd house from natal Moon ({moon_name}) at birth. "
                 "The concluding phase of the 7.5-year cycle, restructuring family matters, financial assets, speech, and transition to stability."
             )
         elif sat_from_moon == 4:
             sade_sati_name = "Shani Dhaiya — Kantaka Shani (4th House)"
             sade_sati_intensity = "Dhaiya (4th)"
             sade_sati_desc = (
-                f"Saturn in {sat_name} is transiting the 4th house from natal Moon ({moon_name}). "
+                f"Saturn in {sat_name} is situated in the 4th house from natal Moon ({moon_name}) at birth. "
                 "A 2.5-year minor cycle impacting domestic peace, home environment, property, and maternal welfare."
             )
         elif sat_from_moon == 8:
             sade_sati_name = "Shani Dhaiya — Ashtama Shani (8th House)"
             sade_sati_intensity = "Dhaiya (8th)"
             sade_sati_desc = (
-                f"Saturn in {sat_name} is transiting the 8th house from natal Moon ({moon_name}). "
+                f"Saturn in {sat_name} is situated in the 8th house from natal Moon ({moon_name}) at birth. "
                 "A 2.5-year minor cycle testing deep psychological resilience, sudden transformations, longevity, and patience."
             )
 

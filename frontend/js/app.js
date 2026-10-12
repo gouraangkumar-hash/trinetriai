@@ -34,6 +34,8 @@ const state = {
   chat_messages: [],
   is_generating_synthesis: false,
   is_sending_chat: false,
+  synthesis_abort_controller: null,
+  chat_abort_controller: null,
 };
 
 // --- Glyph & Coordinate Mappings ---
@@ -2329,48 +2331,860 @@ function formatMarkdown(text) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
+  // Chapter Headings (e.g. ## ✦ Chapter 1: ... or ## ✦ ...)
+  html = html.replace(/^##\s*✦\s*(?:Chapter\s*(\d+)[:\s–—\-]+)?(.*$)/gim, (match, num, rest) => {
+    const chId = num ? `id="chapter-${num}"` : "";
+    const prefix = num ? `Chapter ${num}: ` : "";
+    return `<div class="reading-chapter-header" ${chId}><span class="chapter-ornament">✦</span><h2 class="chapter-title">${prefix}${rest}</h2></div>`;
+  });
+
   // Headings
-  html = html.replace(/^### (.*$)/gim, '<h3 style="font-family: var(--font-heading); margin-top: 1.25rem; margin-bottom: 0.5rem; color: var(--accent-primary); font-size: 1.1rem;">$1</h3>');
-  html = html.replace(/^## (.*$)/gim, '<h2 style="font-family: var(--font-heading); margin-top: 1.5rem; margin-bottom: 0.65rem; color: var(--accent-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.35rem; font-size: 1.25rem;">$1</h2>');
-  html = html.replace(/^# (.*$)/gim, '<h1 style="font-family: var(--font-heading); margin-top: 1.75rem; margin-bottom: 0.75rem; color: var(--accent-primary); font-size: 1.45rem;">$1</h1>');
+  html = html.replace(/^### (.*$)/gim, '<h3 style="font-family: var(--font-heading); margin-top: 1.35rem; margin-bottom: 0.5rem; color: var(--accent-primary); font-size: 1.12rem;">$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2 style="font-family: var(--font-heading); margin-top: 1.65rem; margin-bottom: 0.65rem; color: var(--accent-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem; font-size: 1.3rem;">$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1 style="font-family: var(--font-heading); margin-top: 1.25rem; margin-bottom: 0.85rem; color: var(--text-primary); font-size: 1.55rem; font-weight: 800;">$1</h1>');
 
   // Bold & Italic
   html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--text-primary);">$1</strong>');
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--text-primary); font-weight: 700;">$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
 
   // Blockquotes
-  html = html.replace(/^\> (.*$)/gim, '<blockquote style="border-left: 3px solid var(--accent-primary); padding: 0.5rem 1rem; margin: 0.75rem 0; background: rgba(200, 155, 60, 0.08); border-radius: 0 4px 4px 0;">$1</blockquote>');
+  html = html.replace(/^\>\s*(.*$)/gim, '<blockquote class="reading-blockquote">$1</blockquote>');
+
+  // Horizontal divider
+  html = html.replace(/^---$/gim, '<hr class="reading-divider" />');
 
   // Bullet points
-  html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li style="margin-bottom: 0.35rem;">$1</li>');
+  html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li style="margin-bottom: 0.45rem; line-height: 1.65;">$1</li>');
 
   // Paragraphs
   const paragraphs = html.split(/\n{2,}/);
   html = paragraphs.map(p => {
     p = p.trim();
     if (!p) return "";
-    if (p.startsWith("<h") || p.startsWith("<ul") || p.startsWith("<li") || p.startsWith("<blockquote") || p.startsWith("<div") || p.startsWith("<pre")) {
+    if (p.startsWith("<h") || p.startsWith("<ul") || p.startsWith("<li") || p.startsWith("<blockquote") || p.startsWith("<div") || p.startsWith("<pre") || p.startsWith("<hr")) {
       return p;
     }
-    return `<p style="margin-bottom: 0.85rem; line-height: 1.65;">${p.replace(/\n/g, '<br/>')}</p>`;
+    return `<p style="margin-bottom: 0.95rem; line-height: 1.75; font-size: 0.96rem; color: var(--text-secondary);">${p.replace(/\n/g, '<br/>')}</p>`;
   }).join("\n");
 
   return html;
 }
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function toggleLifeProof(btn) {
+  if (!btn) return;
+  const content = btn.nextElementSibling;
+  const chevron = btn.querySelector(".proof-chevron");
+  if (!content) return;
+  const isOpen = content.classList.toggle("open");
+  if (chevron) {
+    chevron.textContent = isOpen ? "▲" : "▼";
+  }
+}
+window.toggleLifeProof = toggleLifeProof;
+
 function extractConfluenceMetadata(markdown) {
-  const jsonMatch = markdown.match(/```json\s*(\{[\s\S]*?\})\s*```/);
-  if (jsonMatch) {
+  if (!markdown || typeof markdown !== "string") {
+    return { metadata: null, cleanMarkdown: "" };
+  }
+
+  // 1. Check for ```json ... ``` code fence with balanced extraction
+  const jsonFenceRegex = /```(?:json)?\s*([\s\S]*?)\s*```/;
+  const fenceMatch = markdown.match(jsonFenceRegex);
+  if (fenceMatch) {
+    const candidate = fenceMatch[1].trim();
+    if (candidate.startsWith("{") && candidate.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(candidate);
+        return {
+          metadata: parsed,
+          cleanMarkdown: markdown.replace(fenceMatch[0], "").trim(),
+        };
+      } catch (_) {}
+    }
+  }
+
+  // 2. Check if the whole string is bare JSON
+  const trimmed = markdown.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
     try {
+      const parsed = JSON.parse(trimmed);
       return {
-        metadata: JSON.parse(jsonMatch[1]),
-        cleanMarkdown: markdown.replace(jsonMatch[0], "").trim(),
+        metadata: parsed,
+        cleanMarkdown: "",
       };
     } catch (_) {}
   }
+
+  // 3. Check for any embedded JSON block from first '{' to last '}'
+  const firstBrace = markdown.indexOf("{");
+  const lastBrace = markdown.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const candidate = markdown.slice(firstBrace, lastBrace + 1);
+    try {
+      const parsed = JSON.parse(candidate);
+      return {
+        metadata: parsed,
+        cleanMarkdown: (markdown.slice(0, firstBrace) + markdown.slice(lastBrace + 1)).trim(),
+      };
+    } catch (_) {}
+  }
+
   return { metadata: null, cleanMarkdown: markdown };
 }
+
+function getElementalBreakdown(d) {
+  const elemMap = {
+    1: "Fire", 2: "Earth", 3: "Air", 4: "Water",
+    5: "Fire", 6: "Earth", 7: "Air", 8: "Water",
+    9: "Fire", 10: "Earth", 11: "Air", 12: "Water"
+  };
+
+  const planets = (typeof state !== "undefined" && state?.currentData?.planets_table) ? state.currentData.planets_table : null;
+  if (Array.isArray(planets) && planets.length > 0) {
+    const weights = { Fire: 0, Earth: 0, Air: 0, Water: 0 };
+    let totalW = 0;
+    for (const p of planets) {
+      const sId = p.sign_id;
+      const elem = elemMap[sId];
+      if (!elem) continue;
+      const pl = p.planet || "";
+      let w = 1.0;
+      if (pl.includes("Ascendant") || pl.includes("Lagna")) w = 2.5;
+      else if (pl.includes("Moon")) w = 2.5;
+      else if (pl.includes("Sun")) w = 1.5;
+      else if (pl.includes("Rahu") || pl.includes("Ketu")) w = 0.5;
+      weights[elem] += w;
+      totalW += w;
+    }
+    if (totalW > 0) {
+      return {
+        Fire: Math.round((weights.Fire / totalW) * 100),
+        Earth: Math.round((weights.Earth / totalW) * 100),
+        Air: Math.round((weights.Air / totalW) * 100),
+        Water: Math.round((weights.Water / totalW) * 100)
+      };
+    }
+  }
+
+  // Fallback: parse from d?.constitution?.elements text string
+  const text = (d?.constitution?.elements || "") + " " + (d?.constitution?.ayurvedic_prakriti || "");
+  const fireMatch = text.match(/Fire\s*(\d+)%/i);
+  const earthMatch = text.match(/Earth\s*(\d+)%/i);
+  const airMatch = text.match(/Air\s*(\d+)%/i);
+  const waterMatch = text.match(/Water\s*(\d+)%/i);
+
+  if (fireMatch || earthMatch || airMatch || waterMatch) {
+    return {
+      Fire: fireMatch ? parseInt(fireMatch[1], 10) : 25,
+      Earth: earthMatch ? parseInt(earthMatch[1], 10) : 25,
+      Air: airMatch ? parseInt(airMatch[1], 10) : 25,
+      Water: waterMatch ? parseInt(waterMatch[1], 10) : 25
+    };
+  }
+
+  return { Fire: 25, Earth: 25, Air: 25, Water: 25 };
+}
+window.getElementalBreakdown = getElementalBreakdown;
+
+function scrollToWwhSection(e, id) {
+  if (e) {
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+  }
+  const target = document.getElementById(id);
+  if (!target) return;
+
+  if (id === "wwh-sec-proof" || id.endsWith("-sec-proof")) {
+    const content = target.querySelector(".wwh-proof-content");
+    const chevron = target.querySelector(".proof-chevron");
+    if (content && !content.classList.contains("open")) {
+      content.classList.add("open");
+      if (chevron) chevron.textContent = "▲";
+    }
+  }
+
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const container = target.closest(".what-why-how-container") || document;
+  const pills = container.querySelectorAll(".wwh-nav-pill");
+  pills.forEach((p) => p.classList.remove("active"));
+  if (e && e.currentTarget) {
+    e.currentTarget.classList.add("active");
+  }
+}
+window.scrollToWwhSection = scrollToWwhSection;
+
+function renderWhatWhyHowDeck(d) {
+  if (!d) return "";
+
+  const archetype = d.archetype || "The Grounded Seeker";
+  const verdict = d.summary_verdict || "";
+  const consti = d.constitution || {};
+  const traits = d.traits || {};
+  const theWhy = d.the_why || {};
+  const qualities = d.qualities || {};
+  const manual = d.operating_manual || {};
+  const levers = d.growth_levers || {};
+  const proof = d.astrological_proof || "";
+
+  const elems = getElementalBreakdown(d);
+  const totalElemPct = (elems.Fire + elems.Earth + elems.Air + elems.Water) || 100;
+  const firePct = Math.round((elems.Fire / totalElemPct) * 100);
+  const earthPct = Math.round((elems.Earth / totalElemPct) * 100);
+  const airPct = Math.round((elems.Air / totalElemPct) * 100);
+  const waterPct = Math.max(0, 100 - (firePct + earthPct + airPct));
+
+  let html = `<div class="what-why-how-container">`;
+
+  // 0. QUICK-JUMP MICRO-NAVIGATION
+  html += `
+    <nav class="wwh-sticky-nav">
+      <button type="button" class="wwh-nav-pill active" onclick="scrollToWwhSection(event, 'wwh-sec-identity')">Overview</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-traits')">Traits</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-why')">The Why</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-qualities')">Qualities</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-manual')">Operating Manual</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-levers')">Directives</button>
+      ${proof ? `<button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-proof')">Technical Proof</button>` : ""}
+    </nav>
+  `;
+
+  // 1. HERO IDENTITY CARD
+  html += `
+    <div class="wwh-hero-card" id="wwh-sec-identity">
+      <div class="wwh-section-tag">[IDENTITY BLUEPRINT]</div>
+      <h2 class="wwh-hero-title">WHAT, WHY AND HOW YOU ARE</h2>
+      ${verdict ? `<div class="wwh-verdict">"${escapeHtml(verdict)}"</div>` : ""}
+      
+      <div class="wwh-badges-row">
+        <span class="wwh-badge primary">ARCHETYPE: ${escapeHtml(archetype)}</span>
+        ${consti.elements ? `<span class="wwh-badge">${escapeHtml(consti.elements)}</span>` : ""}
+        ${consti.ayurvedic_prakriti ? `<span class="wwh-badge">${escapeHtml(consti.ayurvedic_prakriti)}</span>` : ""}
+      </div>
+
+      <div class="wwh-elements-bar-wrapper">
+        <div class="wwh-elements-bar-head">
+          <span class="wwh-elements-bar-title">CONSTITUTIONAL ELEMENT BALANCE</span>
+          <span class="wwh-elements-bar-ratio">Fire ${elems.Fire}% • Earth ${elems.Earth}% • Air ${elems.Air}% • Water ${elems.Water}%</span>
+        </div>
+        <div class="wwh-elements-progress-track">
+          <div class="wwh-elem-seg fire" style="flex: ${firePct};" title="Fire: ${elems.Fire}%"></div>
+          <div class="wwh-elem-seg earth" style="flex: ${earthPct};" title="Earth: ${elems.Earth}%"></div>
+          <div class="wwh-elem-seg air" style="flex: ${airPct};" title="Air: ${elems.Air}%"></div>
+          <div class="wwh-elem-seg water" style="flex: ${waterPct};" title="Water: ${elems.Water}%"></div>
+        </div>
+        <div class="wwh-elements-legend">
+          <div class="wwh-legend-item"><span class="wwh-legend-dot fire"></span>Fire (Initiative & Will)</div>
+          <div class="wwh-legend-item"><span class="wwh-legend-dot earth"></span>Earth (Structure & Execution)</div>
+          <div class="wwh-legend-item"><span class="wwh-legend-dot air"></span>Air (Intellect & Perspective)</div>
+          <div class="wwh-legend-item"><span class="wwh-legend-dot water"></span>Water (Instinct & Depth)</div>
+        </div>
+      </div>
+
+      <div class="wwh-triad-strip">
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">NATURAL INSTINCT</span>
+          <span class="wwh-triad-val">${escapeHtml(consti.natural_instinct_tag || consti.lagna_tag || "-")}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">EMOTIONAL CORE</span>
+          <span class="wwh-triad-val">${escapeHtml(consti.emotional_anchor_tag || consti.moon_tag || "-")}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">CORE DRIVE</span>
+          <span class="wwh-triad-val">${escapeHtml(consti.core_drive_tag || consti.sun_tag || "-")}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">DEEPEST HUNGER</span>
+          <span class="wwh-triad-val">${escapeHtml(consti.deepest_hunger_tag || consti.atmakaraka_tag || "-")}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 2. THE 4 TRAIT PILLARS (WHAT YOU ARE)
+  html += `
+    <div class="wwh-section-block" id="wwh-sec-traits">
+      <div class="wwh-section-header">
+        <span class="wwh-section-tag">[WHAT YOU ARE]</span>
+        <h3 class="wwh-section-title">Constitutional Traits & Wiring</h3>
+      </div>
+
+      <div class="wwh-traits-grid">
+        <!-- Physical -->
+        <div class="wwh-trait-card">
+          <div class="wwh-trait-head">
+            <span class="wwh-trait-label">[PHYSICAL & VITALITY]</span>
+          </div>
+          ${traits.physical?.bottom_line ? `<div class="wwh-trait-bottom-line">"${escapeHtml(traits.physical.bottom_line)}"</div>` : ""}
+          ${traits.physical?.headline ? `<h4 class="wwh-trait-headline">${escapeHtml(traits.physical.headline)}</h4>` : ""}
+          ${traits.physical?.description ? `<p class="wwh-trait-desc">${escapeHtml(traits.physical.description)}</p>` : ""}
+          ${Array.isArray(traits.physical?.key_points) && traits.physical.key_points.length ? `
+            <ul class="wwh-trait-bullets">
+              ${traits.physical.key_points.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
+            </ul>
+          ` : ""}
+        </div>
+
+        <!-- Emotional -->
+        <div class="wwh-trait-card">
+          <div class="wwh-trait-head">
+            <span class="wwh-trait-label">[EMOTIONAL ARCHITECTURE]</span>
+          </div>
+          ${traits.emotional?.bottom_line ? `<div class="wwh-trait-bottom-line">"${escapeHtml(traits.emotional.bottom_line)}"</div>` : ""}
+          ${traits.emotional?.headline ? `<h4 class="wwh-trait-headline">${escapeHtml(traits.emotional.headline)}</h4>` : ""}
+          ${traits.emotional?.description ? `<p class="wwh-trait-desc">${escapeHtml(traits.emotional.description)}</p>` : ""}
+          ${Array.isArray(traits.emotional?.key_points) && traits.emotional.key_points.length ? `
+            <ul class="wwh-trait-bullets">
+              ${traits.emotional.key_points.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
+            </ul>
+          ` : ""}
+        </div>
+
+        <!-- Mental -->
+        <div class="wwh-trait-card">
+          <div class="wwh-trait-head">
+            <span class="wwh-trait-label">[INTELLECT & PROBLEM-SOLVING]</span>
+          </div>
+          ${traits.mental?.bottom_line ? `<div class="wwh-trait-bottom-line">"${escapeHtml(traits.mental.bottom_line)}"</div>` : ""}
+          ${traits.mental?.headline ? `<h4 class="wwh-trait-headline">${escapeHtml(traits.mental.headline)}</h4>` : ""}
+          ${traits.mental?.description ? `<p class="wwh-trait-desc">${escapeHtml(traits.mental.description)}</p>` : ""}
+          ${Array.isArray(traits.mental?.key_points) && traits.mental.key_points.length ? `
+            <ul class="wwh-trait-bullets">
+              ${traits.mental.key_points.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
+            </ul>
+          ` : ""}
+        </div>
+
+        <!-- Social -->
+        <div class="wwh-trait-card">
+          <div class="wwh-trait-head">
+            <span class="wwh-trait-label">[SOCIAL RADAR & BOUNDARIES]</span>
+          </div>
+          ${traits.social?.bottom_line ? `<div class="wwh-trait-bottom-line">"${escapeHtml(traits.social.bottom_line)}"</div>` : ""}
+          ${traits.social?.headline ? `<h4 class="wwh-trait-headline">${escapeHtml(traits.social.headline)}</h4>` : ""}
+          ${traits.social?.description ? `<p class="wwh-trait-desc">${escapeHtml(traits.social.description)}</p>` : ""}
+          ${Array.isArray(traits.social?.key_points) && traits.social.key_points.length ? `
+            <ul class="wwh-trait-bullets">
+              ${traits.social.key_points.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
+            </ul>
+          ` : ""}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 3. THE WHY: INNER PARADOX & GROWTH ENGINE
+  html += `
+    <div class="wwh-section-block" id="wwh-sec-why">
+      <div class="wwh-section-header">
+        <span class="wwh-section-tag">[WHY YOU ARE]</span>
+        <h3 class="wwh-section-title">The Inner Paradox & Growth Engine</h3>
+      </div>
+
+      <div class="wwh-why-grid">
+        ${theWhy.inner_paradox ? `
+          <div class="wwh-why-card paradox">
+            <div class="wwh-why-tag">[INNER PARADOX]</div>
+            <div class="wwh-why-title">${escapeHtml(theWhy.inner_paradox.headline || theWhy.inner_paradox.title || "The Inner Paradox")}</div>
+            <p class="wwh-why-desc">${escapeHtml(theWhy.inner_paradox.explanation || "")}</p>
+          </div>
+        ` : ""}
+        ${theWhy.driving_hunger ? `
+          <div class="wwh-why-card hunger">
+            <div class="wwh-why-tag">[CORE HUNGER]</div>
+            <div class="wwh-why-title">${escapeHtml(theWhy.driving_hunger.headline || theWhy.driving_hunger.title || "Core Driving Motivation")}</div>
+            <p class="wwh-why-desc">${escapeHtml(theWhy.driving_hunger.explanation || "")}</p>
+          </div>
+        ` : ""}
+        ${(theWhy.comfort_zone_vs_growth_edge || theWhy.karmic_axis) ? `
+          <div class="wwh-why-card axis">
+            <div class="wwh-why-tag">[GROWTH AXIS]</div>
+            <div class="wwh-why-title">${escapeHtml(theWhy.comfort_zone_vs_growth_edge?.headline || theWhy.karmic_axis?.title || "Comfort Zone vs. Growth Edge")}</div>
+            ${theWhy.comfort_zone_vs_growth_edge?.comfort_zone ? `
+              <div class="wwh-karmic-split">
+                <div class="wwh-karmic-row">
+                  <span class="wwh-karmic-tag">[COMFORT TRAP]:</span>
+                  <span class="wwh-karmic-text">${escapeHtml(theWhy.comfort_zone_vs_growth_edge.comfort_zone)}</span>
+                </div>
+                <div class="wwh-karmic-row growth">
+                  <span class="wwh-karmic-tag growth">[GROWTH EDGE]:</span>
+                  <span class="wwh-karmic-text">${escapeHtml(theWhy.comfort_zone_vs_growth_edge.growth_edge)}</span>
+                </div>
+              </div>
+            ` : `<p class="wwh-why-desc">${escapeHtml(theWhy.karmic_axis?.explanation || "")}</p>`}
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+
+  // 4. QUALITIES: SUPERPOWERS VS SHADOWS
+  const superpowers = Array.isArray(qualities.superpowers) ? qualities.superpowers : [];
+  const shadows = Array.isArray(qualities.shadows) ? qualities.shadows : [];
+
+  if (superpowers.length || shadows.length) {
+    html += `
+      <div class="wwh-section-block" id="wwh-sec-qualities">
+        <div class="wwh-section-header">
+          <span class="wwh-section-tag">[QUALITIES BALANCE SHEET]</span>
+          <h3 class="wwh-section-title">Superpowers and Critical Shadows</h3>
+        </div>
+
+        <div class="wwh-qualities-split">
+          <!-- Superpowers Column -->
+          <div class="wwh-qualities-col superpowers">
+            <div class="wwh-qualities-col-header">
+              <span class="wwh-col-label">[+] CORE SUPERPOWERS & GIFTS</span>
+            </div>
+            <div class="wwh-qualities-list">
+              ${superpowers.map((sp, idx) => `
+                <div class="wwh-quality-item power">
+                  <div class="wwh-quality-title">${escapeHtml(sp.name || sp.title || `Gift ${idx + 1}`)}</div>
+                  <p class="wwh-quality-desc">${escapeHtml(sp.description || "")}</p>
+                  ${sp.manifestation ? `
+                    <div class="wwh-quality-context power">
+                      <span class="wwh-quality-context-tag">[REAL-WORLD TRIGGER]:</span> ${escapeHtml(sp.manifestation)}
+                    </div>
+                  ` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <!-- Shadows Column -->
+          <div class="wwh-qualities-col shadows">
+            <div class="wwh-qualities-col-header">
+              <span class="wwh-col-label">[-] SHADOWS & CRITICAL PITFALLS</span>
+            </div>
+            <div class="wwh-qualities-list">
+              ${shadows.map((sh, idx) => `
+                <div class="wwh-quality-item shadow">
+                  <div class="wwh-quality-title">${escapeHtml(sh.name || sh.title || `Shadow ${idx + 1}`)}</div>
+                  <p class="wwh-quality-desc">${escapeHtml(sh.description || "")}</p>
+                  ${sh.antidote ? `
+                    <div class="wwh-quality-context shadow">
+                      <span class="wwh-quality-context-tag">[IMMEDIATE ANTIDOTE]:</span> ${escapeHtml(sh.antidote)}
+                    </div>
+                  ` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 5. HOW YOU OPERATE: PERSONAL OPERATING MANUAL
+  html += `
+    <div class="wwh-section-block" id="wwh-sec-manual">
+      <div class="wwh-section-header">
+        <span class="wwh-section-tag">[HOW YOU OPERATE]</span>
+        <h3 class="wwh-section-title">Personal Operating Manual</h3>
+      </div>
+
+      <div class="wwh-manual-grid">
+        <!-- Stress Protocol -->
+        ${manual.stress_response ? `
+          <div class="wwh-manual-card stress">
+            <div class="wwh-manual-title">STRESS & BURNOUT PROTOCOL</div>
+            <div class="wwh-stress-row">
+              <span class="wwh-stress-tag">TRIGGER:</span>
+              <span class="wwh-stress-text">${escapeHtml(manual.stress_response.trigger || "-")}</span>
+            </div>
+            <div class="wwh-stress-row">
+              <span class="wwh-stress-tag">REACTION:</span>
+              <span class="wwh-stress-text">${escapeHtml(manual.stress_response.reaction || "-")}</span>
+            </div>
+            <div class="wwh-stress-row">
+              <span class="wwh-stress-tag">RECOVERY:</span>
+              <span class="wwh-stress-text">${escapeHtml(manual.stress_response.recovery || "-")}</span>
+            </div>
+          </div>
+        ` : ""}
+
+        <!-- Energizers & Drainers Split -->
+        <div class="wwh-manual-card energy">
+          <div class="wwh-manual-title">ENERGY DYNAMICS</div>
+          <div class="wwh-energy-split">
+            <div class="wwh-energy-subcol">
+              <span class="wwh-energy-label">[+] VITALITY ENERGIZERS</span>
+              <ul class="wwh-energy-list">
+                ${(manual.energizers || []).map(en => `<li>${escapeHtml(en)}</li>`).join("")}
+              </ul>
+            </div>
+            <div class="wwh-energy-subcol">
+              <span class="wwh-energy-label">[-] VITALITY DRAINERS</span>
+              <ul class="wwh-energy-list drainers">
+                ${(manual.drainers || []).map(dr => `<li>${escapeHtml(dr)}</li>`).join("")}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Decision Instinct -->
+        ${manual.decision_style ? `
+          <div class="wwh-manual-card decision">
+            <div class="wwh-manual-title">DECISION-MAKING INSTINCT</div>
+            <p class="wwh-decision-text">${escapeHtml(manual.decision_style)}</p>
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+
+  // 6. ACTIONABLE GROWTH LEVERS
+  html += `
+    <div class="wwh-section-block" id="wwh-sec-levers">
+      <div class="wwh-section-header">
+        <span class="wwh-section-tag">[GROWTH LEVERS]</span>
+        <h3 class="wwh-section-title">Evolutionary Directives</h3>
+      </div>
+
+      <div class="wwh-levers-grid">
+        <div class="wwh-lever-card golden">
+          <div class="wwh-lever-tag">[KEY LEVER]</div>
+          <div class="wwh-lever-title">The Single Multiplier Habit</div>
+          <p class="wwh-lever-desc">${escapeHtml(levers.golden_lever || "Focus on one high-leverage initiative at a time.")}</p>
+        </div>
+
+        <div class="wwh-lever-card unlearn">
+          <div class="wwh-lever-tag">[CRITICAL UNLEARN]</div>
+          <div class="wwh-lever-title">The Trap to Stop Immediately</div>
+          <p class="wwh-lever-desc">${escapeHtml(levers.habit_to_unlearn || "Assuming responsibility for outcomes outside your direct agency.")}</p>
+        </div>
+
+        <div class="wwh-lever-card anchor">
+          <div class="wwh-lever-tag">[DAILY ANCHOR]</div>
+          <div class="wwh-lever-title">Daily Grounding Anchor</div>
+          <p class="wwh-lever-desc">${escapeHtml(levers.grounding_practice || "Morning silence without digital stimulation.")}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 7. COLLAPSIBLE ASTROLOGICAL PROOF
+  if (proof) {
+    html += `
+      <div class="wwh-proof-accordion" id="wwh-sec-proof">
+        <button type="button" class="wwh-proof-toggle" onclick="toggleLifeProof(this)">
+          <span style="display:flex; align-items:center; gap:0.5rem;">
+            <strong>[+] Classical Astrological Footnotes & Technical Derivations</strong>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(Parashari • KP • Jaimini)</span>
+          </span>
+          <span class="proof-chevron">▼</span>
+        </button>
+        <div class="wwh-proof-content">
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; font-style:italic;">
+            Cross-system technical derivations reconciling BPHS planetary yogas and dignities, KP cuspal sub-lords 1–249, and Jaimini Chara Karakas.
+          </p>
+          <div class="markdown-body">
+            ${formatMarkdown(proof)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  html += `</div>`; // .what-why-how-container
+  return html;
+}
+window.renderWhatWhyHowDeck = renderWhatWhyHowDeck;
+
+function renderSchoolEyeDeck(d, schoolType) {
+  if (!d) return "";
+  const schoolKey = (schoolType || d.school || "parashari").toLowerCase();
+
+  const SCHOOL_METRIC_CONFIGS = {
+    parashari: {
+      name: "Parashari (BPHS)",
+      traditionTag: "[PARASHARI PERSPECTIVE • BPHS]",
+      accentClass: "school-parashari",
+      metric1Label: "RULING GRAHA",
+      metric1Val: d.metrics?.primary_ruling_graha || "-",
+      metric2Label: "D9 NAVAMSHA",
+      metric2Val: d.metrics?.d9_navamsha_affirmation || "-",
+      metric3Label: "FUNCTIONAL NATURE",
+      metric3Val: d.metrics?.functional_nature || "-",
+      metric4Label: "STRENGTH PROFILE",
+      metric4Val: d.metrics?.strength_profile || "-",
+      whatTag: "[WHAT YOU ARE • PARASHARI CONSTITUTION]",
+      whatTitle: "Planetary Constitution & Navamsha Temperament",
+      whyTag: "[WHY YOU ARE • YOGAS & DIGNITIES]",
+      whyTitle: "Inherent Structural Gifts vs. Karmic Tests",
+      howTag: "[HOW YOU OPERATE • VIMSHOTTARI RHYTHM]",
+      howTitle: "Dasha Operating Rhythm & Evolutionary Directives",
+      proofTitle: "Classical Parashari Footnotes & Technical Derivations",
+      proofSub: "Brihat Parashara Hora Shastra (BPHS) shloka references, D1/D9 degrees, Shadbala scores, and Vimshottari progression."
+    },
+    kp: {
+      name: "KP Stellar",
+      traditionTag: "[KP STELLAR PERSPECTIVE • 1-249 SUB-LORDS]",
+      accentClass: "school-kp",
+      metric1Label: "CUSP 1 SUB-LORD",
+      metric1Val: d.metrics?.cuspal_sub_lord_1 || "-",
+      metric2Label: "STAR-LORD LINK",
+      metric2Val: d.metrics?.star_lord_link || "-",
+      metric3Label: "SIGNIFIED HOUSES",
+      metric3Val: d.metrics?.primary_house_group || "-",
+      metric4Label: "NEGATING HOUSES",
+      metric4Val: d.metrics?.negating_houses || "-",
+      whatTag: "[WHAT YOU ARE • CUSPAL DECISION FILTER]",
+      whatTitle: "Cuspal Decision Filter & Instinctive Reflex",
+      whyTag: "[WHY YOU ARE • 4-FOLD SIGNIFICATORS]",
+      whyTitle: "Subconscious Star-Lord Linkages Driving Daily Action",
+      howTag: "[HOW YOU OPERATE • KP EVENT READINESS]",
+      howTitle: "Cuspal Operating Season & High-Fruition Directives",
+      proofTitle: "KP Stellar Technical Footnotes & Cuspal Coordinates",
+      proofSub: "Exact 1–249 cuspal degrees, Star-Lord/Sub-Lord/Sub-Sub-Lord hierarchies, and 4-fold A-D significator matrix."
+    },
+    jaimini: {
+      name: "Jaimini Sutras",
+      traditionTag: "[JAIMINI SUTRAS PERSPECTIVE • CHARA KARAKAS]",
+      accentClass: "school-jaimini",
+      metric1Label: "ATMAKARAKA (SOUL)",
+      metric1Val: d.metrics?.atmakaraka_soul || "-",
+      metric2Label: "AMATYAKARAKA (WORK)",
+      metric2Val: d.metrics?.amatyakaraka_career || "-",
+      metric3Label: "ARUDHA LAGNA (MASK)",
+      metric3Val: d.metrics?.arudha_lagna_mask || "-",
+      metric4Label: "CHARA DASHA",
+      metric4Val: d.metrics?.active_chara_dasha || "-",
+      whatTag: "[WHAT YOU ARE • SOUL VS. WORLDLY MASK]",
+      whatTitle: "Soul Essence vs. Worldly Perception",
+      whyTag: "[WHY YOU ARE • CHARA KARAKA COUNCIL]",
+      whyTitle: "Internal Soul Ministers & Manifested Reality",
+      howTag: "[HOW YOU OPERATE • CHARA DASHA SEASON]",
+      howTitle: "Rashi Dasha Season & Spiritual Directives",
+      proofTitle: "Jaimini Upadesha Sutras Footnotes & Karaka Degrees",
+      proofSub: "Chara Karaka replacement degrees, Arudha Pada exceptions, Rashi Drishti sign aspects, and Chara Dasha cycle."
+    }
+  };
+
+  const cfg = SCHOOL_METRIC_CONFIGS[schoolKey] || SCHOOL_METRIC_CONFIGS.parashari;
+  const archetype = d.archetype || "The Sovereign Architect";
+  const verdict = d.summary_verdict || "";
+  const whatYouAre = d.what_you_are || {};
+  const whatTraits = Array.isArray(whatYouAre.traits) ? whatYouAre.traits : (Array.isArray(d.traits) ? d.traits : []);
+  const whyYouAre = d.why_you_are || {};
+  const strengths = Array.isArray(whyYouAre.strengths) ? whyYouAre.strengths : [];
+  const frictions = Array.isArray(whyYouAre.friction_points) ? whyYouAre.friction_points : [];
+  const howYouOperate = d.how_you_operate || {};
+  const proof = d.astrological_proof || "";
+
+  let html = `<div class="what-why-how-container ${cfg.accentClass}">`;
+
+  // 0. QUICK-JUMP MICRO-NAVIGATION
+  html += `
+    <nav class="wwh-sticky-nav">
+      <button type="button" class="wwh-nav-pill active" onclick="scrollToWwhSection(event, '${schoolKey}-sec-identity')">Overview</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-what')">What You Are</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-why')">The Why</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-how')">How You Operate</button>
+      ${proof ? `<button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-proof')">Technical Proof</button>` : ""}
+    </nav>
+  `;
+
+  // 1. HERO IDENTITY CARD
+  html += `
+    <div class="wwh-hero-card" id="${schoolKey}-sec-identity">
+      <div class="wwh-section-tag">${cfg.traditionTag}</div>
+      <h2 class="wwh-hero-title">${escapeHtml(cfg.name.toUpperCase())} EVALUATION</h2>
+      ${verdict ? `<div class="wwh-verdict">"${escapeHtml(verdict)}"</div>` : ""}
+      
+      <div class="wwh-badges-row">
+        <span class="wwh-badge primary">ARCHETYPE: ${escapeHtml(archetype)}</span>
+        <span class="wwh-badge">TRADITION: ${escapeHtml(cfg.name)}</span>
+      </div>
+
+      <div class="wwh-triad-strip" style="margin-top: 1.25rem;">
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">${cfg.metric1Label}</span>
+          <span class="wwh-triad-val">${escapeHtml(cfg.metric1Val)}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">${cfg.metric2Label}</span>
+          <span class="wwh-triad-val">${escapeHtml(cfg.metric2Val)}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">${cfg.metric3Label}</span>
+          <span class="wwh-triad-val">${escapeHtml(cfg.metric3Val)}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">${cfg.metric4Label}</span>
+          <span class="wwh-triad-val">${escapeHtml(cfg.metric4Val)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 2. WHAT YOU ARE
+  html += `
+    <div class="wwh-section-block" id="${schoolKey}-sec-what">
+      <div class="wwh-section-header">
+        <span class="wwh-section-tag">${cfg.whatTag}</span>
+        <h3 class="wwh-section-title">${escapeHtml(whatYouAre.headline || cfg.whatTitle)}</h3>
+      </div>
+
+      <div class="wwh-trait-card" style="margin-bottom: 0;">
+        ${whatYouAre.bottom_line ? `<div class="wwh-trait-bottom-line" style="margin-bottom: 1rem;">"${escapeHtml(whatYouAre.bottom_line)}"</div>` : ""}
+        ${whatTraits.length ? `
+          <ul class="wwh-trait-bullets">
+            ${whatTraits.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
+          </ul>
+        ` : ""}
+      </div>
+    </div>
+  `;
+
+  // 3. WHY YOU ARE (CAUSAL ENGINE)
+  if (strengths.length || frictions.length) {
+    html += `
+      <div class="wwh-section-block" id="${schoolKey}-sec-why">
+        <div class="wwh-section-header">
+          <span class="wwh-section-tag">${cfg.whyTag}</span>
+          <h3 class="wwh-section-title">${escapeHtml(whyYouAre.headline || cfg.whyTitle)}</h3>
+        </div>
+
+        <div class="wwh-qualities-split">
+          <!-- Strengths / Advantages Column -->
+          <div class="wwh-qualities-col superpowers">
+            <div class="wwh-qualities-col-header">
+              <span class="wwh-col-label">[+] CORE GIFTS & STRATEGIC ADVANTAGES</span>
+            </div>
+            <div class="wwh-qualities-list">
+              ${strengths.map((sp, idx) => `
+                <div class="wwh-quality-item power">
+                  <div class="wwh-quality-title">${escapeHtml(sp.name || sp.title || `Advantage ${idx + 1}`)}</div>
+                  <p class="wwh-quality-desc">${escapeHtml(sp.description || "")}</p>
+                  ${sp.manifestation ? `
+                    <div class="wwh-quality-context power">
+                      <span class="wwh-quality-context-tag">[REAL-WORLD TRIGGER]:</span> ${escapeHtml(sp.manifestation)}
+                    </div>
+                  ` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <!-- Friction Points Column -->
+          <div class="wwh-qualities-col shadows">
+            <div class="wwh-qualities-col-header">
+              <span class="wwh-col-label">[-] FRICTION POINTS & CRITICAL BLINDSPOTS</span>
+            </div>
+            <div class="wwh-qualities-list">
+              ${frictions.map((fp, idx) => `
+                <div class="wwh-quality-item shadow">
+                  <div class="wwh-quality-title">${escapeHtml(fp.name || fp.title || `Friction ${idx + 1}`)}</div>
+                  <p class="wwh-quality-desc">${escapeHtml(fp.description || "")}</p>
+                  ${fp.antidote ? `
+                    <div class="wwh-quality-context shadow">
+                      <span class="wwh-quality-context-tag">[IMMEDIATE ANTIDOTE]:</span> ${escapeHtml(fp.antidote)}
+                    </div>
+                  ` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 4. HOW YOU OPERATE
+  html += `
+    <div class="wwh-section-block" id="${schoolKey}-sec-how">
+      <div class="wwh-section-header">
+        <span class="wwh-section-tag">${cfg.howTag}</span>
+        <h3 class="wwh-section-title">${escapeHtml(howYouOperate.headline || cfg.howTitle)}</h3>
+      </div>
+
+      <div class="wwh-manual-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+        ${howYouOperate.operating_dasha_rhythm ? `
+          <div class="wwh-manual-card decision">
+            <div class="wwh-manual-title">OPERATING LIFE SEASON & RHYTHM</div>
+            <p class="wwh-decision-text">${escapeHtml(howYouOperate.operating_dasha_rhythm)}</p>
+          </div>
+        ` : ""}
+
+        <div class="wwh-manual-card energy">
+          <div class="wwh-manual-title">VITALITY DYNAMICS</div>
+          <div class="wwh-energy-split">
+            <div class="wwh-energy-subcol">
+              <span class="wwh-energy-label">[+] PEAK ENERGIZER</span>
+              <p style="font-size:0.86rem; color:var(--text-secondary); margin-top:0.4rem; line-height:1.45;">
+                ${escapeHtml(howYouOperate.primary_energizer || "-")}
+              </p>
+            </div>
+            <div class="wwh-energy-subcol">
+              <span class="wwh-energy-label">[-] BURNOUT TRIGGER</span>
+              <p style="font-size:0.86rem; color:var(--text-secondary); margin-top:0.4rem; line-height:1.45;">
+                ${escapeHtml(howYouOperate.primary_burnout_trigger || "-")}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        ${howYouOperate.golden_directive ? `
+          <div class="wwh-lever-card golden" style="border-radius: var(--radius-md);">
+            <div class="wwh-lever-tag">[GOLDEN DIRECTIVE]</div>
+            <div class="wwh-lever-title">High-Leverage Multiplier</div>
+            <p class="wwh-lever-desc">${escapeHtml(howYouOperate.golden_directive)}</p>
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+
+  // 5. TECHNICAL PROOF ACCORDION
+  if (proof) {
+    html += `
+      <div class="wwh-proof-accordion" id="${schoolKey}-sec-proof">
+        <button type="button" class="wwh-proof-toggle" onclick="toggleLifeProof(this)">
+          <span style="display:flex; align-items:center; gap:0.5rem;">
+            <strong>[+] ${escapeHtml(cfg.proofTitle)}</strong>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(${escapeHtml(cfg.name)})</span>
+          </span>
+          <span class="proof-chevron">▼</span>
+        </button>
+        <div class="wwh-proof-content">
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; font-style:italic;">
+            ${escapeHtml(cfg.proofSub)}
+          </p>
+          <div class="markdown-body">
+            ${formatMarkdown(proof)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  html += `</div>`;
+  return html;
+}
+window.renderSchoolEyeDeck = renderSchoolEyeDeck;
+
+function renderSchoolEyeOutput(markdown, schoolType) {
+  if (!markdown) return "";
+  const { metadata, cleanMarkdown } = extractConfluenceMetadata(markdown);
+  if (metadata && (metadata.what_you_are || metadata.metrics || metadata.why_you_are || metadata.traits || metadata.archetype)) {
+    return renderSchoolEyeDeck(metadata, schoolType);
+  }
+  return formatMarkdown(cleanMarkdown || markdown);
+}
+window.renderSchoolEyeOutput = renderSchoolEyeOutput;
 
 function updateConfluenceCard(metadata) {
   const card = document.getElementById("ai-confluence-card");
@@ -2407,14 +3221,98 @@ function updateConfluenceCard(metadata) {
   if (barFill) barFill.style.width = `${score}%`;
 }
 
+function formatHumanReading(markdown, metadata) {
+  if (!markdown) return "";
+
+  const verdict = metadata ? (metadata.summary_verdict || metadata.headline || "") : "";
+
+  // Split technical footnotes if present
+  let mainText = markdown;
+  let technicalText = "";
+
+  const techMatch = markdown.match(/(?:^|\n)(?:##|###)\s*(?:Astrological Footnotes|Classical Astrological Verification|Astrological Foundations|Technical Derivations)[\s\S]*/i);
+  if (techMatch) {
+    technicalText = techMatch[0].trim();
+    mainText = markdown.slice(0, techMatch.index).trim();
+  }
+
+  let html = `<div class="human-reading-dossier">`;
+
+  // Hero headline banner if verdict is present
+  if (verdict) {
+    html += `
+      <div class="human-reading-hero">
+        <div class="human-reading-badge">✦ Personalized Vedic Consultation</div>
+        <h2 class="human-reading-verdict">${escapeHtml(verdict)}</h2>
+      </div>
+    `;
+  }
+
+  // Main consultation reading body
+  html += `<div class="human-reading-body">${formatMarkdown(mainText)}</div>`;
+
+  // Collapsible Technical Footnotes Accordion
+  if (technicalText) {
+    const cleanTech = technicalText.replace(/^(?:##|###)\s*(?:Astrological Footnotes|Classical Astrological Verification|Astrological Foundations|Technical Derivations)[^\n]*\n?/i, "").trim();
+    html += `
+      <div class="reading-proof-accordion">
+        <button type="button" class="reading-proof-toggle" onclick="toggleLifeProof(this)">
+          <span style="display:flex; align-items:center; gap:0.55rem;">
+            <strong>[+] Classical Astrological Footnotes & Technical Derivations</strong>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(Parashari • KP • Jaimini)</span>
+          </span>
+          <span class="proof-chevron">▼</span>
+        </button>
+        <div class="reading-proof-content">
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; font-style:italic;">
+            For astrologers and technical verification: How this reading was synthesized from exact mathematical Parashari yogas, KP cuspal sub-lords 1–249, and Jaimini Chara Karakas.
+          </p>
+          <div class="markdown-body">
+            ${formatMarkdown(cleanTech)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
 function renderSynthesisProgressive(markdown) {
   const { metadata, cleanMarkdown } = extractConfluenceMetadata(markdown);
   if (metadata) {
     updateConfluenceCard(metadata);
   }
   const box = document.getElementById("ai-synthesis-rendered");
-  if (box) {
-    box.innerHTML = formatMarkdown(cleanMarkdown);
+  if (!box) return;
+
+  if (metadata) {
+    if (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities) {
+      box.innerHTML = renderWhatWhyHowDeck(metadata);
+    } else {
+      box.innerHTML = formatHumanReading(cleanMarkdown, metadata);
+    }
+  } else {
+    const trimmed = (markdown || "").trim();
+    if (trimmed.startsWith("```json") || trimmed.startsWith("{")) {
+      box.innerHTML = `
+        <div class="ai-streaming-card" style="padding: 1.75rem; background: var(--bg-surface-elevated); border: 1px dashed var(--border-medium); border-radius: var(--radius-md);">
+          <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; color: var(--accent-primary); font-weight: 700;">
+            <span class="loading-spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>
+            <span>Synthesizing Deep Personal Vedic Life Reading...</span>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 1rem 0;">
+            Translating Parashari yogas, KP cuspal significators, and Jaimini Karakas into personal life insight, soul purpose, upcoming timing, and grounded guidance...
+          </p>
+          <div style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); opacity: 0.7; overflow: hidden; white-space: pre-wrap; max-height: 140px; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+            ${escapeHtml(trimmed.slice(-350))}
+          </div>
+        </div>
+      `;
+    } else if (trimmed) {
+      box.innerHTML = formatHumanReading(markdown, null);
+    }
   }
 }
 
@@ -2423,16 +3321,45 @@ function updateEyesRendered(eyes) {
   const kpBox = document.getElementById("ai-kp-rendered");
   const jBox = document.getElementById("ai-jaimini-rendered");
 
-  if (pBox && eyes.parashari) pBox.innerHTML = formatMarkdown(eyes.parashari);
-  if (kpBox && eyes.kp) kpBox.innerHTML = formatMarkdown(eyes.kp);
-  if (jBox && eyes.jaimini) jBox.innerHTML = formatMarkdown(eyes.jaimini);
+  if (pBox && eyes.parashari) pBox.innerHTML = renderSchoolEyeOutput(eyes.parashari, "parashari");
+  if (kpBox && eyes.kp) kpBox.innerHTML = renderSchoolEyeOutput(eyes.kp, "kp");
+  if (jBox && eyes.jaimini) jBox.innerHTML = renderSchoolEyeOutput(eyes.jaimini, "jaimini");
+}
+
+const PILLAR_CHAPTER_MAP = {
+  comprehensive: { chapter: 1, name: "What, Why and How You Are", title: "Identity Blueprint & Traits" },
+  career: { chapter: 3, name: "Career, Wealth & Professional Rise", title: "Career & Leadership Potential" },
+  relationships: { chapter: 4, name: "Relationships, Marriage & Compatibility", title: "Partnership & Intimacy Psychology" },
+  dasha: { chapter: 2, name: "Current Dasha & Future Timings", title: "Operating Life Season & Future Timings" },
+};
+
+function getActiveChartSignature() {
+  return `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.time_offset_seconds}_${state.ayanamsha}`;
+}
+
+function startAiButtonCooldown(seconds = 4) {
+  const btn = document.getElementById("ai-generate-synthesis-btn");
+  if (!btn) return;
+  let remaining = seconds;
+  btn.disabled = true;
+  btn.textContent = `✦ Ready in ${remaining}s`;
+  const interval = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(interval);
+      btn.disabled = false;
+      btn.textContent = "✦ Generate Synthesis ➔";
+    } else {
+      btn.textContent = `✦ Ready in ${remaining}s`;
+    }
+  }, 1000);
 }
 
 function renderAiConsultationWorkspace() {
   const d = state.currentData;
   if (!d) return;
 
-  const chartSig = `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.time_offset_seconds}_${state.ayanamsha}`;
+  const chartSig = getActiveChartSignature();
   
   // Update floating chat drawer subtitle
   const chatSub = document.getElementById("chat-capsule-subtitle");
@@ -2452,9 +3379,12 @@ function renderAiConsultationWorkspace() {
   }
 
   // Check if active pillar reading is cached
-  const cacheKey = `${chartSig}_${state.selected_pillar}_`;
+  const customQuery = document.getElementById("ai-custom-query-input")?.value.trim() || "";
+  const cacheKey = `${chartSig}_${state.selected_pillar}_${customQuery}`;
   if (state.ai_readings_cache[cacheKey]) {
     displayAiReading(state.ai_readings_cache[cacheKey]);
+  } else if (state.selected_pillar !== "comprehensive" && !customQuery && state.ai_readings_cache[`${chartSig}_comprehensive_`]) {
+    displayAiReadingFromComprehensive(state.ai_readings_cache[`${chartSig}_comprehensive_`], state.selected_pillar);
   }
 }
 
@@ -2464,14 +3394,67 @@ function selectAiPillar(pillar) {
     c.classList.toggle("active", c.dataset.pillar === pillar);
   });
 
-  const chartSig = `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.time_offset_seconds}_${state.ayanamsha}`;
+  const chartSig = getActiveChartSignature();
   const customQuery = document.getElementById("ai-custom-query-input")?.value.trim() || "";
   const cacheKey = `${chartSig}_${pillar}_${customQuery}`;
 
+  // 1. Direct hit on dedicated reading for this pillar
   if (state.ai_readings_cache[cacheKey]) {
     displayAiReading(state.ai_readings_cache[cacheKey]);
+    return;
+  }
+
+  // 2. If NO dedicated reading, but Comprehensive Master reading exists and no custom query:
+  //    Display the Comprehensive reading focused on this chapter with 0 API requests!
+  const compKey = `${chartSig}_comprehensive_`;
+  if (state.ai_readings_cache[compKey] && !customQuery && pillar !== "comprehensive") {
+    displayAiReadingFromComprehensive(state.ai_readings_cache[compKey], pillar);
+    return;
   }
 }
+
+function displayAiReadingFromComprehensive(readingData, pillar) {
+  updateEyesRendered(readingData.eyeVerdicts || {});
+
+  const { metadata, cleanMarkdown } = extractConfluenceMetadata(readingData.fullSynthesisMarkdown || "");
+  if (metadata) {
+    updateConfluenceCard(metadata);
+  }
+
+  const box = document.getElementById("ai-synthesis-rendered");
+  if (!box) return;
+
+  const info = PILLAR_CHAPTER_MAP[pillar] || { chapter: 1, name: pillar, title: pillar };
+  const bannerHtml = `
+    <div class="pillar-focus-banner">
+      <div class="pillar-focus-banner-text">
+        <span class="pillar-focus-badge">✦ Master Blueprint Dimension</span>
+        <h4 class="pillar-focus-title">Viewing Chapter ${info.chapter}: ${escapeHtml(info.name)}</h4>
+        <p class="pillar-focus-desc">Extracted instantly from your Comprehensive Reading without consuming API requests.</p>
+      </div>
+      <button type="button" class="pillar-focus-btn" onclick="triggerAiSynthesis(true)">
+        ✦ Generate Dedicated Deep-Dive
+      </button>
+    </div>
+  `;
+
+  if (metadata && (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities)) {
+    box.innerHTML = bannerHtml + renderWhatWhyHowDeck(metadata);
+  } else {
+    box.innerHTML = bannerHtml + formatHumanReading(cleanMarkdown, metadata);
+  }
+
+  // Smoothly scroll to chapter header and highlight it
+  setTimeout(() => {
+    const chEl = document.getElementById(`chapter-${info.chapter}`);
+    if (chEl) {
+      document.querySelectorAll(".reading-chapter-header").forEach(h => h.classList.remove("highlighted-chapter"));
+      chEl.classList.add("highlighted-chapter");
+      chEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, 100);
+}
+
 
 function selectAiPerspective(persp) {
   state.active_ai_persp = persp;
@@ -2494,7 +3477,7 @@ function displayAiReading(readingData) {
   renderSynthesisProgressive(readingData.fullSynthesisMarkdown || "");
 }
 
-async function triggerAiSynthesis() {
+async function triggerAiSynthesis(forceRefresh = false) {
   if (state.is_generating_synthesis) return;
   const d = state.currentData;
   if (!d) {
@@ -2507,10 +3490,21 @@ async function triggerAiSynthesis() {
   const customQuery = customQueryInput ? customQueryInput.value.trim() : "";
   const userKey = localStorage.getItem("trinetri_gemini_key") || "";
 
-  const chartSig = `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.time_offset_seconds}_${state.ayanamsha}`;
+  const chartSig = getActiveChartSignature();
   const cacheKey = `${chartSig}_${pillar}_${customQuery}`;
 
+  // If not forcing refresh and reading is already cached for this exact pillar + query, display immediately (0 API calls)
+  if (!forceRefresh && state.ai_readings_cache[cacheKey]) {
+    displayAiReading(state.ai_readings_cache[cacheKey]);
+    return;
+  }
+
   // UI loading states
+  if (state.synthesis_abort_controller) {
+    try { state.synthesis_abort_controller.abort(); } catch (_) {}
+  }
+  state.synthesis_abort_controller = new AbortController();
+
   state.is_generating_synthesis = true;
   const statusEl = document.getElementById("ai-synthesis-status");
   const statusText = document.getElementById("ai-synthesis-status-text");
@@ -2561,6 +3555,8 @@ async function triggerAiSynthesis() {
     pillar: pillar,
     custom_query: customQuery,
     user_api_key: userKey || null,
+    model: (localStorage.getItem("trinetri_gemini_model") && localStorage.getItem("trinetri_gemini_model") !== "auto") ? localStorage.getItem("trinetri_gemini_model") : null,
+    force_refresh: Boolean(forceRefresh),
   };
 
   try {
@@ -2568,6 +3564,7 @@ async function triggerAiSynthesis() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: state.synthesis_abort_controller.signal,
     });
 
     if (!res.ok) {
@@ -2611,6 +3608,15 @@ async function triggerAiSynthesis() {
             eyeVerdicts = JSON.parse(eventData);
             updateEyesRendered(eyeVerdicts);
           } catch (_) {}
+        } else if (eventName === "confluence") {
+          try {
+            const parsed = JSON.parse(eventData);
+            updateConfluenceCard({
+              confluence_score: parsed.score,
+              confluence_level: parsed.level,
+              summary_verdict: `Mathematically Verified: Parashari ${parsed.components.parashari}% • KP ${parsed.components.kp}% • Jaimini ${parsed.components.jaimini}%`,
+            });
+          } catch (_) {}
         } else if (eventName === "token") {
           try {
             const parsed = JSON.parse(eventData);
@@ -2644,6 +3650,10 @@ async function triggerAiSynthesis() {
     displayAiReading(readingData);
 
   } catch (err) {
+    if (err.name === "AbortError") {
+      console.log("AI synthesis aborted by user or navigation.");
+      return;
+    }
     console.error("AI synthesis failed:", err);
     let msg = err.message || "Failed to generate AI synthesis.";
     if (msg.includes("Gemini API Key is not configured") || msg.includes("API key not valid")) {
@@ -2652,21 +3662,19 @@ async function triggerAiSynthesis() {
     if (renderBox) {
       renderBox.innerHTML = `
         <div style="padding: 1.5rem; background: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 8px; color: #EF4444;">
-          <strong style="display: block; font-size: 1rem; margin-bottom: 0.35rem;">⚠️ Synthesis Generation Notice</strong>
+          <strong style="display: block; font-size: 1rem; margin-bottom: 0.35rem;">[SYNTHESIS NOTICE]</strong>
           <p style="margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.5;">${msg}</p>
           <button class="action-pill" onclick="openApiKeyModal()" style="margin-top: 0.75rem; background: var(--accent-primary); color: #000; font-weight: 700; border: none;">
-            ⚙️ Configure Gemini API Key
+            Configure Gemini API Key
           </button>
         </div>
       `;
     }
   } finally {
     state.is_generating_synthesis = false;
+    state.synthesis_abort_controller = null;
     if (statusEl) statusEl.style.display = "none";
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = "✦ Generate Synthesis ➔";
-    }
+    startAiButtonCooldown(4);
   }
 }
 
@@ -2674,6 +3682,7 @@ async function triggerAiSynthesis() {
 function openApiKeyModal() {
   const modal = document.getElementById("api-key-modal");
   const input = document.getElementById("input-custom-gemini-key");
+  const modelSel = document.getElementById("select-gemini-model");
   if (modal) {
     modal.classList.add("open");
   }
@@ -2683,6 +3692,9 @@ function openApiKeyModal() {
       input.focus();
       input.select();
     }, 100);
+  }
+  if (modelSel) {
+    modelSel.value = localStorage.getItem("trinetri_gemini_model") || "auto";
   }
   checkAiConfig();
 }
@@ -2703,21 +3715,26 @@ function toggleApiKeyVisibility() {
   if (!input) return;
   if (input.type === "password") {
     input.type = "text";
-    if (btn) btn.textContent = "🙈";
+    if (btn) btn.textContent = "Hide";
   } else {
     input.type = "password";
-    if (btn) btn.textContent = "👁️";
+    if (btn) btn.textContent = "Show";
   }
 }
 
 function saveApiKey() {
   const input = document.getElementById("input-custom-gemini-key");
+  const modelSel = document.getElementById("select-gemini-model");
   const val = input ? input.value.trim() : "";
+  const modelVal = modelSel ? modelSel.value : "auto";
+
   if (val) {
     localStorage.setItem("trinetri_gemini_key", val);
+    localStorage.setItem("trinetri_gemini_model", modelVal);
     showCopyToast("✓ Gemini API Key saved to browser storage!");
   } else {
     localStorage.removeItem("trinetri_gemini_key");
+    localStorage.removeItem("trinetri_gemini_model");
     showCopyToast("Custom Gemini API Key removed.");
   }
   closeApiKeyModal();
@@ -2726,8 +3743,11 @@ function saveApiKey() {
 
 function clearApiKey() {
   localStorage.removeItem("trinetri_gemini_key");
+  localStorage.removeItem("trinetri_gemini_model");
   const input = document.getElementById("input-custom-gemini-key");
   if (input) input.value = "";
+  const modelSel = document.getElementById("select-gemini-model");
+  if (modelSel) modelSel.value = "auto";
   showCopyToast("Gemini API Key cleared.");
   checkAiConfig();
 }
@@ -2736,38 +3756,59 @@ async function checkAiConfig() {
   const badge = document.getElementById("ai-key-status-badge");
   const headerDot = document.getElementById("header-api-dot");
   const serverInfo = document.getElementById("api-key-server-status-info");
+  const modelSel = document.getElementById("select-gemini-model");
   const userKey = localStorage.getItem("trinetri_gemini_key");
+  const userModel = localStorage.getItem("trinetri_gemini_model") || "auto";
 
   try {
-    const res = await fetch("/api/ai/config");
+    const res = await fetch("/api/ai/config", {
+      headers: userKey ? { "X-Gemini-Api-Key": userKey } : {},
+    });
     const data = await res.json();
     const hasServerKey = data.has_server_key;
+    const defaultModel = data.default_model || "gemini-3.5-flash-lite";
+    const available = data.available_models || [];
+
+    // If available models returned, populate select dropdown
+    if (modelSel && available.length > 0) {
+      const existingVals = new Set(Array.from(modelSel.options).map(o => o.value));
+      for (const m of available) {
+        if (!existingVals.has(m)) {
+          const opt = document.createElement("option");
+          opt.value = m;
+          opt.textContent = m;
+          modelSel.appendChild(opt);
+        }
+      }
+      modelSel.value = userModel;
+    }
 
     if (userKey) {
+      const displayModel = userModel === "auto" ? defaultModel : userModel;
       if (badge) {
         badge.className = "status-badge active";
         badge.style.backgroundColor = "";
         badge.style.color = "";
-        badge.innerHTML = '<span class="status-dot"></span> User Key Active';
+        badge.innerHTML = `<span class="status-dot"></span> User Key Active (${displayModel})`;
       }
       if (headerDot) {
         headerDot.style.background = "#10B981";
       }
       if (serverInfo) {
-        serverInfo.innerHTML = `✓ Custom key active in local browser storage. (Server default: ${hasServerKey ? "Available" : "None"})`;
+        serverInfo.innerHTML = `✓ Custom key active in local storage. Active model: <strong>${displayModel}</strong>. (Server default: ${hasServerKey ? "Available" : "None"})`;
       }
     } else if (hasServerKey) {
       if (badge) {
         badge.className = "status-badge active";
         badge.style.backgroundColor = "";
         badge.style.color = "";
-        badge.innerHTML = '<span class="status-dot"></span> Server Key Active';
+        badge.innerHTML = `<span class="status-dot"></span> Server Key Active (${defaultModel})`;
       }
       if (headerDot) {
         headerDot.style.background = "#10B981";
       }
       if (serverInfo) {
-        serverInfo.innerHTML = '✓ Using default server GEMINI_API_KEY. You may optionally enter your own personal key below.';
+        serverInfo.innerHTML = `✓ Using default server GEMINI_API_KEY. Active model: <strong>${defaultModel}</strong>. You may optionally enter your own personal key below.`;
       }
     } else {
       if (badge) {
@@ -2780,7 +3821,7 @@ async function checkAiConfig() {
         headerDot.style.background = "#F59E0B";
       }
       if (serverInfo) {
-        serverInfo.innerHTML = '⚠️ No Gemini API key detected on server. Please enter your Google Gemini API key below to enable AI readings.';
+        serverInfo.innerHTML = `No Gemini API key detected on server. Please enter your Google Gemini API key below to enable AI readings. (Default target: <code>${defaultModel}</code>)`;
       }
     }
   } catch (err) {
@@ -2808,18 +3849,217 @@ function copyAiSynthesis() {
   });
 }
 
+function buildMarkdownFromWhatWhyHow(d) {
+  if (!d) return "";
+  let md = `# WHAT, WHY AND HOW YOU ARE\n\n`;
+  if (d.summary_verdict) md += `> "${d.summary_verdict}"\n\n`;
+  if (d.archetype) md += `**Archetype**: ${d.archetype}\n`;
+  if (d.constitution) {
+    const c = d.constitution;
+    md += `**Constitution**: ${c.elements || "-"} | ${c.ayurvedic_prakriti || "-"}\n`;
+    md += `- Natural Instinct: ${c.natural_instinct_tag || c.lagna_tag || "-"}\n`;
+    md += `- Emotional Core: ${c.emotional_anchor_tag || c.moon_tag || "-"}\n`;
+    md += `- Core Drive: ${c.core_drive_tag || c.sun_tag || "-"}\n`;
+    md += `- Deepest Hunger: ${c.deepest_hunger_tag || c.atmakaraka_tag || "-"}\n\n`;
+  }
+  if (d.traits) {
+    md += `## 1. Constitutional Traits & Wiring\n\n`;
+    const tMap = { physical: "Physical & Vitality", emotional: "Emotional Architecture", mental: "Intellect & Problem-Solving", social: "Social Radar & Boundaries" };
+    for (const [key, label] of Object.entries(tMap)) {
+      const item = d.traits[key];
+      if (!item) continue;
+      md += `### ${label}\n`;
+      if (item.bottom_line) md += `> "${item.bottom_line}"\n\n`;
+      if (item.headline) md += `**${item.headline}**\n\n`;
+      if (item.description) md += `${item.description}\n\n`;
+      if (Array.isArray(item.key_points) && item.key_points.length) {
+        item.key_points.forEach(pt => { md += `- ${pt}\n`; });
+        md += `\n`;
+      }
+    }
+  }
+  if (d.the_why) {
+    md += `## 2. The Why: Inner Paradox & Growth Engine\n\n`;
+    if (d.the_why.inner_paradox) {
+      md += `### ${d.the_why.inner_paradox.headline || d.the_why.inner_paradox.title || "The Inner Paradox"}\n${d.the_why.inner_paradox.explanation || ""}\n\n`;
+    }
+    if (d.the_why.driving_hunger) {
+      md += `### ${d.the_why.driving_hunger.headline || d.the_why.driving_hunger.title || "Core Driving Motivation"}\n${d.the_why.driving_hunger.explanation || ""}\n\n`;
+    }
+    const karmic = d.the_why.comfort_zone_vs_growth_edge || d.the_why.karmic_axis;
+    if (karmic) {
+      md += `### ${karmic.headline || karmic.title || "Comfort Zone vs. Growth Edge"}\n`;
+      if (karmic.comfort_zone) {
+        md += `- **Comfort Trap**: ${karmic.comfort_zone}\n`;
+        md += `- **Growth Edge**: ${karmic.growth_edge}\n\n`;
+      } else {
+        md += `${karmic.explanation || ""}\n\n`;
+      }
+    }
+  }
+  if (d.qualities) {
+    md += `## 3. Qualities: Superpowers vs Shadows\n\n`;
+    if (Array.isArray(d.qualities.superpowers) && d.qualities.superpowers.length) {
+      md += `### Superpowers\n\n`;
+      d.qualities.superpowers.forEach(sp => {
+        md += `- **${sp.name || sp.title || "Superpower"}**: ${sp.description || ""}`;
+        if (sp.manifestation) md += ` *(Real-world: ${sp.manifestation})*`;
+        md += `\n`;
+      });
+      md += `\n`;
+    }
+    if (Array.isArray(d.qualities.shadows) && d.qualities.shadows.length) {
+      md += `### Shadows & Blindspots\n\n`;
+      d.qualities.shadows.forEach(sh => {
+        md += `- **${sh.name || sh.title || "Shadow"}**: ${sh.description || ""}`;
+        if (sh.antidote) md += ` *(Antidote: ${sh.antidote})*`;
+        md += `\n`;
+      });
+      md += `\n`;
+    }
+  }
+  if (d.operating_manual) {
+    const man = d.operating_manual;
+    md += `## 4. Personal Operating Manual\n\n`;
+    if (man.stress_response) {
+      md += `### Stress & Burnout Protocol\n`;
+      md += `- Trigger: ${man.stress_response.trigger || "-"}\n`;
+      md += `- Reaction: ${man.stress_response.reaction || "-"}\n`;
+      md += `- Recovery: ${man.stress_response.recovery || "-"}\n\n`;
+    }
+    if (Array.isArray(man.energizers) && man.energizers.length) {
+      md += `### Vitality Energizers\n`;
+      man.energizers.forEach(en => { md += `- [+] ${en}\n`; });
+      md += `\n`;
+    }
+    if (Array.isArray(man.drainers) && man.drainers.length) {
+      md += `### Vitality Drainers\n`;
+      man.drainers.forEach(dr => { md += `- [-] ${dr}\n`; });
+      md += `\n`;
+    }
+    if (man.decision_style) {
+      md += `### Decision Instinct\n${man.decision_style}\n\n`;
+    }
+  }
+  if (d.growth_levers) {
+    const gl = d.growth_levers;
+    md += `## 5. Evolutionary Growth Levers\n\n`;
+    if (gl.golden_lever) md += `- **The Single Multiplier Habit**: ${gl.golden_lever}\n`;
+    if (gl.habit_to_unlearn) md += `- **The Critical Unlearn**: ${gl.habit_to_unlearn}\n`;
+    if (gl.grounding_practice) md += `- **Daily Grounding Anchor**: ${gl.grounding_practice}\n`;
+    md += `\n`;
+  }
+  if (d.astrological_proof) {
+    md += `## 6. Classical Astrological Footnotes & Technical Derivations\n\n${d.astrological_proof}\n`;
+  }
+  return md;
+}
+
+function buildSchoolEyeMarkdown(d, schoolType) {
+  if (!d) return "";
+  const schoolNames = { parashari: "Parashari (BPHS)", kp: "KP Stellar", jaimini: "Jaimini Sutras" };
+  const sName = schoolNames[schoolType] || (schoolType ? schoolType.toUpperCase() : "VEDIC EYE");
+  let md = `# ${sName.toUpperCase()} EVALUATION\n\n`;
+  if (d.summary_verdict) md += `> "${d.summary_verdict}"\n\n`;
+  if (d.archetype) md += `**Archetype**: ${d.archetype}\n\n`;
+  if (d.metrics) {
+    md += `## Astrological Metrics\n\n`;
+    for (const [k, v] of Object.entries(d.metrics)) {
+      md += `- **${k.replace(/_/g, " ").toUpperCase()}**: ${v}\n`;
+    }
+    md += `\n`;
+  }
+  if (d.what_you_are) {
+    md += `## 1. What You Are\n\n`;
+    if (d.what_you_are.headline) md += `**${d.what_you_are.headline}**\n\n`;
+    if (d.what_you_are.bottom_line) md += `> "${d.what_you_are.bottom_line}"\n\n`;
+    const traits = Array.isArray(d.what_you_are.traits) ? d.what_you_are.traits : [];
+    if (traits.length) {
+      traits.forEach(t => { md += `- ${t}\n`; });
+      md += `\n`;
+    }
+  }
+  if (d.why_you_are) {
+    md += `## 2. Why You Are\n\n`;
+    if (d.why_you_are.headline) md += `**${d.why_you_are.headline}**\n\n`;
+    const strengths = Array.isArray(d.why_you_are.strengths) ? d.why_you_are.strengths : [];
+    if (strengths.length) {
+      md += `### Core Gifts & Strategic Advantages\n\n`;
+      strengths.forEach(s => {
+        md += `- **${s.name || "Gift"}**: ${s.description || ""}`;
+        if (s.manifestation) md += ` *(Real-world: ${s.manifestation})*`;
+        md += `\n`;
+      });
+      md += `\n`;
+    }
+    const frictions = Array.isArray(d.why_you_are.friction_points) ? d.why_you_are.friction_points : [];
+    if (frictions.length) {
+      md += `### Friction Points & Blindspots\n\n`;
+      frictions.forEach(f => {
+        md += `- **${f.name || "Friction"}**: ${f.description || ""}`;
+        if (f.antidote) md += ` *(Antidote: ${f.antidote})*`;
+        md += `\n`;
+      });
+      md += `\n`;
+    }
+  }
+  if (d.how_you_operate) {
+    md += `## 3. How You Operate\n\n`;
+    const h = d.how_you_operate;
+    if (h.headline) md += `**${h.headline}**\n\n`;
+    if (h.operating_dasha_rhythm) md += `- **Operating Life Season**: ${h.operating_dasha_rhythm}\n`;
+    if (h.primary_energizer) md += `- **Peak Energizer**: ${h.primary_energizer}\n`;
+    if (h.primary_burnout_trigger) md += `- **Burnout Trigger**: ${h.primary_burnout_trigger}\n`;
+    if (h.golden_directive) md += `- **Golden Directive**: ${h.golden_directive}\n`;
+    md += `\n`;
+  }
+  if (d.astrological_proof) {
+    md += `## 4. Technical Astrological Proof\n\n${d.astrological_proof}\n`;
+  }
+  return md;
+}
+
 function downloadAiSynthesis() {
   const chartSig = `${state.year}-${state.month}-${state.day}_${state.city}`;
   const customQuery = document.getElementById("ai-custom-query-input")?.value.trim() || "";
   const cacheKey = `${chartSig}_${state.selected_pillar}_${customQuery}`;
   const cached = state.ai_readings_cache[cacheKey];
-  const content = cached ? cached.fullSynthesisMarkdown : (document.getElementById("ai-synthesis-rendered")?.innerText || "");
+  const activePersp = state.active_ai_persp || "synthesis";
+
+  let content = "";
+  let filename = `TrinetriAI_${state.selected_pillar}_${chartSig}.md`;
+
+  if (activePersp !== "synthesis") {
+    filename = `TrinetriAI_${activePersp.toUpperCase()}_${state.selected_pillar}_${chartSig}.md`;
+    const eyeRaw = cached?.eyeVerdicts?.[activePersp];
+    if (eyeRaw) {
+      const { metadata } = extractConfluenceMetadata(eyeRaw);
+      if (metadata && (metadata.what_you_are || metadata.metrics || metadata.why_you_are || metadata.traits)) {
+        content = buildSchoolEyeMarkdown(metadata, activePersp);
+      } else {
+        content = eyeRaw;
+      }
+    } else {
+      content = document.getElementById(`ai-${activePersp}-rendered`)?.innerText || "";
+    }
+  } else {
+    if (cached && cached.fullSynthesisMarkdown) {
+      const { metadata } = extractConfluenceMetadata(cached.fullSynthesisMarkdown);
+      if (metadata && (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities)) {
+        content = buildMarkdownFromWhatWhyHow(metadata);
+      } else {
+        content = cached.fullSynthesisMarkdown;
+      }
+    } else {
+      content = document.getElementById("ai-synthesis-rendered")?.innerText || "";
+    }
+  }
   
   const blob = new Blob([content], { type: "text/markdown" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `TrinetriAI_${state.selected_pillar}_${chartSig}.md`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -2932,7 +4172,13 @@ async function sendChatMessage() {
     },
     messages: state.chat_messages,
     user_api_key: userKey || null,
+    model: (localStorage.getItem("trinetri_gemini_model") && localStorage.getItem("trinetri_gemini_model") !== "auto") ? localStorage.getItem("trinetri_gemini_model") : null,
   };
+
+  if (state.chat_abort_controller) {
+    try { state.chat_abort_controller.abort(); } catch (_) {}
+  }
+  state.chat_abort_controller = new AbortController();
 
   let assistantResponse = "";
 
@@ -2941,6 +4187,7 @@ async function sendChatMessage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: state.chat_abort_controller.signal,
     });
 
     if (!res.ok) {
@@ -2990,8 +4237,16 @@ async function sendChatMessage() {
     }
 
     state.chat_messages.push({ role: "assistant", content: assistantResponse });
+    // Keep max 20 messages in active session memory
+    if (state.chat_messages.length > 20) {
+      state.chat_messages = state.chat_messages.slice(-20);
+    }
 
   } catch (err) {
+    if (err.name === "AbortError") {
+      console.log("Chat generation cancelled.");
+      return;
+    }
     console.error("Chat error:", err);
     let errMsg = err.message || "Failed to get response.";
     if (errMsg.includes("Gemini API Key is not configured") || errMsg.includes("API key not valid")) {
@@ -3000,6 +4255,7 @@ async function sendChatMessage() {
     aiBubble.innerHTML = `<span style="color: #EF4444; line-height: 1.5; display: block;">⚠️ ${errMsg}</span>`;
   } finally {
     state.is_sending_chat = false;
+    state.chat_abort_controller = null;
   }
 }
 
@@ -3009,6 +4265,7 @@ window.downloadAiSynthesis = downloadAiSynthesis;
 window.openApiKeyModal = openApiKeyModal;
 window.closeApiKeyModal = closeApiKeyModal;
 window.triggerAiSynthesis = triggerAiSynthesis;
+window.toggleLifeProof = toggleLifeProof;
 
 // --- Initialization & Event Listeners ---
 

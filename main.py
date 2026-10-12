@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -43,7 +43,13 @@ from engines.functional import FunctionalNatureEngine
 from engines.strength import PlanetaryStrengthEngine
 from engines.ai_context import AIContextEngine
 from engines.trinetri_orchestrator import TrinetriOrchestrator
-from services.llm import get_effective_api_key, DEFAULT_MODEL, FALLBACK_MODEL
+from services.llm import (
+    get_effective_api_key,
+    DEFAULT_MODEL,
+    FALLBACK_MODEL,
+    PREFERRED_MODELS,
+    discover_available_models,
+)
 from schemas.models import BirthInput, GeoLocationModel, UnifiedChartData
 from visualizers.ashtakavarga_svg import generate_ashtakavarga_svg
 from visualizers.north_indian_svg import generate_north_indian_svg
@@ -114,12 +120,15 @@ class AISynthesizeRequest(BaseModel):
     pillar: str = Field(default="comprehensive")
     custom_query: Optional[str] = Field(default=None)
     user_api_key: Optional[str] = Field(default=None)
+    model: Optional[str] = Field(default=None)
+    force_refresh: bool = Field(default=False)
 
 
 class AIChatRequest(BaseModel):
     chart_params: ChartCalculationRequest
     messages: List[Dict[str, str]] = Field(default_factory=list)
     user_api_key: Optional[str] = Field(default=None)
+    model: Optional[str] = Field(default=None)
 
 
 # --- Chart Calculation Pipeline ---
@@ -880,14 +889,21 @@ def get_ai_dossier(req: ChartCalculationRequest):
 
 
 @app.get("/api/ai/config")
-def get_ai_config():
-    """Returns AI configuration status (whether a server API key is configured)."""
+async def get_ai_config(x_gemini_api_key: Optional[str] = Header(default=None)):
+    """Returns AI configuration status (whether a server API key is configured and supported models)."""
     server_key = get_effective_api_key()
+    api_key = x_gemini_api_key
+    effective_key = api_key.strip() if (api_key and api_key.strip()) else server_key
+    available_models: List[str] = []
+    if effective_key:
+        available_models = await discover_available_models(effective_key)
     return {
         "status": "success",
         "has_server_key": bool(server_key),
         "default_model": DEFAULT_MODEL,
         "fallback_model": FALLBACK_MODEL,
+        "preferred_models": PREFERRED_MODELS,
+        "available_models": available_models,
     }
 
 
@@ -902,6 +918,8 @@ async def ai_synthesize(req: AISynthesizeRequest):
                 pillar=req.pillar,
                 custom_query=req.custom_query or "",
                 api_key=req.user_api_key,
+                model=req.model,
+                force_refresh=req.force_refresh,
             ),
             media_type="text/event-stream",
             headers={
@@ -924,6 +942,7 @@ async def ai_chat(req: AIChatRequest):
                 data=data,
                 messages=req.messages,
                 api_key=req.user_api_key,
+                model=req.model,
             ),
             media_type="text/event-stream",
             headers={

@@ -552,8 +552,13 @@ def test_ai_config_endpoint():
     data = response.json()
     assert data["status"] == "success"
     assert "has_server_key" in data
-    assert "default_model" in data
-    assert "fallback_model" in data
+    assert data["default_model"] == "gemini-3.5-flash-lite"
+    assert data["fallback_model"] == "gemini-3.8-flash"
+    assert "preferred_models" in data
+    assert "gemini-3.5-flash-lite" in data["preferred_models"]
+    assert "gemini-3.8-flash" in data["preferred_models"]
+    assert len(data["preferred_models"]) == 2
+    assert "available_models" in data
 
 
 def test_orchestrator_fact_slicers():
@@ -593,6 +598,27 @@ def test_orchestrator_fact_slicers():
     assert "Chara Karakas" in j_facts
     assert "Arudha Padas" in j_facts
     assert "Chara Dasha" in j_facts
+
+    # Ground-truth matrix methods
+    houses_matrix = TrinetriOrchestrator.build_houses_matrix(data)
+    assert "12 Bhavas (Houses) Ground-Truth" in houses_matrix
+    assert "H1" in houses_matrix and "H12" in houses_matrix
+
+    dasha_timeline = TrinetriOrchestrator.build_dasha_timeline(data)
+    assert "Vimshottari Dasha Chronology" in dasha_timeline
+
+    transits_summary = TrinetriOrchestrator.build_transits_summary(data)
+    assert "Real-Time Live Transits in the Sky" in transits_summary
+    assert "Saturn" in transits_summary
+
+    aspects_summary = TrinetriOrchestrator.build_aspects_summary(data)
+    assert "Verified Planetary Aspects" in aspects_summary
+
+    full_matrix = TrinetriOrchestrator.build_full_ground_truth_matrix(data)
+    assert "Natal Baseline & Functional Roles" in full_matrix
+    assert "12 Bhavas (Houses) Ground-Truth" in full_matrix
+    assert "Natal Planetary Placements, Dignities & Strengths" in full_matrix
+    assert "KP Cuspal Sub-Lords (CSL) Table" in full_matrix
 
 
 def test_ai_synthesize_endpoint_validation():
@@ -664,3 +690,104 @@ def test_api_key_modal_and_entry_points():
     assert "btn-save-api-key" in html
     assert "btn-clear-api-key" in html
     assert "input-custom-gemini-key" in html
+    assert "select-gemini-model" in html
+
+
+def test_dossier_includes_d9_and_kp_significators():
+    """Verify that AIDossierReport includes D9 Navamsha and KP 4-fold significators."""
+    payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+    }
+    resp = client.post("/api/ai/dossier", json=payload)
+    assert resp.status_code == 200
+    dossier = resp.json()["ai_dossier"]
+    md = dossier["markdown_dossier"]
+    assert "D9 Navamsha" in md
+    assert "Vargottama" in md
+    assert "KP 4-Fold Planetary Significators" in md
+    assert "Level A" in md and "Level B" in md and "Level C" in md and "Level D" in md
+
+    # Check structured payload
+    structured_planets = dossier["structured_payload"]["planets"]
+    sun_data = next(p for p in structured_planets if p["planet"] == "Sun")
+    assert "d9_sign" in sun_data
+    assert sun_data["is_vargottama"] is True
+
+
+def test_deterministic_confluence_scoring():
+    """Verify that TrinetriOrchestrator computes deterministic confluence across the three eyes."""
+    from engines.trinetri_orchestrator import TrinetriOrchestrator
+
+    payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+    }
+    resp = client.post("/api/calculate", json=payload)
+    assert resp.status_code == 200
+    chart_data = resp.json()
+
+    confluence = TrinetriOrchestrator.calculate_triangulated_confluence(chart_data, pillar="career")
+    assert "score" in confluence
+    assert 40 <= confluence["score"] <= 98
+    assert confluence["level"] in ("Triple Confluence", "Double Confluence", "Karmic Tension")
+    assert "components" in confluence
+    assert "parashari" in confluence["components"]
+    assert "kp" in confluence["components"]
+    assert "jaimini" in confluence["components"]
+
+
+def test_three_eyes_wwh_deck_assets_and_prompts():
+    """Verify that Three Eyes WWH system prompts and frontend renderers are fully configured."""
+    from prompts.parashari_prompt import EYE_1_PARASHARI_WWH_SYSTEM_PROMPT
+    from prompts.kp_prompt import EYE_2_KP_WWH_SYSTEM_PROMPT
+    from prompts.jaimini_prompt import EYE_3_JAIMINI_WWH_SYSTEM_PROMPT
+    import re
+
+    # 1. Prompts existence and key directives
+    for prompt_text in [EYE_1_PARASHARI_WWH_SYSTEM_PROMPT, EYE_2_KP_WWH_SYSTEM_PROMPT, EYE_3_JAIMINI_WWH_SYSTEM_PROMPT]:
+        assert "ZERO EMOJIS" in prompt_text
+        assert "TUESDAY MORNING TEST" in prompt_text
+        assert '"archetype":' in prompt_text
+        assert '"summary_verdict":' in prompt_text
+        assert '"metrics":' in prompt_text
+        assert '"what_you_are":' in prompt_text
+        assert '"why_you_are":' in prompt_text
+        assert '"how_you_operate":' in prompt_text
+        assert '"astrological_proof":' in prompt_text
+        # Ensure zero emoji characters in prompt text
+        emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]", flags=re.UNICODE)
+        assert not emoji_pattern.search(prompt_text), "Found emoji in system prompt!"
+
+    # 2. Check app.js exports and functions
+    with open("frontend/js/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+    assert "function renderSchoolEyeDeck(" in js
+    assert "function renderSchoolEyeOutput(" in js
+    assert "function buildSchoolEyeMarkdown(" in js
+    assert "updateEyesRendered" in js
+
+    # 3. Check style.css school accent classes
+    with open("frontend/css/style.css", "r", encoding="utf-8") as f:
+        css = f.read()
+    assert ".what-why-how-container.school-parashari" in css
+    assert ".what-why-how-container.school-kp" in css
+    assert ".what-why-how-container.school-jaimini" in css
+
+

@@ -1000,16 +1000,16 @@
             <span class="status-dot"></span> Checking API...
           </span>
           <button id="btn-open-api-key-modal" class="action-pill" style="font-size: 0.75rem;" title="Configure Gemini API Key">
-            ⚙️ API Key
+            API Key
           </button>
         </div>
       </div>
 
       <!-- Parameter Update Invalidation Alert Banner -->
       <div id="ai-stale-banner" class="ai-stale-banner" style="display: none;">
-        <span>⚡ Chart parameters updated. Click to generate fresh synthesis for the active chart.</span>
+        <span>Chart parameters updated. Click to generate fresh synthesis for the active chart.</span>
         <button id="btn-recalc-synthesis" class="action-pill" style="background: var(--accent-primary); color: #000; font-weight: 700; border: none;">
-          ✦ Regenerate Reading
+          Regenerate Reading
         </button>
       </div>
 
@@ -1023,16 +1023,16 @@
         <div class="ai-pillars-grid">
           <!-- Pillar 1 -->
           <div class="ai-pillar-card active" data-pillar="comprehensive">
-            <div class="ai-pillar-icon">🌟</div>
-            <div class="ai-pillar-title">Comprehensive Life Synthesis</div>
+            <div class="ai-pillar-icon" style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 800; color: var(--accent-primary);">01</div>
+            <div class="ai-pillar-title">What, Why and How You Are</div>
             <div class="ai-pillar-desc">
-              Karmic canvas, soul trajectory, dominant strengths, major obstacles, and dasha lifecycle.
+              Physical, emotional, and mental traits, internal paradoxes, superpowers, blindspots, and personal operating manual.
             </div>
           </div>
 
           <!-- Pillar 2 -->
           <div class="ai-pillar-card" data-pillar="career">
-            <div class="ai-pillar-icon">💼</div>
+            <div class="ai-pillar-icon" style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 800; color: var(--accent-primary);">02</div>
             <div class="ai-pillar-title">Career, Wealth & Professional Rise</div>
             <div class="ai-pillar-desc">
               10th/2nd/11th cusps, D10 Dasamsa, KP 2/6/10/11 sub-lords, Amatyakaraka & financial surge windows.
@@ -1041,7 +1041,7 @@
 
           <!-- Pillar 3 -->
           <div class="ai-pillar-card" data-pillar="relationships">
-            <div class="ai-pillar-icon">❤️</div>
+            <div class="ai-pillar-icon" style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 800; color: var(--accent-primary);">03</div>
             <div class="ai-pillar-title">Relationships & Marriage</div>
             <div class="ai-pillar-desc">
               7th house/cusp, D9 Navamsha, Darakaraka, Upapada Lagna (UL), marital stability & timing.
@@ -1050,7 +1050,7 @@
 
           <!-- Pillar 4 -->
           <div class="ai-pillar-card" data-pillar="dasha">
-            <div class="ai-pillar-icon">⏳</div>
+            <div class="ai-pillar-icon" style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 800; color: var(--accent-primary);">04</div>
             <div class="ai-pillar-title">Current Dasha & Upcoming Shifts</div>
             <div class="ai-pillar-desc">
               Active Vimshottari MD/AD/PD + Active Chara Dasha + immediate Gochar planetary transit triggers.
@@ -1069,7 +1069,7 @@
             />
           </div>
           <button id="ai-generate-synthesis-btn" class="btn-hero-primary" style="padding: 0.65rem 1.5rem; font-size: 0.9rem; flex-shrink: 0;">
-            ✦ Generate Synthesis ➔
+            Generate Synthesis ➔
           </button>
         </div>
       </div>
@@ -1081,26 +1081,26 @@
         <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
           <div class="ai-perspective-tabs">
             <button class="ai-persp-btn active" data-persp="synthesis">
-              ✦ Maha-Synthesis
+              Maha-Synthesis
             </button>
             <button class="ai-persp-btn" data-persp="parashari">
-              👁️ Parashari (BPHS)
+              Parashari (BPHS)
             </button>
             <button class="ai-persp-btn" data-persp="kp">
-              👁️ KP Stellar
+              KP Stellar
             </button>
             <button class="ai-persp-btn" data-persp="jaimini">
-              👁️ Jaimini Sutras
+              Jaimini Sutras
             </button>
           </div>
 
           <!-- Action buttons -->
           <div style="display: flex; gap: 0.5rem; align-items: center; margin-left: auto;">
             <button id="btn-copy-synthesis" class="action-pill" onclick="copyAiSynthesis()" title="Copy current reading">
-              📋 Copy
+              Copy
             </button>
             <button id="btn-download-synthesis" class="action-pill" onclick="downloadAiSynthesis()" title="Download reading as Markdown">
-              ⬇ Download .md
+              Download .md
             </button>
           </div>
         </div>
@@ -1134,7 +1134,7 @@
           <div id="persp-view-synthesis" class="persp-view active">
             <div id="ai-synthesis-rendered" class="markdown-body">
               <div class="ai-empty-placeholder">
-                <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">🔱</span>
+                <div style="font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.1em; color: var(--accent-primary); margin-bottom: 0.5rem; text-transform: uppercase;">[TRINETRI AI]</div>
                 <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">Trinetri Multi-Agent Astrological Synthesis</h3>
                 <p>Select a consultation focus above and click <strong>Generate Synthesis</strong> to awaken the Three Eyes (Parashari, KP, and Jaimini) and receive a unified, zero-hallucination reading.</p>
               </div>
@@ -1504,8 +1504,8 @@
             <button id="btn-tab-dossier-json" class="dossier-tab-btn" onclick="switchDossierTab('json')">Structured JSON</button>
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <button id="btn-copy-dossier" class="action-pill primary-action-pill" onclick="copyAiDossier()" title="Copy active dossier view to clipboard">📋 Copy to Clipboard</button>
-            <button id="btn-download-dossier" class="action-pill" onclick="downloadAiDossier()" title="Download as .md file">⬇ Download .md</button>
+            <button id="btn-copy-dossier" class="action-pill primary-action-pill" onclick="copyAiDossier()" title="Copy active dossier view to clipboard">Copy to Clipboard</button>
+            <button id="btn-download-dossier" class="action-pill" onclick="downloadAiDossier()" title="Download as .md file">Download .md</button>
           </div>
         </div>
 
@@ -1542,8 +1542,8 @@
         </div>
       </div>
       <div class="chat-drawer-actions">
-        <button id="chat-api-key-btn" class="chat-icon-btn" title="Configure Gemini API Key">⚙️</button>
-        <button id="chat-clear-btn" class="chat-icon-btn" title="Clear Conversation">🗑️</button>
+        <button id="chat-api-key-btn" class="chat-icon-btn" title="Configure Gemini API Key" style="font-size: 0.75rem; font-weight: 700;">KEY</button>
+        <button id="chat-clear-btn" class="chat-icon-btn" title="Clear Conversation" style="font-size: 0.75rem; font-weight: 700;">CLR</button>
         <button id="chat-minimize-btn" class="chat-icon-btn" title="Minimize Chat">—</button>
         <button id="chat-close-btn" class="chat-icon-btn" title="Close Chat">✕</button>
       </div>
@@ -1551,7 +1551,7 @@
 
     <!-- Re-anchor Notice (Shown if chart parameters change mid-chat) -->
     <div id="chat-reanchor-banner" class="chat-reanchor-banner" style="display: none;">
-      ⚡ Chart updated. Subsequent questions will reflect revised coordinates.
+      Chart updated. Subsequent questions will reflect revised coordinates.
     </div>
 
     <!-- Messages Container -->
@@ -1596,18 +1596,27 @@
               class="form-input" 
               placeholder="AIzaSy..." 
               autocomplete="off"
-              style="padding-right: 2.5rem; width: 100%;"
+              style="padding-right: 3rem; width: 100%;"
             />
             <button 
               type="button" 
               id="btn-toggle-key-visibility" 
-              style="position: absolute; right: 0.5rem; background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 0.25rem; font-size: 0.95rem;"
+              style="position: absolute; right: 0.5rem; background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 700;"
               title="Toggle Key Visibility"
-            >👁️</button>
+            >Show</button>
           </div>
           <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.35rem;">
             Stored securely in your local browser storage. Never sent to any external server except directly to Google's Gemini API endpoints.
           </span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="select-gemini-model">Gemini Model</label>
+          <select id="select-gemini-model" class="form-input" style="width: 100%;">
+            <option value="auto">Auto (Gemini 3.5 Flash-Lite with 3.8 Fallback)</option>
+            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Primary - Ultra Fast)</option>
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash (Fallback Model)</option>
+          </select>
         </div>
 
         <div id="api-key-server-status-info" style="font-size: 0.8rem; padding: 0.6rem; border-radius: 6px; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); line-height: 1.4;">

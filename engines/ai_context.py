@@ -14,9 +14,11 @@ from engines.friendships import PanchaDhaMaitriReport
 from engines.functional import FunctionalReport
 from engines.gochar import GocharReport
 from engines.jaimini import CharaDashaResult
-from engines.parashari import VimshottariDashaTree
+from engines.kp import KPEngine
+from engines.parashari import VargaChartEngine, VargaType, VimshottariDashaTree
 from engines.strength import PlanetaryStrengthReport
 from engines.yogas import YogaEvaluationReport
+from prompts.safety import sanitize_single_line
 from schemas.models import UnifiedChartData
 
 
@@ -48,6 +50,7 @@ class AIContextEngine:
         effective_date_str: str = "1995-10-15",
         chara_dasha: Optional[CharaDashaResult] = None,
     ) -> AIDossierReport:
+        birth_city = sanitize_single_line(birth_city)
         asc = chart.angles.ascendant_sign
         asc_nak = chart.angles.ascendant_nakshatra
         asc_sign_id = asc.id
@@ -72,8 +75,8 @@ class AIContextEngine:
 
         # 2. Planetary Placements & Composite Strength Table
         lines.append("## 2. PLANETARY PLACEMENTS & VEDIC STRENGTH MATRIX")
-        lines.append("| Graha | Sign | Degree | House | Nakshatra | Motion | Dignity | Pancha-Dha Kshetra | Functional Role | Bala (%) | Grade |")
-        lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
+        lines.append("| Graha | Sign | Degree | House | D9 Navamsha | Nakshatra | Motion | Dignity | Pancha-Dha Kshetra | Functional Role | Bala (%) | Grade |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
 
         classical_planets = [
             PlanetEnum.SUN, PlanetEnum.MOON, PlanetEnum.MARS, PlanetEnum.MERCURY,
@@ -88,6 +91,12 @@ class AIContextEngine:
             h_num = ((p.sign.id - asc_sign_id) % 12) + 1
             mot = "Retrograde" if p.is_retrograde else "Direct"
             comb = " [Combust]" if p.is_combust else ""
+
+            # D9 Navamsha and Vargottama
+            d9_plc = VargaChartEngine.calculate_point_varga(p.longitude, VargaType.D9, planet=p_enum)
+            d9_sign = d9_plc.sign_name
+            is_vargottama = (p.sign.id == d9_plc.sign_id)
+            varg_str = " [Vargottama]" if is_vargottama else ""
 
             # Dignity
             maitri = friendships_report.profiles.get(p_enum.value)
@@ -120,7 +129,7 @@ class AIContextEngine:
 
             row_line = (
                 f"| **{p_enum.value}** | {p.sign.sanskrit_name} | {p.sign.dms.formatted} | House {h_num} | "
-                f"{p.nakshatra.sanskrit_name} P{p.nakshatra.pada} | {mot}{comb} | {dignity_str} | "
+                f"{d9_sign}{varg_str} | {p.nakshatra.sanskrit_name} P{p.nakshatra.pada} | {mot}{comb} | {dignity_str} | "
                 f"{kshetra} | {func_role} | {bala_pct} | {bala_grade} |"
             )
             lines.append(row_line)
@@ -131,6 +140,8 @@ class AIContextEngine:
                 "sign_id": p.sign.id,
                 "degree": p.sign.dms.formatted,
                 "house": h_num,
+                "d9_sign": d9_sign,
+                "is_vargottama": is_vargottama,
                 "nakshatra": f"{p.nakshatra.sanskrit_name} P{p.nakshatra.pada}",
                 "nakshatra_lord": p.nakshatra.lord.value,
                 "is_retrograde": p.is_retrograde,
@@ -196,6 +207,27 @@ class AIContextEngine:
         lines.append(f"- **Current Mahadasha (MD)**: {dasha_summary.get('md', '-')} ({dasha_summary.get('md_range', '-')})")
         lines.append(f"- **Current Antardasha (AD)**: {dasha_summary.get('ad', '-')} ({dasha_summary.get('ad_range', '-')})")
         lines.append(f"- **Current Pratyantardasha (PD)**: {dasha_summary.get('pd', '-')} ({dasha_summary.get('pd_range', '-')})")
+
+        # Upcoming Antardashas timeline
+        all_ads = []
+        for md in dashas.mahadashas:
+            for ad in md.antardashas:
+                is_active = (md.lord.value == dasha_summary.get("md") and ad.lord.value == dasha_summary.get("ad"))
+                all_ads.append({
+                    "period": f"{md.lord.value}-{ad.lord.value}",
+                    "start": ad.start_date.strftime("%d %b %Y"),
+                    "end": ad.end_date.strftime("%d %b %Y"),
+                    "duration": f"{ad.duration_days / 30.4375:.1f}m",
+                    "is_active": is_active,
+                })
+        active_ad_idx = next((i for i, a in enumerate(all_ads) if a["is_active"]), None)
+        if active_ad_idx is not None:
+            lines.append("\n### Upcoming Antardasha Sequence:")
+            lines.append("| Period (MD-AD) | Start Date | End Date | Duration | Status |")
+            lines.append("|---|---|---|---|---|")
+            for a_item in all_ads[active_ad_idx : active_ad_idx + 5]:
+                st = "**CURRENT ACTIVE**" if a_item["is_active"] else "Upcoming"
+                lines.append(f"| **{a_item['period']}** | {a_item['start']} | {a_item['end']} | {a_item['duration']} | {st} |")
         lines.append("")
 
         # 6. Real-Time Planetary Transits (Gochar)
@@ -228,6 +260,33 @@ class AIContextEngine:
             lines.append(f"- **Active Chara Mahadasha**: {active_md_str}")
             lines.append(f"- **Active Chara Antardasha**: {active_ad_str}")
             lines.append("")
+
+        # 8. KP 12 Placidus House Cusps & Cuspal Sub-Lords (1–249)
+        lines.append("## 8. KP 12 PLACIDUS HOUSE CUSPS & CUSPAL SUB-LORDS (1–249)")
+        lines.append("| Cusp | Sign | Degree | Star Lord | Sub-Lord (CSL) | Sub-Sub-Lord |")
+        lines.append("|---|---|---|---|---|---|")
+        for cusp in chart.placidus_houses:
+            kp_res = KPEngine.resolve_kp_sub(cusp.cusp_longitude)
+            lines.append(f"| House {cusp.house_number:02d} | {cusp.sign.sanskrit_name} | {cusp.dms.formatted} | {kp_res.star_lord.value} | **{kp_res.sub_lord.value}** | {kp_res.sub_sub_lord.value} |")
+        lines.append("")
+
+        # KP 4-Fold Planetary Significators
+        kp_matrix = KPEngine.calculate_4fold_significators(chart)
+        lines.append("### KP 4-Fold Planetary Significators (Levels A, B, C, D):")
+        lines.append("| Graha | Star Lord | Sub-Lord (CSL) | Level A (In Star of Occupant) | Level B (Occupant) | Level C (In Star of Lord) | Level D (House Lord) |")
+        lines.append("|---|---|---|---|---|---|---|")
+        for p_enum in classical_planets:
+            if p_enum not in chart.planets:
+                continue
+            p = chart.planets[p_enum]
+            kp_res = KPEngine.resolve_kp_sub(p.longitude)
+            signifs = kp_matrix.planets_significations.get(p_enum, {})
+            sig_a = ", ".join(map(str, signifs.get("A", []))) or "-"
+            sig_b = ", ".join(map(str, signifs.get("B", []))) or "-"
+            sig_c = ", ".join(map(str, signifs.get("C", []))) or "-"
+            sig_d = ", ".join(map(str, signifs.get("D", []))) or "-"
+            lines.append(f"| **{p_enum.value}** | {kp_res.star_lord.value} | **{kp_res.sub_lord.value}** | {sig_a} | {sig_b} | {sig_c} | {sig_d} |")
+        lines.append("")
 
         markdown_dossier = "\n".join(lines)
 

@@ -205,6 +205,52 @@ def test_stream_retries_on_503_then_succeeds(monkeypatch):
     assert calls["n"] == 2
 
 
+def test_generate_content_fails_over_on_503_retry_exhaustion(monkeypatch):
+    calls = []
+
+    async def fast_sleep(_):
+        return None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        if "gemini-3.5-flash-lite" in str(request.url):
+            return httpx.Response(503, json={"error": {"message": "overloaded"}})
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "fallback_success"}]}}]})
+
+    _patch_transport(monkeypatch, handler)
+    monkeypatch.setattr(llm.asyncio, "sleep", fast_sleep)
+
+    out = asyncio.run(
+        llm.GeminiService().generate_content("sys", "hi", api_key="K", model="gemini-3.5-flash-lite")
+    )
+    assert out == "fallback_success"
+    # First 3 attempts on gemini-3.5-flash-lite (1 initial + 2 retries), then 1 attempt on fallback model gemini-3.8-flash
+    assert any("gemini-3.8-flash" in url for url in calls)
+
+
+def test_generate_content_fails_over_on_timeout(monkeypatch):
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        if "gemini-3.5-flash-lite" in str(request.url):
+            raise httpx.ReadTimeout("Read timed out")
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "timeout_fallback_success"}]}}]})
+
+    _patch_transport(monkeypatch, handler)
+
+    out = asyncio.run(
+        llm.GeminiService().generate_content("sys", "hi", api_key="K", model="gemini-3.5-flash-lite")
+    )
+    assert out == "timeout_fallback_success"
+    assert any("gemini-3.8-flash" in url for url in calls)
+
+
+def test_pick_fallback_directly_when_discovery_empty():
+    chosen = llm._pick_fallback([], {"gemini-3.5-flash-lite"})
+    assert chosen == "gemini-3.8-flash"
+
+
 def test_stream_safety_block_without_text_raises(monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
         body = "data: " + json.dumps({"candidates": [{"finishReason": "SAFETY"}]}) + "\n\n"

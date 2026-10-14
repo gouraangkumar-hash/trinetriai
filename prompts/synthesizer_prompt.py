@@ -250,6 +250,36 @@ THE REQUIRED JSON SCHEMA:
     "habit_to_unlearn": "<The recurring self-sabotaging reflex to catch and stop in real-time>",
     "grounding_practice": "<A practical, non-dogmatic daily anchoring ritual rooted in their elemental balance>"
   },
+  "arenas": {
+    "work": {
+      "posture": "<Instinctive stance in work & leadership, e.g. 'Calculated Architect with High Standards'>",
+      "advantage": "<Key superpower deployed in professional arena>",
+      "tripwire": "<Recurring work blindspot, e.g. detail bottlenecks or hesitation to delegate>",
+      "defuser": "<Actionable mental shift or behavior to defuse this trap in real time>",
+      "master_rule": "<Single high-leverage rule to win in career and leadership>"
+    },
+    "relationships": {
+      "posture": "<Emotional stance in intimate partnerships, e.g. 'Vetted Inner Sanctuary with Fierce Loyalty'>",
+      "advantage": "<Heart strength and relational anchor>",
+      "tripwire": "<Recurring relationship trap, e.g. withholding vulnerability or silent tests>",
+      "defuser": "<Actionable communication defuser to protect intimacy and trust>",
+      "master_rule": "<Single rule for intimacy and trust>"
+    },
+    "crisis": {
+      "posture": "<Reflex under sudden crisis or pressure, e.g. 'Quiet Composure While Building Practical Action Plan'>",
+      "advantage": "<Resilience asset under fire>",
+      "tripwire": "<Danger trap under acute exhaustion or panic>",
+      "defuser": "<Actionable emergency grounding step to break panic>",
+      "master_rule": "<Emergency de-escalation rule>"
+    },
+    "solo": {
+      "posture": "<Psychological stance when alone and uninterrupted, e.g. 'Deep Autonomous Focus & Self-Restoration'>",
+      "advantage": "<Solo flow state and generative depth>",
+      "tripwire": "<Isolation trap or rumination leak>",
+      "defuser": "<Actionable re-engagement step to maintain flow>",
+      "master_rule": "<Daily grounding practice to protect vitality>"
+    }
+  },
   "astrological_proof": "<Detailed technical cross-system derivation referencing Lagna lord, Moon nakshatra, Atmakaraka, KP cuspal sub-lords 1–249, BPHS yogas, and SAV bindus that formed this reading. ALL ASTROLOGICAL TERMS, SANSKRIT LABELS, AND TECHNICAL CALCULATIONS LIVE HERE.>"
 }
 ```

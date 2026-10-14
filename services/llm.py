@@ -67,12 +67,17 @@ def _auth_headers(api_key: str) -> Dict[str, str]:
 
 def _pick_fallback(available: List[str], exclude: Set[str]) -> Optional[str]:
     """Chooses a model that has not been tried yet, preferring the configured list."""
+    if available:
+        for pref in PREFERRED_MODELS:
+            if pref in available and pref not in exclude:
+                return pref
+        for cand in available:
+            if cand not in exclude:
+                return cand
+    # Fallback directly to PREFERRED_MODELS when available list is empty or discovery timed out
     for pref in PREFERRED_MODELS:
-        if pref in available and pref not in exclude:
+        if pref not in exclude:
             return pref
-    for cand in available:
-        if cand not in exclude:
-            return cand
     return None
 
 
@@ -96,7 +101,7 @@ async def discover_available_models(api_key: Optional[str] = None) -> List[str]:
 
     url = GEMINI_BASE_URL
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.get(url, headers=_auth_headers(effective_key))
             if resp.status_code == 200:
                 data = resp.json()
@@ -147,8 +152,8 @@ class GeminiService:
 
     MAX_TRANSIENT_RETRIES = 2
 
-    def __init__(self, timeout_seconds: float = 60.0):
-        self.timeout = httpx.Timeout(timeout_seconds, connect=10.0)
+    def __init__(self, timeout_seconds: float = 90.0):
+        self.timeout = httpx.Timeout(timeout_seconds, connect=15.0)
 
     @staticmethod
     def _build_payload(
@@ -168,13 +173,15 @@ class GeminiService:
         }
 
     @staticmethod
-    async def _next_model_on_404(effective_key: str, tried: Set[str]) -> Optional[str]:
-        """Finds an untried model after a 404 and records it as the working default."""
+    async def _next_model_on_fallback(effective_key: str, tried: Set[str]) -> Optional[str]:
+        """Finds an untried model after a failure or timeout and records it as the working default."""
         available = await discover_available_models(effective_key)
         fallback = _pick_fallback(available, tried)
         if fallback:
             _WORKING_MODEL_CACHE[_key_fingerprint(effective_key)] = fallback
         return fallback
+
+    _next_model_on_404 = _next_model_on_fallback
 
     async def generate_content(
         self,
@@ -212,7 +219,7 @@ class GeminiService:
                 response = await client.post(url, json=payload, headers=_auth_headers(effective_key))
 
                 if response.status_code == 404:
-                    fallback = await self._next_model_on_404(effective_key, tried)
+                    fallback = await self._next_model_on_fallback(effective_key, tried)
                     if fallback:
                         logger.warning(
                             "Model %s returned 404, automatically switching to %s",
@@ -230,27 +237,48 @@ class GeminiService:
                             _tried_models=tried,
                         )
 
-                if response.status_code in (429, 503) and _retry_count < self.MAX_TRANSIENT_RETRIES:
-                    backoff = 2.0 * (_retry_count + 1)
-                    logger.warning(
-                        "Gemini API returned status %d on %s, retrying in %.1fs (attempt %d/%d)...",
-                        response.status_code,
-                        active_model,
-                        backoff,
-                        _retry_count + 1,
-                        self.MAX_TRANSIENT_RETRIES,
-                    )
-                    await asyncio.sleep(backoff)
-                    return await self.generate_content(
-                        system_instruction,
-                        user_prompt,
-                        api_key=effective_key,
-                        model=active_model,
-                        temperature=temperature,
-                        max_output_tokens=max_output_tokens,
-                        _retry_count=_retry_count + 1,
-                        _tried_models=tried,
-                    )
+                if response.status_code in (429, 503):
+                    if _retry_count < self.MAX_TRANSIENT_RETRIES:
+                        backoff = 2.0 * (_retry_count + 1)
+                        logger.warning(
+                            "Gemini API returned status %d on %s, retrying in %.1fs (attempt %d/%d)...",
+                            response.status_code,
+                            active_model,
+                            backoff,
+                            _retry_count + 1,
+                            self.MAX_TRANSIENT_RETRIES,
+                        )
+                        await asyncio.sleep(backoff)
+                        return await self.generate_content(
+                            system_instruction,
+                            user_prompt,
+                            api_key=effective_key,
+                            model=active_model,
+                            temperature=temperature,
+                            max_output_tokens=max_output_tokens,
+                            _retry_count=_retry_count + 1,
+                            _tried_models=tried,
+                        )
+                    # When transient retries are exhausted on current model, failover to next model
+                    fallback = await self._next_model_on_fallback(effective_key, tried)
+                    if fallback:
+                        logger.warning(
+                            "Model %s returned status %d after %d retries, automatically failing over to %s",
+                            active_model,
+                            response.status_code,
+                            self.MAX_TRANSIENT_RETRIES,
+                            fallback,
+                        )
+                        return await self.generate_content(
+                            system_instruction,
+                            user_prompt,
+                            api_key=effective_key,
+                            model=fallback,
+                            temperature=temperature,
+                            max_output_tokens=max_output_tokens,
+                            _retry_count=0,
+                            _tried_models=tried,
+                        )
 
                 if response.status_code != 200:
                     err_detail = _extract_error_message(response.text, response.text)
@@ -280,6 +308,26 @@ class GeminiService:
                     raise RuntimeError(f"Gemini generation blocked ({finish_reason})")
                 return text
 
+            except httpx.TimeoutException as exc:
+                fallback = await self._next_model_on_fallback(effective_key, tried)
+                if fallback:
+                    logger.warning(
+                        "Model %s timed out (%s), automatically failing over to %s",
+                        active_model,
+                        type(exc).__name__,
+                        fallback,
+                    )
+                    return await self.generate_content(
+                        system_instruction,
+                        user_prompt,
+                        api_key=effective_key,
+                        model=fallback,
+                        temperature=temperature,
+                        max_output_tokens=max_output_tokens,
+                        _retry_count=0,
+                        _tried_models=tried,
+                    )
+                raise RuntimeError(f"Network error communicating with Gemini API: {type(exc).__name__}")
             except httpx.RequestError as exc:
                 raise RuntimeError(f"Network error communicating with Gemini API: {type(exc).__name__}")
 
@@ -309,13 +357,14 @@ class GeminiService:
         url = f"{GEMINI_BASE_URL}/{active_model}:streamGenerateContent?alt=sse"
         payload = self._build_payload(system_instruction, contents, temperature, max_output_tokens)
 
+        emitted_any = False
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
                 async with client.stream(
                     "POST", url, json=payload, headers=_auth_headers(effective_key)
                 ) as response:
                     if response.status_code == 404:
-                        fallback = await self._next_model_on_404(effective_key, tried)
+                        fallback = await self._next_model_on_fallback(effective_key, tried)
                         if fallback:
                             logger.warning(
                                 "Stream model %s returned 404, falling back to %s",
@@ -335,31 +384,53 @@ class GeminiService:
                                 yield tok
                             return
 
-                    if response.status_code in (429, 503) and _retry_count < self.MAX_TRANSIENT_RETRIES:
+                    if response.status_code in (429, 503):
                         # Safe to retry: no tokens have been emitted before the status line.
                         await response.aread()
-                        backoff = 2.0 * (_retry_count + 1)
-                        logger.warning(
-                            "Gemini stream returned status %d on %s, retrying in %.1fs (attempt %d/%d)...",
-                            response.status_code,
-                            active_model,
-                            backoff,
-                            _retry_count + 1,
-                            self.MAX_TRANSIENT_RETRIES,
-                        )
-                        await asyncio.sleep(backoff)
-                        async for tok in self.stream_generate_content(
-                            system_instruction,
-                            contents,
-                            api_key=effective_key,
-                            model=active_model,
-                            temperature=temperature,
-                            max_output_tokens=max_output_tokens,
-                            _retry_count=_retry_count + 1,
-                            _tried_models=tried,
-                        ):
-                            yield tok
-                        return
+                        if _retry_count < self.MAX_TRANSIENT_RETRIES:
+                            backoff = 2.0 * (_retry_count + 1)
+                            logger.warning(
+                                "Gemini stream returned status %d on %s, retrying in %.1fs (attempt %d/%d)...",
+                                response.status_code,
+                                active_model,
+                                backoff,
+                                _retry_count + 1,
+                                self.MAX_TRANSIENT_RETRIES,
+                            )
+                            await asyncio.sleep(backoff)
+                            async for tok in self.stream_generate_content(
+                                system_instruction,
+                                contents,
+                                api_key=effective_key,
+                                model=active_model,
+                                temperature=temperature,
+                                max_output_tokens=max_output_tokens,
+                                _retry_count=_retry_count + 1,
+                                _tried_models=tried,
+                            ):
+                                yield tok
+                            return
+                        fallback = await self._next_model_on_fallback(effective_key, tried)
+                        if fallback:
+                            logger.warning(
+                                "Stream model %s returned status %d after %d retries, automatically failing over to %s",
+                                active_model,
+                                response.status_code,
+                                self.MAX_TRANSIENT_RETRIES,
+                                fallback,
+                            )
+                            async for tok in self.stream_generate_content(
+                                system_instruction,
+                                contents,
+                                api_key=effective_key,
+                                model=fallback,
+                                temperature=temperature,
+                                max_output_tokens=max_output_tokens,
+                                _retry_count=0,
+                                _tried_models=tried,
+                            ):
+                                yield tok
+                            return
 
                     if response.status_code != 200:
                         err_bytes = await response.aread()
@@ -367,7 +438,6 @@ class GeminiService:
                         err_text = _extract_error_message(err_text, err_text)
                         raise RuntimeError(f"Gemini Streaming Error ({response.status_code}): {err_text}")
 
-                    emitted_any = False
                     finish_reason: Optional[str] = None
                     block_reason: Optional[str] = None
 
@@ -412,6 +482,29 @@ class GeminiService:
                         if finish_reason in _BLOCKED_FINISH_REASONS:
                             raise RuntimeError(f"Gemini generation blocked ({finish_reason})")
 
+            except httpx.TimeoutException as exc:
+                if not emitted_any:
+                    fallback = await self._next_model_on_fallback(effective_key, tried)
+                    if fallback:
+                        logger.warning(
+                            "Stream model %s timed out (%s), automatically failing over to %s",
+                            active_model,
+                            type(exc).__name__,
+                            fallback,
+                        )
+                        async for tok in self.stream_generate_content(
+                            system_instruction,
+                            contents,
+                            api_key=effective_key,
+                            model=fallback,
+                            temperature=temperature,
+                            max_output_tokens=max_output_tokens,
+                            _retry_count=0,
+                            _tried_models=tried,
+                        ):
+                            yield tok
+                        return
+                raise RuntimeError(f"Network error streaming from Gemini API: {type(exc).__name__}")
             except httpx.RequestError as exc:
                 raise RuntimeError(f"Network error streaming from Gemini API: {type(exc).__name__}")
 

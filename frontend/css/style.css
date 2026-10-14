@@ -5204,4 +5204,304 @@ tr.active-ray-row {
   border-color: rgba(139, 92, 246, 0.45);
 }
 
+/* =============================================================================
+   Constitutional Polarity Matrix & Arena Switcher (Interactive Phase A)
+   ============================================================================= */
+.wwh-polarity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.wwh-polarity-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.wwh-polarity-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+.wwh-polarity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wwh-polarity-dim-title {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+}
+
+.wwh-polarity-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.wwh-polarity-slider-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+}
+
+.wwh-polarity-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.wwh-pol-label.left {
+  text-align: left;
+}
+
+.wwh-pol-label.right {
+  text-align: right;
+}
+
+.wwh-polarity-track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: var(--bg-surface-subtle);
+  border-radius: 999px;
+  overflow: visible;
+}
+
+.wwh-polarity-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(200, 155, 60, 0.25) 0%, var(--accent-primary) 100%);
+}
+
+.wwh-polarity-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2.5px solid var(--accent-primary);
+  box-shadow: 0 0 8px rgba(200, 155, 60, 0.45);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.wwh-polarity-marker:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.wwh-polarity-bottom-line {
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  border-left: 2px solid var(--accent-primary);
+  padding-left: 0.75rem;
+  margin: 0;
+}
+
+.wwh-expand-pill {
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wwh-expand-pill:hover {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+.wwh-polarity-drawer {
+  display: none;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 0.5rem;
+}
+
+.wwh-polarity-drawer.open {
+  display: block;
+  animation: wwhFadeIn 0.22s ease-out;
+}
+
+/* Arena Switcher Styles */
+.wwh-arena-switcher-box {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.wwh-arena-nav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 1rem;
+}
+
+.wwh-arena-pill {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wwh-arena-pill:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+  background: var(--bg-surface-elevated);
+}
+
+.wwh-arena-pill.active {
+  background: var(--accent-primary);
+  color: #FAF8F5;
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(200, 155, 60, 0.28);
+}
+
+.wwh-arena-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.15rem;
+  animation: wwhFadeIn 0.25s ease-out;
+}
+
+.wwh-arena-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.wwh-arena-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-subtle);
+}
+
+.wwh-arena-card.posture {
+  border-left: 3.5px solid #3B82F6;
+}
+
+.wwh-arena-card.advantage {
+  border-left: 3.5px solid #10B981;
+}
+
+.wwh-arena-card.tripwire {
+  border-left: 3.5px solid #EF4444;
+}
+
+.wwh-arena-card.master {
+  border-left: 3.5px solid var(--accent-primary);
+}
+
+.wwh-arena-card-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.wwh-arena-card.posture .wwh-arena-card-tag {
+  color: #3B82F6;
+}
+
+.wwh-arena-card.advantage .wwh-arena-card-tag {
+  color: #10B981;
+}
+
+.wwh-arena-card.tripwire .wwh-arena-card-tag {
+  color: #EF4444;
+}
+
+.wwh-arena-card.master .wwh-arena-card-tag {
+  color: var(--accent-primary);
+}
+
+.wwh-arena-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.wwh-arena-card-desc {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.wwh-arena-antidote-strip {
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.wwh-arena-antidote-tag {
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: #EF4444;
+  letter-spacing: 0.05em;
+}
+
+@keyframes wwhFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 

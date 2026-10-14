@@ -791,3 +791,40 @@ def test_three_eyes_wwh_deck_assets_and_prompts():
     assert ".what-why-how-container.school-jaimini" in css
 
 
+def test_interactive_polarity_and_arena_switcher():
+    """Verify Phase A interactive assets: Polarity Spectrum and Arena Switcher."""
+    from prompts.synthesizer_prompt import WHAT_WHY_HOW_SYSTEM_PROMPT
+    import re
+
+    # 1. Synthesizer prompt contains arenas schema and has 0 emojis
+    assert '"arenas":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert '"work":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert '"relationships":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert '"crisis":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert '"solo":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert '"defuser":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]", flags=re.UNICODE)
+    assert not emoji_pattern.search(WHAT_WHY_HOW_SYSTEM_PROMPT), "Found emoji in WHAT_WHY_HOW_SYSTEM_PROMPT!"
+
+    # 2. Check app.js functions
+    with open("frontend/js/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+    assert "function calculatePolaritySpectrum(" in js
+    assert "function togglePolarityCard(" in js
+    assert "function renderPolaritySpectrum(" in js
+    assert "function getArenaData(" in js
+    assert "function renderArenaPanel(" in js
+    assert "function switchWwhArena(" in js
+    assert "function renderArenaSwitcher(" in js
+
+    # 3. Check style.css classes
+    with open("frontend/css/style.css", "r", encoding="utf-8") as f:
+        css = f.read()
+    assert ".wwh-polarity-grid" in css
+    assert ".wwh-polarity-card" in css
+    assert ".wwh-polarity-marker" in css
+    assert ".wwh-arena-switcher-box" in css
+    assert ".wwh-arena-pill" in css
+
+
+

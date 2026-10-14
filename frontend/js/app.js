@@ -2497,6 +2497,320 @@ function getElementalBreakdown(d) {
 }
 window.getElementalBreakdown = getElementalBreakdown;
 
+// =============================================================================
+// Constitutional Polarity Spectrum & Arena Switcher (Interactive Phase A)
+// =============================================================================
+
+function calculatePolaritySpectrum(d) {
+  const elems = getElementalBreakdown(d);
+  const total = (elems.Fire + elems.Earth + elems.Air + elems.Water) || 100;
+  const fPct = elems.Fire / total;
+  const ePct = elems.Earth / total;
+  const aPct = elems.Air / total;
+  const wPct = elems.Water / total;
+
+  // 1. Pacing & Stamina: Sprint Bursts (Fire/Air) vs Marathon Grind (Earth/Water)
+  let staminaScore = Math.round(((ePct * 1.3 + wPct * 0.7) / (ePct * 1.3 + wPct * 0.7 + fPct * 1.2 + aPct * 0.8 || 1)) * 100);
+  staminaScore = Math.max(22, Math.min(84, staminaScore || 68));
+
+  // 2. Emotional Shield & Vulnerability: Open Receiver (Fire/Air) vs Selective Inner Vault (Water/Earth)
+  let vaultScore = Math.round(((wPct * 1.4 + ePct * 0.8) / (wPct * 1.4 + ePct * 0.8 + aPct * 1.0 + fPct * 0.8 || 1)) * 100);
+  vaultScore = Math.max(28, Math.min(88, vaultScore || 76));
+
+  // 3. Cognitive Strategy: Intuitive Synthesis (Fire/Water) vs Empirical Deconstruction (Earth/Air)
+  let logicScore = Math.round(((aPct * 1.3 + ePct * 1.0) / (aPct * 1.3 + ePct * 1.0 + fPct * 0.9 + wPct * 0.8 || 1)) * 100);
+  logicScore = Math.max(25, Math.min(85, logicScore || 72));
+
+  // 4. Crisis Stance: Immediate Action (Fire/Air) vs Strategic Deliberate Hold (Earth/Water)
+  let pauseScore = Math.round(((ePct * 1.2 + wPct * 1.1) / (ePct * 1.2 + wPct * 1.1 + fPct * 1.2 + aPct * 0.7 || 1)) * 100);
+  pauseScore = Math.max(24, Math.min(82, pauseScore || 64));
+
+  const traits = d?.traits || {};
+
+  return [
+    {
+      id: "pacing",
+      title: "ENERGY & STAMINA PACING",
+      leftLabel: "Sprint Bursts (High Acceleration)",
+      rightLabel: "Marathon Grind (Deep Endurance)",
+      score: staminaScore,
+      verdictTag: staminaScore >= 50 ? `${staminaScore}% Sustained Marathoner` : `${100 - staminaScore}% High-Velocity Sprinter`,
+      bottomLine: traits.physical?.bottom_line || "Steady constitutional endurance that compounds over prolonged execution.",
+      headline: traits.physical?.headline || "Physical Constitution & Energy Flow",
+      description: traits.physical?.description || "",
+      keyPoints: Array.isArray(traits.physical?.key_points) ? traits.physical.key_points : []
+    },
+    {
+      id: "social",
+      title: "EMOTIONAL ARMOR & SOCIAL FILTER",
+      leftLabel: "Open Empathic Receiver",
+      rightLabel: "Selective Vault (Vetted Circle)",
+      score: vaultScore,
+      verdictTag: vaultScore >= 50 ? `${vaultScore}% Selective Inner Circle` : `${100 - vaultScore}% Expansive Networker`,
+      bottomLine: traits.social?.bottom_line || traits.emotional?.bottom_line || "Few are admitted inside, but loyalty to the vetted inner circle is absolute.",
+      headline: traits.social?.headline || "Social Boundary Architecture & Filter",
+      description: traits.social?.description || "",
+      keyPoints: Array.isArray(traits.social?.key_points) ? traits.social.key_points : []
+    },
+    {
+      id: "cognition",
+      title: "COGNITIVE & DECISION STRATEGY",
+      leftLabel: "Intuitive Synthesis (Pattern Flash)",
+      rightLabel: "Empirical Deconstruction (Logical Proof)",
+      score: logicScore,
+      verdictTag: logicScore >= 50 ? `${logicScore}% Empirical Validation` : `${100 - logicScore}% Intuitive Synthesis`,
+      bottomLine: traits.mental?.bottom_line || "Separates signal from noise through structured, empirical reasoning.",
+      headline: traits.mental?.headline || "Intellectual Wiring & Problem Solving",
+      description: traits.mental?.description || "",
+      keyPoints: Array.isArray(traits.mental?.key_points) ? traits.mental.key_points : []
+    },
+    {
+      id: "crisis",
+      title: "CRISIS & PRESSURE REFLEX",
+      leftLabel: "Immediate Action (Direct Doer)",
+      rightLabel: "Strategic Deliberate Pause (Calculated Hold)",
+      score: pauseScore,
+      verdictTag: pauseScore >= 50 ? `${pauseScore}% Strategic Deliberate Hold` : `${100 - pauseScore}% Immediate Action First`,
+      bottomLine: traits.emotional?.bottom_line || "Preserves calm under acute friction while quietly architecting the exit plan.",
+      headline: traits.emotional?.headline || "Emotional Armor & Pressure Reflex",
+      description: traits.emotional?.description || "",
+      keyPoints: Array.isArray(traits.emotional?.key_points) ? traits.emotional.key_points : []
+    }
+  ];
+}
+window.calculatePolaritySpectrum = calculatePolaritySpectrum;
+
+function togglePolarityCard(btn) {
+  if (!btn) return;
+  const card = btn.closest(".wwh-polarity-card");
+  if (!card) return;
+  const drawer = card.querySelector(".wwh-polarity-drawer");
+  if (!drawer) return;
+  const isOpen = drawer.classList.toggle("open");
+  btn.textContent = isOpen ? "[-] Close Expression Details" : "[+] View Real-World Expression";
+}
+window.togglePolarityCard = togglePolarityCard;
+
+function renderPolaritySpectrum(d) {
+  const spectrum = calculatePolaritySpectrum(d);
+
+  return `
+    <div class="wwh-section-block" id="wwh-sec-traits">
+      <div class="wwh-section-header">
+        <span class="wwh-section-tag">[WHAT YOU ARE • CONSTITUTIONAL SPECTRUM]</span>
+        <h3 class="wwh-section-title">Constitutional Polarity Matrix</h3>
+        <p class="wwh-section-subtitle" style="font-size: 0.86rem; color: var(--text-muted); margin-top: 0.25rem;">
+          Visual balance meters mapping your natural gravitational pull across four foundational human polarities.
+        </p>
+      </div>
+
+      <div class="wwh-polarity-grid">
+        ${spectrum.map(item => `
+          <div class="wwh-polarity-card" id="pol-card-${item.id}">
+            <div class="wwh-polarity-head">
+              <span class="wwh-polarity-dim-title">${escapeHtml(item.title)}</span>
+              <span class="wwh-polarity-badge">${escapeHtml(item.verdictTag)}</span>
+            </div>
+
+            <!-- The Visual Slider Track -->
+            <div class="wwh-polarity-slider-box">
+              <div class="wwh-polarity-labels">
+                <span class="wwh-pol-label left">${escapeHtml(item.leftLabel)}</span>
+                <span class="wwh-pol-label right">${escapeHtml(item.rightLabel)}</span>
+              </div>
+              <div class="wwh-polarity-track">
+                <div class="wwh-polarity-fill" style="width: ${item.score}%;"></div>
+                <div class="wwh-polarity-marker" style="left: ${item.score}%;" title="${escapeHtml(item.verdictTag)}"></div>
+              </div>
+            </div>
+
+            <!-- Bottom line summary -->
+            ${item.bottomLine ? `<div class="wwh-polarity-bottom-line">"${escapeHtml(item.bottomLine)}"</div>` : ""}
+
+            <!-- Micro-toggle to expand tangible expression -->
+            <div style="display: flex; justify-content: flex-end; margin-top: 0.85rem;">
+              <button type="button" class="wwh-expand-pill" onclick="togglePolarityCard(this)">[+] View Real-World Expression</button>
+            </div>
+
+            <!-- Expandable drawer with description and key points -->
+            <div class="wwh-polarity-drawer">
+              ${item.headline ? `<h4 class="wwh-trait-headline" style="margin-top: 0;">${escapeHtml(item.headline)}</h4>` : ""}
+              ${item.description ? `<p class="wwh-trait-desc">${escapeHtml(item.description)}</p>` : ""}
+              ${item.keyPoints.length ? `
+                <ul class="wwh-trait-bullets">
+                  ${item.keyPoints.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
+                </ul>
+              ` : ""}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+window.renderPolaritySpectrum = renderPolaritySpectrum;
+
+function getArenaData(d, arenaKey) {
+  const traits = d?.traits || {};
+  const qualities = d?.qualities || {};
+  const superpowers = Array.isArray(qualities.superpowers) ? qualities.superpowers : [];
+  const shadows = Array.isArray(qualities.shadows) ? qualities.shadows : [];
+  const manual = d?.operating_manual || {};
+  const levers = d?.growth_levers || {};
+  const theWhy = d?.the_why || {};
+
+  let fallback = {};
+  switch (arenaKey) {
+    case "work":
+      fallback = {
+        posture: manual.decision_style || traits.mental?.bottom_line || "Calculated analytical deconstruction followed by high-standard execution.",
+        advantage: (superpowers[0]?.name) || "Structural Foresight & Craftsmanship",
+        advantage_desc: (superpowers[0]?.manifestation) || (superpowers[0]?.description) || "Tackles ambiguous, messy initiatives by calmly introducing structured order.",
+        tripwire: (shadows[0]?.name) || "Micromanagement & Perfectionist Bottlenecks",
+        antidote: (shadows[0]?.antidote) || "Delegate operational execution and protect time for high-leverage architectural moves.",
+        master_rule: levers.golden_lever || "Focus strictly on the single highest-leverage multiplier habit."
+      };
+      break;
+    case "relationships":
+      fallback = {
+        posture: traits.social?.bottom_line || traits.emotional?.bottom_line || "Vetted outer perimeter with fierce, unshakeable devotion once trust is earned.",
+        advantage: (superpowers[1]?.name) || (superpowers[0]?.name) || "Deep Loyalty & Practical Sanctuary",
+        advantage_desc: (superpowers[1]?.manifestation) || (superpowers[0]?.manifestation) || "Anchors partners through practical stability during emotional storms.",
+        tripwire: (shadows[1]?.name) || (shadows[0]?.name) || "Withholding Vulnerability & Silent Expectation Tests",
+        antidote: (shadows[1]?.antidote) || (shadows[0]?.antidote) || "Directly state emotional boundaries and desires rather than testing people silently.",
+        master_rule: levers.habit_to_unlearn || "Stop assuming responsibility for the private emotional reactions of others."
+      };
+      break;
+    case "crisis":
+      fallback = {
+        posture: manual.stress_response?.reaction || "Quiet tactical withdrawal into mapping an exit strategy.",
+        advantage: (superpowers[2]?.name) || (superpowers[0]?.name) || "High Nerve Resistance & Emergency Calm",
+        advantage_desc: manual.stress_response?.recovery || "Recovers through solitary grounding, physical movement, and cutting incoming noise.",
+        tripwire: manual.stress_response?.trigger || "Sudden loss of autonomy or chaotic micromanagement.",
+        antidote: (shadows[2]?.antidote) || (Array.isArray(manual.drainers) && manual.drainers[0]) || "Step away from reactive fire-fighting; handle solely the single immediate next step.",
+        master_rule: "Never execute irreversible life decisions while in a state of nervous system exhaustion."
+      };
+      break;
+    case "solo":
+    default:
+      fallback = {
+        posture: theWhy.driving_hunger?.headline || "Deep autonomous mastery and building unshakeable internal sovereignty.",
+        advantage: (Array.isArray(manual.energizers) && manual.energizers[0]) || "Unbroken solo deep work and creative incubation.",
+        advantage_desc: theWhy.driving_hunger?.explanation || "Vitality compounds rapidly when allowed to think and create without notification pings.",
+        tripwire: (theWhy.comfort_zone_vs_growth_edge?.comfort_zone) || "Over-isolation and delaying bold execution until everything feels perfect.",
+        antidote: (theWhy.comfort_zone_vs_growth_edge?.growth_edge) || (shadows[3]?.antidote) || "Boldly publish, test, and ship before conditions feel completely risk-free.",
+        master_rule: levers.grounding_practice || "Daily morning silence before digital inputs touch the senses."
+      };
+      break;
+  }
+
+  const customArenas = d?.arenas || {};
+  const a = customArenas[arenaKey] || {};
+
+  return {
+    posture: a.posture || fallback.posture,
+    advantage: a.advantage || fallback.advantage,
+    advantage_desc: a.advantage_manifestation || a.advantage_desc || fallback.advantage_desc,
+    tripwire: a.tripwire || fallback.tripwire,
+    antidote: a.antidote || a.defuser || fallback.antidote,
+    master_rule: a.master_rule || fallback.master_rule
+  };
+}
+window.getArenaData = getArenaData;
+
+function renderArenaPanel(d, arenaKey) {
+  const data = getArenaData(d, arenaKey);
+
+  return `
+    <div class="wwh-arena-grid">
+      <!-- 1. Instinctive Posture -->
+      <div class="wwh-arena-card posture">
+        <div class="wwh-arena-card-tag">[NATURAL INSTINCT]</div>
+        <div class="wwh-arena-card-title">Default Operating Posture</div>
+        <p class="wwh-arena-card-desc">${escapeHtml(data.posture)}</p>
+      </div>
+
+      <!-- 2. Unfair Advantage -->
+      <div class="wwh-arena-card advantage">
+        <div class="wwh-arena-card-tag">[UNFAIR ADVANTAGE]</div>
+        <div class="wwh-arena-card-title">${escapeHtml(data.advantage)}</div>
+        <p class="wwh-arena-card-desc">${escapeHtml(data.advantage_desc)}</p>
+      </div>
+
+      <!-- 3. Danger Tripwire -->
+      <div class="wwh-arena-card tripwire">
+        <div class="wwh-arena-card-tag">[DANGER TRIPWIRE & ANTIDOTE]</div>
+        <div class="wwh-arena-card-title">${escapeHtml(data.tripwire)}</div>
+        ${data.antidote ? `
+        <div class="wwh-arena-antidote-strip">
+          <span class="wwh-arena-antidote-tag">[DEFUSER]:</span> ${escapeHtml(data.antidote)}
+        </div>
+        ` : ""}
+      </div>
+
+      <!-- 4. Master Rule -->
+      <div class="wwh-arena-card master">
+        <div class="wwh-arena-card-tag">[THE 1-SENTENCE MASTER DIRECTIVE]</div>
+        <div class="wwh-arena-card-title">High-Leverage Multiplier</div>
+        <p class="wwh-arena-card-desc" style="font-weight: 600; color: var(--text-primary);">${escapeHtml(data.master_rule)}</p>
+      </div>
+    </div>
+  `;
+}
+window.renderArenaPanel = renderArenaPanel;
+
+let activeWwhData = null;
+
+function switchWwhArena(e, arenaKey) {
+  if (e) {
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+  }
+  const container = e?.currentTarget?.closest(".wwh-arena-switcher-box");
+  if (container) {
+    container.querySelectorAll(".wwh-arena-pill").forEach(p => p.classList.remove("active"));
+    if (e?.currentTarget) e.currentTarget.classList.add("active");
+  }
+
+  const pane = document.getElementById("wwh-arena-pane");
+  if (!pane || !activeWwhData) return;
+  pane.style.opacity = "0";
+  setTimeout(() => {
+    pane.innerHTML = renderArenaPanel(activeWwhData, arenaKey);
+    pane.style.opacity = "1";
+  }, 120);
+}
+window.switchWwhArena = switchWwhArena;
+
+function renderArenaSwitcher(d) {
+  activeWwhData = d;
+  return `
+    <div class="wwh-section-block" id="wwh-sec-arenas">
+      <div class="wwh-section-header">
+        <span class="wwh-section-tag">[HOW YOU SHOW UP • ARENA SIMULATOR]</span>
+        <h3 class="wwh-section-title">Contextual Arena Operating Console</h3>
+        <p class="wwh-section-subtitle" style="font-size: 0.86rem; color: var(--text-muted); margin-top: 0.25rem;">
+          Toggle between different real-life arenas to explore how your subconscious wiring manifests under pressure.
+        </p>
+      </div>
+
+      <div class="wwh-arena-switcher-box">
+        <div class="wwh-arena-nav">
+          <button type="button" class="wwh-arena-pill active" onclick="switchWwhArena(event, 'work')">At Work & Leadership</button>
+          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'relationships')">In Relationships & Love</button>
+          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'crisis')">Under Crisis & Stress</button>
+          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'solo')">In Solo & Deep Flow</button>
+        </div>
+
+        <div class="wwh-arena-content-pane" id="wwh-arena-pane" style="transition: opacity 0.2s ease;">
+          ${renderArenaPanel(d, "work")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+window.renderArenaSwitcher = renderArenaSwitcher;
+
 function scrollToWwhSection(e, id) {
   if (e) {
     if (e.preventDefault) e.preventDefault();
@@ -2551,7 +2865,8 @@ function renderWhatWhyHowDeck(d) {
   html += `
     <nav class="wwh-sticky-nav">
       <button type="button" class="wwh-nav-pill active" onclick="scrollToWwhSection(event, 'wwh-sec-identity')">Overview</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-traits')">Traits</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-traits')">Spectrum</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-arenas')">Arenas</button>
       <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-why')">The Why</button>
       <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-qualities')">Qualities</button>
       <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-manual')">Operating Manual</button>
@@ -2613,77 +2928,11 @@ function renderWhatWhyHowDeck(d) {
     </div>
   `;
 
-  // 2. THE 4 TRAIT PILLARS (WHAT YOU ARE)
-  html += `
-    <div class="wwh-section-block" id="wwh-sec-traits">
-      <div class="wwh-section-header">
-        <span class="wwh-section-tag">[WHAT YOU ARE]</span>
-        <h3 class="wwh-section-title">Constitutional Traits & Wiring</h3>
-      </div>
+  // 2. CONSTITUTIONAL POLARITY MATRIX (WHAT YOU ARE)
+  html += renderPolaritySpectrum(d);
 
-      <div class="wwh-traits-grid">
-        <!-- Physical -->
-        <div class="wwh-trait-card">
-          <div class="wwh-trait-head">
-            <span class="wwh-trait-label">[PHYSICAL & VITALITY]</span>
-          </div>
-          ${traits.physical?.bottom_line ? `<div class="wwh-trait-bottom-line">"${escapeHtml(traits.physical.bottom_line)}"</div>` : ""}
-          ${traits.physical?.headline ? `<h4 class="wwh-trait-headline">${escapeHtml(traits.physical.headline)}</h4>` : ""}
-          ${traits.physical?.description ? `<p class="wwh-trait-desc">${escapeHtml(traits.physical.description)}</p>` : ""}
-          ${Array.isArray(traits.physical?.key_points) && traits.physical.key_points.length ? `
-            <ul class="wwh-trait-bullets">
-              ${traits.physical.key_points.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
-            </ul>
-          ` : ""}
-        </div>
-
-        <!-- Emotional -->
-        <div class="wwh-trait-card">
-          <div class="wwh-trait-head">
-            <span class="wwh-trait-label">[EMOTIONAL ARCHITECTURE]</span>
-          </div>
-          ${traits.emotional?.bottom_line ? `<div class="wwh-trait-bottom-line">"${escapeHtml(traits.emotional.bottom_line)}"</div>` : ""}
-          ${traits.emotional?.headline ? `<h4 class="wwh-trait-headline">${escapeHtml(traits.emotional.headline)}</h4>` : ""}
-          ${traits.emotional?.description ? `<p class="wwh-trait-desc">${escapeHtml(traits.emotional.description)}</p>` : ""}
-          ${Array.isArray(traits.emotional?.key_points) && traits.emotional.key_points.length ? `
-            <ul class="wwh-trait-bullets">
-              ${traits.emotional.key_points.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
-            </ul>
-          ` : ""}
-        </div>
-
-        <!-- Mental -->
-        <div class="wwh-trait-card">
-          <div class="wwh-trait-head">
-            <span class="wwh-trait-label">[INTELLECT & PROBLEM-SOLVING]</span>
-          </div>
-          ${traits.mental?.bottom_line ? `<div class="wwh-trait-bottom-line">"${escapeHtml(traits.mental.bottom_line)}"</div>` : ""}
-          ${traits.mental?.headline ? `<h4 class="wwh-trait-headline">${escapeHtml(traits.mental.headline)}</h4>` : ""}
-          ${traits.mental?.description ? `<p class="wwh-trait-desc">${escapeHtml(traits.mental.description)}</p>` : ""}
-          ${Array.isArray(traits.mental?.key_points) && traits.mental.key_points.length ? `
-            <ul class="wwh-trait-bullets">
-              ${traits.mental.key_points.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
-            </ul>
-          ` : ""}
-        </div>
-
-        <!-- Social -->
-        <div class="wwh-trait-card">
-          <div class="wwh-trait-head">
-            <span class="wwh-trait-label">[SOCIAL RADAR & BOUNDARIES]</span>
-          </div>
-          ${traits.social?.bottom_line ? `<div class="wwh-trait-bottom-line">"${escapeHtml(traits.social.bottom_line)}"</div>` : ""}
-          ${traits.social?.headline ? `<h4 class="wwh-trait-headline">${escapeHtml(traits.social.headline)}</h4>` : ""}
-          ${traits.social?.description ? `<p class="wwh-trait-desc">${escapeHtml(traits.social.description)}</p>` : ""}
-          ${Array.isArray(traits.social?.key_points) && traits.social.key_points.length ? `
-            <ul class="wwh-trait-bullets">
-              ${traits.social.key_points.map(pt => `<li>${escapeHtml(pt)}</li>`).join("")}
-            </ul>
-          ` : ""}
-        </div>
-      </div>
-    </div>
-  `;
+  // 3. CONTEXTUAL ARENA OPERATING CONSOLE (ARENA SIMULATOR)
+  html += renderArenaSwitcher(d);
 
   // 3. THE WHY: INNER PARADOX & GROWTH ENGINE
   html += `
@@ -3624,12 +3873,14 @@ async function triggerAiSynthesis(forceRefresh = false) {
             renderSynthesisProgressive(fullSynthesisMarkdown);
           } catch (_) {}
         } else if (eventName === "error") {
+          let errText = "Unknown AI error";
           try {
             const parsed = JSON.parse(eventData);
-            throw new Error(parsed.error);
-          } catch (e) {
-            throw new Error(eventData || "Unknown AI error");
+            errText = parsed.error || eventData;
+          } catch (_) {
+            errText = eventData || errText;
           }
+          throw new Error(errText);
         }
       }
     }
@@ -3656,8 +3907,18 @@ async function triggerAiSynthesis(forceRefresh = false) {
     }
     console.error("AI synthesis failed:", err);
     let msg = err.message || "Failed to generate AI synthesis.";
+    if (typeof msg === "string" && msg.trim().startsWith("{") && msg.trim().endsWith("}")) {
+      try {
+        const parsed = JSON.parse(msg);
+        if (parsed.error) msg = parsed.error;
+      } catch (_) {}
+    }
     if (msg.includes("Gemini API Key is not configured") || msg.includes("API key not valid")) {
       msg = `Gemini API Key is not configured. Please enter your personal Google Gemini API key to start generating readings.`;
+    } else if (msg.includes("ReadTimeout") || msg.includes("Timeout")) {
+      msg = `The Gemini API timed out while generating your reading (Google servers are experiencing temporary latency). You can switch model to Gemini 3.8 Flash in API Key settings, or try again in a moment.`;
+    } else if (msg.includes("503") || msg.includes("overloaded") || msg.includes("busy")) {
+      msg = `Google Gemini servers are currently overloaded (503 Service Unavailable). Switching model to Gemini 3.8 Flash in API Key settings or trying again in a moment is recommended.`;
     }
     if (renderBox) {
       renderBox.innerHTML = `

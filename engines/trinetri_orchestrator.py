@@ -759,8 +759,8 @@ class TrinetriOrchestrator:
             j_sys = EYE_3_JAIMINI_SYSTEM_PROMPT
 
         t1 = _throttled_generate(p_sys, p_prompt, 0.0)
-        t2 = _throttled_generate(kp_sys, kp_prompt, 0.2)
-        t3 = _throttled_generate(j_sys, j_prompt, 0.4)
+        t2 = _throttled_generate(kp_sys, kp_prompt, 0.4)
+        t3 = _throttled_generate(j_sys, j_prompt, 0.8)
 
         results = await asyncio.gather(t1, t2, t3, return_exceptions=True)
         res_p = results[0] if isinstance(results[0], str) else f"*(Parashari analysis note: {results[0]})*"

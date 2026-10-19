@@ -10,6 +10,13 @@ from pydantic import BaseModel, Field
 from core.constants import PlanetEnum, ZODIAC_SIGNS
 from engines.ashtakavarga import AshtakavargaFullReport
 from engines.aspects import AspectsReport
+from engines.dignity import (
+    DignityEngine,
+    DignityState,
+    EXALTATION_SIGNS,
+    DEBILITATION_SIGNS,
+    OWN_SIGNS,
+)
 from engines.friendships import PanchaDhaMaitriReport
 from engines.functional import FunctionalReport
 from engines.gochar import GocharReport
@@ -49,22 +56,50 @@ class AIContextEngine:
         effective_time_str: str = "14:30:00",
         effective_date_str: str = "1995-10-15",
         chara_dasha: Optional[CharaDashaResult] = None,
+        gender: str = "male",
     ) -> AIDossierReport:
         birth_city = sanitize_single_line(birth_city)
         asc = chart.angles.ascendant_sign
         asc_nak = chart.angles.ascendant_nakshatra
         asc_sign_id = asc.id
         loc = chart.input_data.location
+        gender = getattr(chart.input_data, "gender", gender) or "male"
+        rel_karaka = "Venus (Kalatrakaraka - Wife/Partner)" if gender.lower() == "male" else ("Jupiter (Patikaraka - Husband/Partner, with Mars for attraction)" if gender.lower() == "female" else "Venus & Jupiter (Primary Relationship Significators)")
+
+        from datetime import date
+        today = date.today()
+        birth_year = getattr(chart.input_data, "year", None)
+        birth_month = getattr(chart.input_data, "month", 1)
+        birth_day = getattr(chart.input_data, "day", 1)
+        if birth_year is None:
+            try:
+                parts = effective_date_str.split("-")
+                birth_year = int(parts[0])
+                birth_month = int(parts[1])
+                birth_day = int(parts[2])
+            except Exception:
+                birth_year = 1995
+                birth_month = 10
+                birth_day = 15
+
+        age = today.year - birth_year - ((today.month, today.day) < (birth_month, birth_day))
+        age = max(0, age)
 
         lines: List[str] = []
         lines.append("# TRINETRIAI VEDIC ASTROLOGICAL DOSSIER")
         lines.append("")
         lines.append("## 1. NATAL BASELINE & ASTRONOMICAL ANCHORS")
-        lines.append(f"- **Birth Location**: {birth_city} ({loc.latitude:.4f}°N, {loc.longitude:.4f}°E)")
-        lines.append(f"- **Effective Date & Time**: {effective_date_str} {effective_time_str} ({loc.timezone_str})")
+        lines.append(f"- **Native Age**: ~{age} years (Operating Cycle: {today.year})")
+        lines.append(f"- **Native Gender**: {gender.capitalize()}")
+        lines.append(f"- **Primary Natural Relationship Karaka**: {rel_karaka}")
         lines.append(f"- **Ayanamsha**: {chart.ayanamsha_name.value} ({chart.ayanamsha_dms.formatted})")
-        lines.append(f"- **Julian Day (UT)**: {chart.julian_day_ut:.6f} | **Julian Day (ET)**: {chart.julian_day_et:.6f}")
         lines.append(f"- **Lagna (Ascendant)**: {asc.sanskrit_name} ({asc.english_name}) at {asc.dms.formatted} | Nakshatra: {asc_nak.sanskrit_name} Pada {asc_nak.pada} (Lord: {asc_nak.lord.value})")
+
+        # D10 Dashamsha Lagna (Career Ascendant)
+        d10_asc = VargaChartEngine.calculate_point_varga(chart.angles.ascendant, VargaType.D10, is_ascendant=True)
+        d10_asc_sign_id = d10_asc.sign_id
+        d10_asc_sign_name = d10_asc.sign_name
+        lines.append(f"- **D10 Dashamsha Lagna (Career Ascendant)**: {d10_asc_sign_name} ({ZODIAC_SIGNS[d10_asc_sign_id]['english_name']}) at {d10_asc.dms.formatted} (Lord: {d10_asc.sign_lord.value})")
         lines.append(f"- **MC (Midheaven / 10th Cusp)**: {chart.angles.mc_sign.sanskrit_name} at {chart.angles.mc_dms.formatted}")
         lines.append(f"- **Lagna Modality**: {functional_report.lagna_modality} | **Badhaka House**: House {functional_report.badhaka_house} (Lord: {functional_report.badhaka_lord})")
         yk_str = ", ".join(functional_report.yogakaraka_planets) if functional_report.yogakaraka_planets else "None (Single graha rules Kendra+Trikona)"
@@ -75,13 +110,20 @@ class AIContextEngine:
 
         # 2. Planetary Placements & Composite Strength Table
         lines.append("## 2. PLANETARY PLACEMENTS & VEDIC STRENGTH MATRIX")
-        lines.append("| Graha | Sign | Degree | House | D9 Navamsha | Nakshatra | Motion | Dignity | Pancha-Dha Kshetra | Functional Role | Bala (%) | Grade |")
-        lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+        lines.append("| Graha | Sign | Degree | House | D9 Navamsha | D10 Dashamsha | Nakshatra | Motion | Dignity | Pancha-Dha Kshetra | Functional Role | Bala (%) | Grade |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 
         classical_planets = [
             PlanetEnum.SUN, PlanetEnum.MOON, PlanetEnum.MARS, PlanetEnum.MERCURY,
             PlanetEnum.JUPITER, PlanetEnum.VENUS, PlanetEnum.SATURN, PlanetEnum.RAHU, PlanetEnum.KETU
         ]
+
+        # Identify planets with classical Neechabhanga cancellation
+        neechabhanga_planets = set()
+        for y in yogas_report.yogas:
+            if y.id.startswith("neechabhanga_") or "Neechabhanga" in y.name:
+                for p_inv in y.planets_involved:
+                    neechabhanga_planets.add(p_inv)
 
         structured_planets = []
         for p_enum in classical_planets:
@@ -98,7 +140,39 @@ class AIContextEngine:
             is_vargottama = (p.sign.id == d9_plc.sign_id)
             varg_str = " [Vargottama]" if is_vargottama else ""
 
-            # Dignity
+            # D10 Dashamsha Placement & Dignity
+            d10_plc = VargaChartEngine.calculate_point_varga(p.longitude, VargaType.D10, planet=p_enum)
+            d10_sign = d10_plc.sign_name
+            d10_h_num = ((d10_plc.sign_id - d10_asc_sign_id) % 12) + 1
+            if d10_plc.sign_id == EXALTATION_SIGNS.get(p_enum):
+                d10_dig_tag = " [Exalted]"
+            elif d10_plc.sign_id == DEBILITATION_SIGNS.get(p_enum):
+                d10_dig_tag = " [Debilitated]"
+            elif d10_plc.sign_id in OWN_SIGNS.get(p_enum, []):
+                d10_dig_tag = " [Own Sign]"
+            else:
+                d10_dig_tag = ""
+            d10_str = f"{d10_sign} (H{d10_h_num}){d10_dig_tag}"
+
+            # Dignity via DignityEngine
+            dignity_rep = DignityEngine.evaluate_planet_dignity(
+                planet=p_enum,
+                sign_id=p.sign.id,
+                sign_name=p.sign.sanskrit_name,
+                degree_in_sign=p.sign.intra_sign_degree,
+                neechabhanga_planets=neechabhanga_planets,
+            )
+            if dignity_rep.is_exalted:
+                dignity_str = "Exalted (Uccha)"
+            elif dignity_rep.is_debilitated:
+                dignity_str = "Debilitated (Neecha) [Cancelled]" if dignity_rep.has_neechabhanga else "Debilitated (Neecha)"
+            elif dignity_rep.is_moolatrikona:
+                dignity_str = "Moolatrikona"
+            elif dignity_rep.is_own_sign:
+                dignity_str = "Own Sign"
+            else:
+                dignity_str = "Neutral"
+
             maitri = friendships_report.profiles.get(p_enum.value)
             kshetra = maitri.dispositor_kshetra if maitri else "-"
 
@@ -115,21 +189,9 @@ class AIContextEngine:
             bala_pct = str_prof.percentage_str if str_prof else "-"
             bala_grade = str_prof.grade if str_prof else "-"
 
-            dignity_str = "Neutral"
-            if p_enum in chart.planets:
-                # Basic dignity label from maitri or dignity
-                if "Own" in kshetra:
-                    dignity_str = "Own Sign"
-                elif "Adhi Mitra" in kshetra:
-                    dignity_str = "Adhi Mitra Kshetra"
-                elif "Shatru" in kshetra:
-                    dignity_str = "Shatru Kshetra"
-                elif "Mitra" in kshetra:
-                    dignity_str = "Mitra Kshetra"
-
             row_line = (
                 f"| **{p_enum.value}** | {p.sign.sanskrit_name} | {p.sign.dms.formatted} | House {h_num} | "
-                f"{d9_sign}{varg_str} | {p.nakshatra.sanskrit_name} P{p.nakshatra.pada} | {mot}{comb} | {dignity_str} | "
+                f"{d9_sign}{varg_str} | {d10_str} | {p.nakshatra.sanskrit_name} P{p.nakshatra.pada} | {mot}{comb} | {dignity_str} | "
                 f"{kshetra} | {func_role} | {bala_pct} | {bala_grade} |"
             )
             lines.append(row_line)
@@ -142,10 +204,20 @@ class AIContextEngine:
                 "house": h_num,
                 "d9_sign": d9_sign,
                 "is_vargottama": is_vargottama,
+                "d10_sign": d10_sign,
+                "d10_sign_id": d10_plc.sign_id,
+                "d10_house": d10_h_num,
+                "d10_dignity": d10_dig_tag.strip(" []") or "Neutral",
                 "nakshatra": f"{p.nakshatra.sanskrit_name} P{p.nakshatra.pada}",
                 "nakshatra_lord": p.nakshatra.lord.value,
                 "is_retrograde": p.is_retrograde,
                 "is_combust": p.is_combust,
+                "dignity": dignity_str,
+                "dignity_label": dignity_rep.dignity_label,
+                "is_exalted": dignity_rep.is_exalted,
+                "is_debilitated": dignity_rep.is_debilitated,
+                "is_own_sign": dignity_rep.is_own_sign,
+                "is_moolatrikona": dignity_rep.is_moolatrikona,
                 "functional_nature": func_role,
                 "dispositor_kshetra": kshetra,
                 "strength_score": str_prof.total_score if str_prof else 0.0,
@@ -208,26 +280,87 @@ class AIContextEngine:
         lines.append(f"- **Current Antardasha (AD)**: {dasha_summary.get('ad', '-')} ({dasha_summary.get('ad_range', '-')})")
         lines.append(f"- **Current Pratyantardasha (PD)**: {dasha_summary.get('pd', '-')} ({dasha_summary.get('pd_range', '-')})")
 
-        # Upcoming Antardashas timeline
+        # 5.1 Macro Mahadasha Eras
+        active_md_lord = dasha_summary.get("md")
+        active_md_idx = next((i for i, m in enumerate(dashas.mahadashas) if m.lord.value == active_md_lord), None)
+        if active_md_idx is not None and dashas.mahadashas:
+            lines.append("\n### Macro Era Horizon (Mahadasha Eras):")
+            if active_md_idx > 0:
+                pm = dashas.mahadashas[active_md_idx - 1]
+                lines.append(f"- **Previous Era (Concluded)**: {pm.lord.value} ({pm.start_date.strftime('%b %Y')} → {pm.end_date.strftime('%b %Y')})")
+            cm = dashas.mahadashas[active_md_idx]
+            lines.append(f"- **Current Operating Era (ACTIVE)**: {cm.lord.value} ({cm.start_date.strftime('%b %Y')} → {cm.end_date.strftime('%b %Y')})")
+            if active_md_idx + 1 < len(dashas.mahadashas):
+                nm = dashas.mahadashas[active_md_idx + 1]
+                lines.append(f"- **Next Horizon Era (Upcoming)**: {nm.lord.value} ({nm.start_date.strftime('%b %Y')} → {nm.end_date.strftime('%b %Y')})")
+
+        # 5.2 Antardashas timeline (Past 2 + Active + Next 4)
         all_ads = []
+        active_ad_node = None
         for md in dashas.mahadashas:
             for ad in md.antardashas:
                 is_active = (md.lord.value == dasha_summary.get("md") and ad.lord.value == dasha_summary.get("ad"))
+                if is_active:
+                    active_ad_node = ad
+                ad_months = ad.duration_days / 30.4375
+                dur_str = f"{ad_months:.1f}m" if ad_months >= 1 else f"{int(ad.duration_days)}d"
                 all_ads.append({
                     "period": f"{md.lord.value}-{ad.lord.value}",
+                    "md_lord": md.lord.value,
+                    "ad_lord": ad.lord.value,
                     "start": ad.start_date.strftime("%d %b %Y"),
                     "end": ad.end_date.strftime("%d %b %Y"),
-                    "duration": f"{ad.duration_days / 30.4375:.1f}m",
+                    "duration": dur_str,
                     "is_active": is_active,
                 })
+
         active_ad_idx = next((i for i, a in enumerate(all_ads) if a["is_active"]), None)
         if active_ad_idx is not None:
-            lines.append("\n### Upcoming Antardasha Sequence:")
-            lines.append("| Period (MD-AD) | Start Date | End Date | Duration | Status |")
+            lines.append("\n### Seasonal Strategic Timeline: Antardashas (Recent Past → Current → Upcoming):")
+            lines.append("| Period (MD-AD) | Start Date | End Date | Duration | Operational Status |")
             lines.append("|---|---|---|---|---|")
-            for a_item in all_ads[active_ad_idx : active_ad_idx + 5]:
-                st = "**CURRENT ACTIVE**" if a_item["is_active"] else "Upcoming"
+            start_ad = max(0, active_ad_idx - 2)
+            end_ad = min(len(all_ads), active_ad_idx + 5)
+            for idx in range(start_ad, end_ad):
+                a_item = all_ads[idx]
+                if a_item["is_active"]:
+                    st = "**CURRENT ACTIVE**"
+                elif idx < active_ad_idx:
+                    st = "Recently Concluded" if idx == active_ad_idx - 1 else "Concluded"
+                else:
+                    st = "Upcoming (Next Chapter)" if idx == active_ad_idx + 1 else "Upcoming"
                 lines.append(f"| **{a_item['period']}** | {a_item['start']} | {a_item['end']} | {a_item['duration']} | {st} |")
+
+        # 5.3 Tactical Micro-Dial: Pratyantardashas (PD) for Active Antardasha
+        if active_ad_node and active_ad_node.pratyantardashas:
+            active_pd_lord = dasha_summary.get("pd")
+            pds = active_ad_node.pratyantardashas
+            active_pd_idx = next((i for i, p in enumerate(pds) if p.lord.value == active_pd_lord), None)
+            if active_pd_idx is not None:
+                md_name = dasha_summary.get("md")
+                ad_name = dasha_summary.get("ad")
+                lines.append(f"\n### Tactical Micro-Dial: Pratyantardasha (PD) Timeline (Immediate 3–6 Months):")
+                lines.append(f"*Active tactical sub-cycles within Mahadasha {md_name} → Antardasha {ad_name}:*")
+                lines.append("| Level (MD-AD-PD) | Start Date | End Date | Duration | Tactical Timing |")
+                lines.append("|---|---|---|---|---|")
+                start_pd = max(0, active_pd_idx - 1)
+                end_pd = min(len(pds), active_pd_idx + 4)
+                for p_idx in range(start_pd, end_pd):
+                    pd_item = pds[p_idx]
+                    dur_days = pd_item.duration_days
+                    dur_str = f"{dur_days:.0f}d" if dur_days >= 1 else f"{dur_days * 24:.0f}h"
+                    if p_idx == active_pd_idx:
+                        pst = "**CURRENT ACTIVE**"
+                    elif p_idx < active_pd_idx:
+                        pst = "Recently Concluded"
+                    elif p_idx == active_pd_idx + 1:
+                        pst = "Upcoming (Next 30–60d)"
+                    else:
+                        pst = "Upcoming"
+                    lines.append(
+                        f"| **{md_name}-{ad_name}-{pd_item.lord.value}** | {pd_item.start_date.strftime('%d %b %Y')} | "
+                        f"{pd_item.end_date.strftime('%d %b %Y')} | {dur_str} | {pst} |"
+                    )
         lines.append("")
 
         # 6. Real-Time Planetary Transits (Gochar)
@@ -306,16 +439,16 @@ class AIContextEngine:
 
         structured_payload = {
             "baseline": {
-                "city": birth_city,
-                "date": effective_date_str,
-                "time": effective_time_str,
-                "latitude": loc.latitude,
-                "longitude": loc.longitude,
-                "timezone": loc.timezone_str,
+                "age": age,
+                "gender": gender,
+                "operating_cycle": today.year,
                 "ayanamsha": chart.ayanamsha_name.value,
                 "lagna": asc.sanskrit_name,
                 "lagna_degree": asc.dms.formatted,
                 "lagna_nakshatra": f"{asc_nak.sanskrit_name} P{asc_nak.pada}",
+                "d10_lagna": d10_asc_sign_name,
+                "d10_lagna_english": ZODIAC_SIGNS[d10_asc_sign_id]["english_name"],
+                "d10_lagna_lord": d10_asc.sign_lord.value,
                 "badhaka_house": functional_report.badhaka_house,
                 "badhaka_lord": functional_report.badhaka_lord,
                 "yogakarakas": functional_report.yogakaraka_planets,

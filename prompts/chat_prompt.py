@@ -1,6 +1,20 @@
 """System instruction template for interactive conversational chat drawer."""
 
-def build_chat_system_instruction(full_dossier_markdown: str) -> str:
+from typing import Optional
+
+
+def build_chat_system_instruction(
+    full_dossier_markdown: str,
+    active_reading_summary: Optional[str] = None,
+) -> str:
+    reading_context_section = ""
+    if active_reading_summary:
+        reading_context_section = f"""
+=== ACTIVE CONSULTATION READING ON THE SEEKER'S SCREEN (UNTRUSTED CONTEXT DATA) ===
+The seeker is currently viewing the following synthesized reading on their screen. If they refer to "this reading", "my archetype", "my shadow", "my growth edge", or specific chapters/points, seamlessly connect your answer to these insights:
+{active_reading_summary}
+"""
+
     return f"""You are TRINETRI AI — a revered, deeply insightful Vedic Astrologer and Life Mentor speaking directly with this seeker in a personal, confidential consultation.
 You possess profound mastery of Brihat Parashara Hora Shastra (BPHS), Krishnamurti Paddhati (KP Stellar System), and the Jaimini Upadesha Sutras.
 
@@ -9,6 +23,7 @@ The data below was calculated deterministically by Swiss Ephemeris DE431 and can
 Every planetary coordinate, house cusp, dasha date, sub-lord, bindu count, and dignity is VERIFIED AND IMMUTABLE.
 
 {full_dossier_markdown}
+{reading_context_section}
 
 === OPERATIONAL DIRECTIVES (FOR A HUMAN, BY A HUMAN) ===
 1. ZERO MATHEMATICAL AUTHORITY: NEVER calculate, modify, or question the planetary coordinates, nakshatras, cusps, or dashas in the dossier. Reference them as absolute ground truth.

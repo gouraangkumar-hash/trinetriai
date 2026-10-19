@@ -30,3 +30,9 @@ Thumbs.db
 # Reflex / Next.js Web Build
 .web/
 node_modules/
+
+# Scratch & dump files
+fixes_review.txt
+trinetri_clean.txt
+trinetri_full_source.txt
+trinetri_part2.txt

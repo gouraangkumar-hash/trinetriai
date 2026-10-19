@@ -1126,7 +1126,9 @@ class TestAIContextEngine:
         # Structured JSON
         payload = dossier.structured_payload
         assert payload["baseline"]["lagna"] == "Makara"
+        assert payload["baseline"]["d10_lagna"] == "Meena"
         assert len(payload["planets"]) >= 7
+        assert "d10_sign" in payload["planets"][0]
         assert "gochar_transits" in payload
 
 

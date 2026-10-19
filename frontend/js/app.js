@@ -16,6 +16,7 @@ const state = {
   time_offset_seconds: 0,
   ayanamsha: "Lahiri",
   node_type: "True",
+  gender: "male",
   chart_style: "north", // "north" | "south"
   sign_mode: "sanskrit", // "sanskrit" | "english"
   theme_mode: "light", // "light" | "dark"
@@ -114,6 +115,7 @@ async function calculateChart() {
     time_offset_seconds: state.time_offset_seconds,
     ayanamsha: state.ayanamsha,
     node_type: state.node_type,
+    gender: state.gender,
     chart_style: state.chart_style,
     sign_mode: state.sign_mode,
     theme_mode: state.theme_mode,
@@ -170,6 +172,7 @@ async function selectVarga(varga) {
       time_offset_seconds: state.time_offset_seconds,
       ayanamsha: state.ayanamsha,
       node_type: state.node_type,
+      gender: state.gender,
       chart_style: state.chart_style,
       sign_mode: state.sign_mode,
       theme_mode: state.theme_mode,
@@ -2041,6 +2044,7 @@ function syncQuickFormWithState() {
   const hour = document.getElementById("select-quick-hour");
   const minute = document.getElementById("select-quick-minute");
   const second = document.getElementById("select-quick-second");
+  const gender = document.getElementById("select-quick-gender");
   const ayanamsha = document.getElementById("select-quick-ayanamsha");
   const chartStyle = document.getElementById("select-quick-chart-style");
 
@@ -2054,6 +2058,7 @@ function syncQuickFormWithState() {
   if (hour) hour.value = state.hour;
   if (minute) minute.value = state.minute;
   if (second) second.value = Math.floor(state.second || 0);
+  if (gender) gender.value = state.gender;
   if (ayanamsha) ayanamsha.value = state.ayanamsha;
   if (chartStyle) chartStyle.value = state.chart_style;
 }
@@ -2148,6 +2153,7 @@ function loadSampleChartAndEnterStudio() {
   state.latitude = 26.9124;
   state.longitude = 75.7873;
   state.timezone_str = "Asia/Kolkata";
+  state.gender = "male";
   state.ayanamsha = "Lahiri";
   state.chart_style = "north";
   state.time_offset_seconds = 0;
@@ -2174,6 +2180,7 @@ function syncModalWithState() {
   const hourSelect = document.getElementById("select-birth-hour");
   const minuteSelect = document.getElementById("select-birth-minute");
   const secondSelect = document.getElementById("select-birth-second");
+  const genderSelect = document.getElementById("select-birth-gender");
 
   if (yearSelect) yearSelect.value = state.year;
   if (monthSelect) monthSelect.value = state.month;
@@ -2194,6 +2201,7 @@ function syncModalWithState() {
   if (minuteSelect) minuteSelect.value = state.minute;
   if (secondSelect) secondSelect.value = Math.floor(state.second || 0);
 
+  if (genderSelect) genderSelect.value = state.gender || "male";
   document.getElementById("select-ayanamsha").value = state.ayanamsha;
   document.getElementById("select-node-type").value = state.node_type;
 }
@@ -2331,8 +2339,8 @@ function formatMarkdown(text) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // Chapter Headings (e.g. ## ✦ Chapter 1: ... or ## ✦ ...)
-  html = html.replace(/^##\s*✦\s*(?:Chapter\s*(\d+)[:\s–—\-]+)?(.*$)/gim, (match, num, rest) => {
+  // Chapter Headings (e.g. ## ✦ Chapter 1: ... or ## Chapter 1: ...)
+  html = html.replace(/^##\s*(?:✦\s*)?Chapter\s*(\d+)[:\s–—\-]+(.*$)/gim, (match, num, rest) => {
     const chId = num ? `id="chapter-${num}"` : "";
     const prefix = num ? `Chapter ${num}: ` : "";
     return `<div class="reading-chapter-header" ${chId}><span class="chapter-ornament">✦</span><h2 class="chapter-title">${prefix}${rest}</h2></div>`;
@@ -2597,10 +2605,10 @@ function renderPolaritySpectrum(d) {
   return `
     <div class="wwh-section-block" id="wwh-sec-traits">
       <div class="wwh-section-header">
-        <span class="wwh-section-tag">[WHAT YOU ARE • CONSTITUTIONAL SPECTRUM]</span>
-        <h3 class="wwh-section-title">Constitutional Polarity Matrix</h3>
+        <span class="wwh-section-tag">[HOW YOU'RE WIRED]</span>
+        <h3 class="wwh-section-title">Your Natural Balance & Core Tendencies</h3>
         <p class="wwh-section-subtitle" style="font-size: 0.86rem; color: var(--text-muted); margin-top: 0.25rem;">
-          Visual balance meters mapping your natural gravitational pull across four foundational human polarities.
+          Where you naturally lean in everyday life—between action and patience, logic and feeling, society and solitude.
         </p>
       </div>
 
@@ -2629,7 +2637,7 @@ function renderPolaritySpectrum(d) {
 
             <!-- Micro-toggle to expand tangible expression -->
             <div style="display: flex; justify-content: flex-end; margin-top: 0.85rem;">
-              <button type="button" class="wwh-expand-pill" onclick="togglePolarityCard(this)">[+] View Real-World Expression</button>
+              <button type="button" class="wwh-expand-pill" onclick="togglePolarityCard(this)">[+] How This Shows Up in Real Life</button>
             </div>
 
             <!-- Expandable drawer with description and key points -->
@@ -2663,43 +2671,43 @@ function getArenaData(d, arenaKey) {
   switch (arenaKey) {
     case "work":
       fallback = {
-        posture: manual.decision_style || traits.mental?.bottom_line || "Calculated analytical deconstruction followed by high-standard execution.",
-        advantage: (superpowers[0]?.name) || "Structural Foresight & Craftsmanship",
-        advantage_desc: (superpowers[0]?.manifestation) || (superpowers[0]?.description) || "Tackles ambiguous, messy initiatives by calmly introducing structured order.",
-        tripwire: (shadows[0]?.name) || "Micromanagement & Perfectionist Bottlenecks",
-        antidote: (shadows[0]?.antidote) || "Delegate operational execution and protect time for high-leverage architectural moves.",
-        master_rule: levers.golden_lever || "Focus strictly on the single highest-leverage multiplier habit."
+        posture: manual.decision_style || traits.mental?.bottom_line || "Thoughtful and methodical—you take time to understand the problem before diving in, and you take real pride in doing things right.",
+        advantage: (superpowers[0]?.name) || "Spotting what's broken before others do",
+        advantage_desc: (superpowers[0]?.manifestation) || (superpowers[0]?.description) || "When a situation gets chaotic, you don't panic. You quietly organize the mess and handle the hardest piece first.",
+        tripwire: (shadows[0]?.name) || "Taking on everything yourself because you don't trust others to do it right",
+        antidote: (shadows[0]?.antidote) || "Learn to let others help with the day-to-day work so you don't burn out carrying the whole load.",
+        master_rule: levers.golden_lever || "Pick one important thing each day and do it well, rather than scattering your energy across ten things."
       };
       break;
     case "relationships":
       fallback = {
-        posture: traits.social?.bottom_line || traits.emotional?.bottom_line || "Vetted outer perimeter with fierce, unshakeable devotion once trust is earned.",
-        advantage: (superpowers[1]?.name) || (superpowers[0]?.name) || "Deep Loyalty & Practical Sanctuary",
-        advantage_desc: (superpowers[1]?.manifestation) || (superpowers[0]?.manifestation) || "Anchors partners through practical stability during emotional storms.",
-        tripwire: (shadows[1]?.name) || (shadows[0]?.name) || "Withholding Vulnerability & Silent Expectation Tests",
-        antidote: (shadows[1]?.antidote) || (shadows[0]?.antidote) || "Directly state emotional boundaries and desires rather than testing people silently.",
-        master_rule: levers.habit_to_unlearn || "Stop assuming responsibility for the private emotional reactions of others."
+        posture: traits.social?.bottom_line || traits.emotional?.bottom_line || "Cautious and slow to trust at first, but deeply devoted and protective once someone is in your inner circle.",
+        advantage: (superpowers[1]?.name) || (superpowers[0]?.name) || "A steady, reliable presence",
+        advantage_desc: (superpowers[1]?.manifestation) || (superpowers[0]?.manifestation) || "You show love through practical care and showing up when it really matters, not through empty words.",
+        tripwire: (shadows[1]?.name) || (shadows[0]?.name) || "Bottling up your feelings and hoping your partner guesses what's wrong",
+        antidote: (shadows[1]?.antidote) || (shadows[0]?.antidote) || "Say what you need out loud in simple, kind words instead of pulling away into silent frustration.",
+        master_rule: levers.habit_to_unlearn || "You are responsible for speaking your truth, but not for managing how the other person reacts to it."
       };
       break;
     case "crisis":
       fallback = {
-        posture: manual.stress_response?.reaction || "Quiet tactical withdrawal into mapping an exit strategy.",
-        advantage: (superpowers[2]?.name) || (superpowers[0]?.name) || "High Nerve Resistance & Emergency Calm",
-        advantage_desc: manual.stress_response?.recovery || "Recovers through solitary grounding, physical movement, and cutting incoming noise.",
-        tripwire: manual.stress_response?.trigger || "Sudden loss of autonomy or chaotic micromanagement.",
-        antidote: (shadows[2]?.antidote) || (Array.isArray(manual.drainers) && manual.drainers[0]) || "Step away from reactive fire-fighting; handle solely the single immediate next step.",
-        master_rule: "Never execute irreversible life decisions while in a state of nervous system exhaustion."
+        posture: manual.stress_response?.reaction || "Quiet and watchful—you pull back to catch your breath and figure out your next move.",
+        advantage: (superpowers[2]?.name) || (superpowers[0]?.name) || "Quiet resilience under fire",
+        advantage_desc: manual.stress_response?.recovery || "You reset best by stepping away from the noise, getting into quiet space, and letting your mind clear.",
+        tripwire: manual.stress_response?.trigger || "Feeling trapped or having your independence stripped away.",
+        antidote: (shadows[2]?.antidote) || (Array.isArray(manual.drainers) && manual.drainers[0]) || "Step back from the panic. Don't solve the next five years right now; just take the very next right step.",
+        master_rule: "Never make big, irreversible life decisions when your mind and body are completely exhausted."
       };
       break;
     case "solo":
     default:
       fallback = {
-        posture: theWhy.driving_hunger?.headline || "Deep autonomous mastery and building unshakeable internal sovereignty.",
-        advantage: (Array.isArray(manual.energizers) && manual.energizers[0]) || "Unbroken solo deep work and creative incubation.",
-        advantage_desc: theWhy.driving_hunger?.explanation || "Vitality compounds rapidly when allowed to think and create without notification pings.",
-        tripwire: (theWhy.comfort_zone_vs_growth_edge?.comfort_zone) || "Over-isolation and delaying bold execution until everything feels perfect.",
-        antidote: (theWhy.comfort_zone_vs_growth_edge?.growth_edge) || (shadows[3]?.antidote) || "Boldly publish, test, and ship before conditions feel completely risk-free.",
-        master_rule: levers.grounding_practice || "Daily morning silence before digital inputs touch the senses."
+        posture: theWhy.driving_hunger?.headline || "Needing real solitude to breathe, think clearly, and feel like yourself again.",
+        advantage: (Array.isArray(manual.energizers) && manual.energizers[0]) || "Deep, uninterrupted creative flow",
+        advantage_desc: theWhy.driving_hunger?.explanation || "Your energy and clarity return the moment you have time to think without anyone demanding your attention.",
+        tripwire: (theWhy.comfort_zone_vs_growth_edge?.comfort_zone) || "Getting trapped in your own head and putting off action until everything feels 100% safe.",
+        antidote: (theWhy.comfort_zone_vs_growth_edge?.growth_edge) || (shadows[3]?.antidote) || "Take a small step forward into the real world even when you still feel some self-doubt.",
+        master_rule: levers.grounding_practice || "Give yourself at least thirty minutes of quiet each day before the noise of the world rushes in."
       };
       break;
   }
@@ -2725,33 +2733,33 @@ function renderArenaPanel(d, arenaKey) {
     <div class="wwh-arena-grid">
       <!-- 1. Instinctive Posture -->
       <div class="wwh-arena-card posture">
-        <div class="wwh-arena-card-tag">[NATURAL INSTINCT]</div>
-        <div class="wwh-arena-card-title">Default Operating Posture</div>
+        <div class="wwh-arena-card-tag">[HOW YOU RESPOND]</div>
+        <div class="wwh-arena-card-title">How You Naturally Show Up</div>
         <p class="wwh-arena-card-desc">${escapeHtml(data.posture)}</p>
       </div>
 
-      <!-- 2. Unfair Advantage -->
+      <!-- 2. Greatest Strength -->
       <div class="wwh-arena-card advantage">
-        <div class="wwh-arena-card-tag">[UNFAIR ADVANTAGE]</div>
+        <div class="wwh-arena-card-tag">[YOUR GREATEST STRENGTH]</div>
         <div class="wwh-arena-card-title">${escapeHtml(data.advantage)}</div>
         <p class="wwh-arena-card-desc">${escapeHtml(data.advantage_desc)}</p>
       </div>
 
-      <!-- 3. Danger Tripwire -->
+      <!-- 3. Recurring Trap & Fix -->
       <div class="wwh-arena-card tripwire">
-        <div class="wwh-arena-card-tag">[DANGER TRIPWIRE & ANTIDOTE]</div>
+        <div class="wwh-arena-card-tag">[THE RECURRING TRAP & FIX]</div>
         <div class="wwh-arena-card-title">${escapeHtml(data.tripwire)}</div>
         ${data.antidote ? `
         <div class="wwh-arena-antidote-strip">
-          <span class="wwh-arena-antidote-tag">[DEFUSER]:</span> ${escapeHtml(data.antidote)}
+          <span class="wwh-arena-antidote-tag">[THE EASY FIX]:</span> ${escapeHtml(data.antidote)}
         </div>
         ` : ""}
       </div>
 
       <!-- 4. Master Rule -->
       <div class="wwh-arena-card master">
-        <div class="wwh-arena-card-tag">[THE 1-SENTENCE MASTER DIRECTIVE]</div>
-        <div class="wwh-arena-card-title">High-Leverage Multiplier</div>
+        <div class="wwh-arena-card-tag">[THE GOLDEN RULE]</div>
+        <div class="wwh-arena-card-title">The One Rule to Remember</div>
         <p class="wwh-arena-card-desc" style="font-weight: 600; color: var(--text-primary);">${escapeHtml(data.master_rule)}</p>
       </div>
     </div>
@@ -2787,19 +2795,19 @@ function renderArenaSwitcher(d) {
   return `
     <div class="wwh-section-block" id="wwh-sec-arenas">
       <div class="wwh-section-header">
-        <span class="wwh-section-tag">[HOW YOU SHOW UP • ARENA SIMULATOR]</span>
-        <h3 class="wwh-section-title">Contextual Arena Operating Console</h3>
+        <span class="wwh-section-tag">[HOW YOU SHOW UP]</span>
+        <h3 class="wwh-section-title">How You Respond Across Different Situations</h3>
         <p class="wwh-section-subtitle" style="font-size: 0.86rem; color: var(--text-muted); margin-top: 0.25rem;">
-          Toggle between different real-life arenas to explore how your subconscious wiring manifests under pressure.
+          See how your instincts play out at work, in relationships, under pressure, and when you are by yourself.
         </p>
       </div>
 
       <div class="wwh-arena-switcher-box">
         <div class="wwh-arena-nav">
-          <button type="button" class="wwh-arena-pill active" onclick="switchWwhArena(event, 'work')">At Work & Leadership</button>
-          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'relationships')">In Relationships & Love</button>
-          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'crisis')">Under Crisis & Stress</button>
-          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'solo')">In Solo & Deep Flow</button>
+          <button type="button" class="wwh-arena-pill active" onclick="switchWwhArena(event, 'work')">At Work</button>
+          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'relationships')">In Relationships</button>
+          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'crisis')">Under Pressure</button>
+          <button type="button" class="wwh-arena-pill" onclick="switchWwhArena(event, 'solo')">When You're Alone</button>
         </div>
 
         <div class="wwh-arena-content-pane" id="wwh-arena-pane" style="transition: opacity 0.2s ease;">
@@ -2839,6 +2847,86 @@ function scrollToWwhSection(e, id) {
 }
 window.scrollToWwhSection = scrollToWwhSection;
 
+function renderDilemmaCounselCard(dc, isCareer = false) {
+  if (!dc) return "";
+  const queryText = (dc.seeker_query || dc.seeker_situation || "").trim();
+  // Do not render phantom query cards if there was no genuine user question
+  if (!queryText || queryText === "Consultation Query" || queryText === "null" || queryText === '""') return "";
+
+  const directAns = dc.direct_answer || "";
+  const timeline = dc.exact_timeline || {};
+  const primaryWin = timeline.primary_window || dc.timing_window || "";
+  const secondaryWin = timeline.secondary_window || "";
+  const dashaTrig = timeline.active_dasha_trigger || "";
+  const transitTrig = timeline.transits_trigger || "";
+  const astroReality = dc.astrological_reality || "";
+  const guidance = dc.mentor_guidance || dc.mentor_verdict || "";
+
+  if (!directAns && !primaryWin && !guidance) return "";
+
+  const tagLabel = isCareer
+    ? "[CAREER CONSULTATION &bull; DATED TIMELINE]"
+    : "[SEEKER CONSULTATION &bull; DATED TIMELINE]";
+
+  return `
+    <div class="wwh-dilemma-card ${isCareer ? "cwp-dilemma-card" : ""}">
+      <div class="wwh-dilemma-badge-row">
+        <span class="wwh-dilemma-tag">${tagLabel}</span>
+        ${primaryWin ? `<span class="wwh-dilemma-win-pill">Window: ${escapeHtml(primaryWin)}</span>` : ""}
+      </div>
+      ${queryText ? `
+        <div class="wwh-dilemma-query-row">
+          <span class="wwh-dilemma-q-label">QUESTION:</span>
+          <span class="wwh-dilemma-title">"${escapeHtml(queryText)}"</span>
+        </div>
+      ` : ""}
+      ${directAns ? `
+        <div class="wwh-dilemma-direct-box">
+          <span class="wwh-dilemma-direct-tag">[DIRECT VERDICT]:</span>
+          <p class="wwh-dilemma-direct-text">${escapeHtml(directAns)}</p>
+        </div>
+      ` : ""}
+      ${(primaryWin || dashaTrig || transitTrig) ? `
+        <div class="wwh-dilemma-timing-grid">
+          ${primaryWin ? `
+            <div class="wwh-dilemma-time-card primary">
+              <span class="wwh-time-card-tag">[PRIMARY TIMELINE WINDOW]:</span>
+              <span class="wwh-time-card-val">${escapeHtml(primaryWin)}</span>
+            </div>
+          ` : ""}
+          ${secondaryWin ? `
+            <div class="wwh-dilemma-time-card secondary">
+              <span class="wwh-time-card-tag">[SECONDARY WINDOW]:</span>
+              <span class="wwh-time-card-val">${escapeHtml(secondaryWin)}</span>
+            </div>
+          ` : ""}
+          ${dashaTrig ? `
+            <div class="wwh-dilemma-time-card dasha">
+              <span class="wwh-time-card-tag">[DASHA ACTIVATION]:</span>
+              <span class="wwh-time-card-val">${escapeHtml(dashaTrig)}</span>
+            </div>
+          ` : ""}
+          ${transitTrig ? `
+            <div class="wwh-dilemma-time-card transit">
+              <span class="wwh-time-card-tag">[TRANSIT CATALYST]:</span>
+              <span class="wwh-time-card-val">${escapeHtml(transitTrig)}</span>
+            </div>
+          ` : ""}
+        </div>
+      ` : ""}
+      ${astroReality ? `
+        <p class="wwh-dilemma-reality">${escapeHtml(astroReality)}</p>
+      ` : ""}
+      ${guidance ? `
+        <div class="wwh-dilemma-verdict-box">
+          <span class="wwh-dilemma-verdict-tag">[PRACTICAL MENTOR GUIDANCE & SAFEGUARDS]:</span>
+          <span class="wwh-dilemma-verdict-text">${escapeHtml(guidance)}</span>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
 function renderWhatWhyHowDeck(d) {
   if (!d) return "";
 
@@ -2865,12 +2953,12 @@ function renderWhatWhyHowDeck(d) {
   html += `
     <nav class="wwh-sticky-nav">
       <button type="button" class="wwh-nav-pill active" onclick="scrollToWwhSection(event, 'wwh-sec-identity')">Overview</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-traits')">Spectrum</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-arenas')">Arenas</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-traits')">Your Balance</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-arenas')">Daily Life</button>
       <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-why')">The Why</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-qualities')">Qualities</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-manual')">Operating Manual</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-levers')">Directives</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-qualities')">Strengths & Blind Spots</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-manual')">Your Rhythm</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-levers')">Daily Wisdom</button>
       ${proof ? `<button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, 'wwh-sec-proof')">Technical Proof</button>` : ""}
     </nav>
   `;
@@ -2878,8 +2966,8 @@ function renderWhatWhyHowDeck(d) {
   // 1. HERO IDENTITY CARD
   html += `
     <div class="wwh-hero-card" id="wwh-sec-identity">
-      <div class="wwh-section-tag">[IDENTITY BLUEPRINT]</div>
-      <h2 class="wwh-hero-title">WHAT, WHY AND HOW YOU ARE</h2>
+      <div class="wwh-section-tag">[YOUR CORE NATURE]</div>
+      <h2 class="wwh-hero-title">WHO YOU ARE AT YOUR CORE</h2>
       ${verdict ? `<div class="wwh-verdict">"${escapeHtml(verdict)}"</div>` : ""}
       
       <div class="wwh-badges-row">
@@ -2890,7 +2978,7 @@ function renderWhatWhyHowDeck(d) {
 
       <div class="wwh-elements-bar-wrapper">
         <div class="wwh-elements-bar-head">
-          <span class="wwh-elements-bar-title">CONSTITUTIONAL ELEMENT BALANCE</span>
+          <span class="wwh-elements-bar-title">YOUR ELEMENTAL BALANCE</span>
           <span class="wwh-elements-bar-ratio">Fire ${elems.Fire}% • Earth ${elems.Earth}% • Air ${elems.Air}% • Water ${elems.Water}%</span>
         </div>
         <div class="wwh-elements-progress-track">
@@ -2909,7 +2997,7 @@ function renderWhatWhyHowDeck(d) {
 
       <div class="wwh-triad-strip">
         <div class="wwh-triad-col">
-          <span class="wwh-triad-role">NATURAL INSTINCT</span>
+          <span class="wwh-triad-role">OUTER INSTINCT</span>
           <span class="wwh-triad-val">${escapeHtml(consti.natural_instinct_tag || consti.lagna_tag || "-")}</span>
         </div>
         <div class="wwh-triad-col">
@@ -2928,47 +3016,86 @@ function renderWhatWhyHowDeck(d) {
     </div>
   `;
 
-  // 2. CONSTITUTIONAL POLARITY MATRIX (WHAT YOU ARE)
+  // 1.1 GROUNDED CURRENT LIFE SEASON CARD (WHERE YOU STAND TODAY)
+  if (d.current_life_season) {
+    const season = d.current_life_season;
+    html += `
+      <div class="wwh-season-card">
+        <div class="wwh-season-badge-row">
+          <span class="wwh-season-tag">[WHERE YOU STAND TODAY]</span>
+          <span class="wwh-season-cycle">Operating Cycle: ${new Date().getFullYear()}</span>
+        </div>
+        <h3 class="wwh-season-headline">${escapeHtml(season.headline || "Your Current Life Chapter")}</h3>
+        <p class="wwh-season-desc">${escapeHtml(season.season_summary || "")}</p>
+        ${(season.what_to_lean_into || season.what_to_leave_behind) ? `
+          <div class="wwh-season-split">
+            ${season.what_to_lean_into ? `
+              <div class="wwh-season-col lean">
+                <span class="wwh-season-col-tag">[WHAT TO LEAN INTO]:</span>
+                <span class="wwh-season-col-text">${escapeHtml(season.what_to_lean_into)}</span>
+              </div>
+            ` : ""}
+            ${season.what_to_leave_behind ? `
+              <div class="wwh-season-col leave">
+                <span class="wwh-season-col-tag">[WHAT TO LEAVE BEHIND]:</span>
+                <span class="wwh-season-col-text">${escapeHtml(season.what_to_leave_behind)}</span>
+              </div>
+            ` : ""}
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  // 1.2 GROUNDED SEEKER QUERY & DATED TIMELINE COUNSEL (Only render when a genuine query was asked)
+  const userTypedQuery = (document.getElementById("ai-custom-query-input")?.value || "").trim();
+  const rawQuery = (d.dilemma_counsel?.seeker_query || userTypedQuery || "").trim();
+  const hasGenuineQuery = Boolean(rawQuery && rawQuery !== "Consultation Query" && rawQuery !== "null");
+  if (hasGenuineQuery && d.dilemma_counsel) {
+    html += renderDilemmaCounselCard({ ...d.dilemma_counsel, seeker_query: rawQuery }, false);
+  }
+
+  // 2. CONSTITUTIONAL POLARITY MATRIX (HOW YOU'RE WIRED)
   html += renderPolaritySpectrum(d);
 
-  // 3. CONTEXTUAL ARENA OPERATING CONSOLE (ARENA SIMULATOR)
+  // 3. CONTEXTUAL ARENA OPERATING CONSOLE (HOW YOU SHOW UP)
   html += renderArenaSwitcher(d);
 
-  // 3. THE WHY: INNER PARADOX & GROWTH ENGINE
+  // 4. THE WHY: INNER CONTRADICTIONS & TRUE MOTIVATIONS
   html += `
     <div class="wwh-section-block" id="wwh-sec-why">
       <div class="wwh-section-header">
-        <span class="wwh-section-tag">[WHY YOU ARE]</span>
-        <h3 class="wwh-section-title">The Inner Paradox & Growth Engine</h3>
+        <span class="wwh-section-tag">[WHY YOU ACT THE WAY YOU DO]</span>
+        <h3 class="wwh-section-title">Your Inner Contradictions & True Motivations</h3>
       </div>
 
       <div class="wwh-why-grid">
         ${theWhy.inner_paradox ? `
           <div class="wwh-why-card paradox">
-            <div class="wwh-why-tag">[INNER PARADOX]</div>
-            <div class="wwh-why-title">${escapeHtml(theWhy.inner_paradox.headline || theWhy.inner_paradox.title || "The Inner Paradox")}</div>
+            <div class="wwh-why-tag">[THE INNER CONTRADICTION]</div>
+            <div class="wwh-why-title">${escapeHtml(theWhy.inner_paradox.headline || theWhy.inner_paradox.title || "The Inner Contradiction")}</div>
             <p class="wwh-why-desc">${escapeHtml(theWhy.inner_paradox.explanation || "")}</p>
           </div>
         ` : ""}
         ${theWhy.driving_hunger ? `
           <div class="wwh-why-card hunger">
-            <div class="wwh-why-tag">[CORE HUNGER]</div>
-            <div class="wwh-why-title">${escapeHtml(theWhy.driving_hunger.headline || theWhy.driving_hunger.title || "Core Driving Motivation")}</div>
+            <div class="wwh-why-tag">[THE DEEP FUEL]</div>
+            <div class="wwh-why-title">${escapeHtml(theWhy.driving_hunger.headline || theWhy.driving_hunger.title || "What Truly Moves You")}</div>
             <p class="wwh-why-desc">${escapeHtml(theWhy.driving_hunger.explanation || "")}</p>
           </div>
         ` : ""}
         ${(theWhy.comfort_zone_vs_growth_edge || theWhy.karmic_axis) ? `
           <div class="wwh-why-card axis">
-            <div class="wwh-why-tag">[GROWTH AXIS]</div>
-            <div class="wwh-why-title">${escapeHtml(theWhy.comfort_zone_vs_growth_edge?.headline || theWhy.karmic_axis?.title || "Comfort Zone vs. Growth Edge")}</div>
+            <div class="wwh-why-tag">[THE GROWTH EDGE]</div>
+            <div class="wwh-why-title">${escapeHtml(theWhy.comfort_zone_vs_growth_edge?.headline || theWhy.karmic_axis?.title || "The Safe Trap vs. The Real Growth")}</div>
             ${theWhy.comfort_zone_vs_growth_edge?.comfort_zone ? `
               <div class="wwh-karmic-split">
                 <div class="wwh-karmic-row">
-                  <span class="wwh-karmic-tag">[COMFORT TRAP]:</span>
+                  <span class="wwh-karmic-tag">[THE SAFE TRAP]:</span>
                   <span class="wwh-karmic-text">${escapeHtml(theWhy.comfort_zone_vs_growth_edge.comfort_zone)}</span>
                 </div>
                 <div class="wwh-karmic-row growth">
-                  <span class="wwh-karmic-tag growth">[GROWTH EDGE]:</span>
+                  <span class="wwh-karmic-tag growth">[THE REAL GROWTH]:</span>
                   <span class="wwh-karmic-text">${escapeHtml(theWhy.comfort_zone_vs_growth_edge.growth_edge)}</span>
                 </div>
               </div>
@@ -2979,7 +3106,7 @@ function renderWhatWhyHowDeck(d) {
     </div>
   `;
 
-  // 4. QUALITIES: SUPERPOWERS VS SHADOWS
+  // 5. QUALITIES: STRENGTHS & BLIND SPOTS
   const superpowers = Array.isArray(qualities.superpowers) ? qualities.superpowers : [];
   const shadows = Array.isArray(qualities.shadows) ? qualities.shadows : [];
 
@@ -2987,15 +3114,15 @@ function renderWhatWhyHowDeck(d) {
     html += `
       <div class="wwh-section-block" id="wwh-sec-qualities">
         <div class="wwh-section-header">
-          <span class="wwh-section-tag">[QUALITIES BALANCE SHEET]</span>
-          <h3 class="wwh-section-title">Superpowers and Critical Shadows</h3>
+          <span class="wwh-section-tag">[STRENGTHS & BLIND SPOTS]</span>
+          <h3 class="wwh-section-title">What Gives You Wings & What Trips You Up</h3>
         </div>
 
         <div class="wwh-qualities-split">
           <!-- Superpowers Column -->
           <div class="wwh-qualities-col superpowers">
             <div class="wwh-qualities-col-header">
-              <span class="wwh-col-label">[+] CORE SUPERPOWERS & GIFTS</span>
+              <span class="wwh-col-label">[+] YOUR NATURAL GIFTS</span>
             </div>
             <div class="wwh-qualities-list">
               ${superpowers.map((sp, idx) => `
@@ -3004,7 +3131,7 @@ function renderWhatWhyHowDeck(d) {
                   <p class="wwh-quality-desc">${escapeHtml(sp.description || "")}</p>
                   ${sp.manifestation ? `
                     <div class="wwh-quality-context power">
-                      <span class="wwh-quality-context-tag">[REAL-WORLD TRIGGER]:</span> ${escapeHtml(sp.manifestation)}
+                      <span class="wwh-quality-context-tag">[WHEN IT SHINES]:</span> ${escapeHtml(sp.manifestation)}
                     </div>
                   ` : ""}
                 </div>
@@ -3015,16 +3142,16 @@ function renderWhatWhyHowDeck(d) {
           <!-- Shadows Column -->
           <div class="wwh-qualities-col shadows">
             <div class="wwh-qualities-col-header">
-              <span class="wwh-col-label">[-] SHADOWS & CRITICAL PITFALLS</span>
+              <span class="wwh-col-label">[-] RECURRING BLIND SPOTS</span>
             </div>
             <div class="wwh-qualities-list">
               ${shadows.map((sh, idx) => `
                 <div class="wwh-quality-item shadow">
-                  <div class="wwh-quality-title">${escapeHtml(sh.name || sh.title || `Shadow ${idx + 1}`)}</div>
+                  <div class="wwh-quality-title">${escapeHtml(sh.name || sh.title || `Blind Spot ${idx + 1}`)}</div>
                   <p class="wwh-quality-desc">${escapeHtml(sh.description || "")}</p>
                   ${sh.antidote ? `
                     <div class="wwh-quality-context shadow">
-                      <span class="wwh-quality-context-tag">[IMMEDIATE ANTIDOTE]:</span> ${escapeHtml(sh.antidote)}
+                      <span class="wwh-quality-context-tag">[THE EASY FIX]:</span> ${escapeHtml(sh.antidote)}
                     </div>
                   ` : ""}
                 </div>
@@ -3036,29 +3163,29 @@ function renderWhatWhyHowDeck(d) {
     `;
   }
 
-  // 5. HOW YOU OPERATE: PERSONAL OPERATING MANUAL
+  // 6. HOW YOU OPERATE: YOUR DAILY RHYTHM
   html += `
     <div class="wwh-section-block" id="wwh-sec-manual">
       <div class="wwh-section-header">
-        <span class="wwh-section-tag">[HOW YOU OPERATE]</span>
-        <h3 class="wwh-section-title">Personal Operating Manual</h3>
+        <span class="wwh-section-tag">[YOUR DAILY RHYTHM]</span>
+        <h3 class="wwh-section-title">How to Protect Your Energy, Peace & Focus</h3>
       </div>
 
       <div class="wwh-manual-grid">
         <!-- Stress Protocol -->
         ${manual.stress_response ? `
           <div class="wwh-manual-card stress">
-            <div class="wwh-manual-title">STRESS & BURNOUT PROTOCOL</div>
+            <div class="wwh-manual-title">WHAT HAPPENS WHEN OVERWHELMED</div>
             <div class="wwh-stress-row">
-              <span class="wwh-stress-tag">TRIGGER:</span>
+              <span class="wwh-stress-tag">THE SPARK:</span>
               <span class="wwh-stress-text">${escapeHtml(manual.stress_response.trigger || "-")}</span>
             </div>
             <div class="wwh-stress-row">
-              <span class="wwh-stress-tag">REACTION:</span>
+              <span class="wwh-stress-tag">YOUR GUT REACTION:</span>
               <span class="wwh-stress-text">${escapeHtml(manual.stress_response.reaction || "-")}</span>
             </div>
             <div class="wwh-stress-row">
-              <span class="wwh-stress-tag">RECOVERY:</span>
+              <span class="wwh-stress-tag">HOW TO RESET:</span>
               <span class="wwh-stress-text">${escapeHtml(manual.stress_response.recovery || "-")}</span>
             </div>
           </div>
@@ -3066,16 +3193,16 @@ function renderWhatWhyHowDeck(d) {
 
         <!-- Energizers & Drainers Split -->
         <div class="wwh-manual-card energy">
-          <div class="wwh-manual-title">ENERGY DYNAMICS</div>
+          <div class="wwh-manual-title">WHAT FEEDS YOU & WHAT DRAINS YOU</div>
           <div class="wwh-energy-split">
             <div class="wwh-energy-subcol">
-              <span class="wwh-energy-label">[+] VITALITY ENERGIZERS</span>
+              <span class="wwh-energy-label">[+] WHAT GIVES YOU ENERGY</span>
               <ul class="wwh-energy-list">
                 ${(manual.energizers || []).map(en => `<li>${escapeHtml(en)}</li>`).join("")}
               </ul>
             </div>
             <div class="wwh-energy-subcol">
-              <span class="wwh-energy-label">[-] VITALITY DRAINERS</span>
+              <span class="wwh-energy-label">[-] WHAT DRAINS YOUR BATTERY</span>
               <ul class="wwh-energy-list drainers">
                 ${(manual.drainers || []).map(dr => `<li>${escapeHtml(dr)}</li>`).join("")}
               </ul>
@@ -3086,7 +3213,7 @@ function renderWhatWhyHowDeck(d) {
         <!-- Decision Instinct -->
         ${manual.decision_style ? `
           <div class="wwh-manual-card decision">
-            <div class="wwh-manual-title">DECISION-MAKING INSTINCT</div>
+            <div class="wwh-manual-title">HOW YOU MAKE BIG DECISIONS</div>
             <p class="wwh-decision-text">${escapeHtml(manual.decision_style)}</p>
           </div>
         ` : ""}
@@ -3094,37 +3221,37 @@ function renderWhatWhyHowDeck(d) {
     </div>
   `;
 
-  // 6. ACTIONABLE GROWTH LEVERS
+  // 7. ACTIONABLE DAILY WISDOM
   html += `
     <div class="wwh-section-block" id="wwh-sec-levers">
       <div class="wwh-section-header">
-        <span class="wwh-section-tag">[GROWTH LEVERS]</span>
-        <h3 class="wwh-section-title">Evolutionary Directives</h3>
+        <span class="wwh-section-tag">[DAILY WISDOM]</span>
+        <h3 class="wwh-section-title">Three Grounded Rules for Peace & Growth</h3>
       </div>
 
       <div class="wwh-levers-grid">
         <div class="wwh-lever-card golden">
-          <div class="wwh-lever-tag">[KEY LEVER]</div>
-          <div class="wwh-lever-title">The Single Multiplier Habit</div>
-          <p class="wwh-lever-desc">${escapeHtml(levers.golden_lever || "Focus on one high-leverage initiative at a time.")}</p>
+          <div class="wwh-lever-tag">[THE GOLDEN RULE]</div>
+          <div class="wwh-lever-title">The One Shift That Changes Everything</div>
+          <p class="wwh-lever-desc">${escapeHtml(levers.golden_lever || "Focus on one important thing each day rather than scattering your energy.")}</p>
         </div>
 
         <div class="wwh-lever-card unlearn">
-          <div class="wwh-lever-tag">[CRITICAL UNLEARN]</div>
-          <div class="wwh-lever-title">The Trap to Stop Immediately</div>
-          <p class="wwh-lever-desc">${escapeHtml(levers.habit_to_unlearn || "Assuming responsibility for outcomes outside your direct agency.")}</p>
+          <div class="wwh-lever-tag">[THE OLD HABIT]</div>
+          <div class="wwh-lever-title">What to Catch & Let Go Of</div>
+          <p class="wwh-lever-desc">${escapeHtml(levers.habit_to_unlearn || "Carrying burdens and responsibilities that are not yours to fix.")}</p>
         </div>
 
         <div class="wwh-lever-card anchor">
           <div class="wwh-lever-tag">[DAILY ANCHOR]</div>
-          <div class="wwh-lever-title">Daily Grounding Anchor</div>
-          <p class="wwh-lever-desc">${escapeHtml(levers.grounding_practice || "Morning silence without digital stimulation.")}</p>
+          <div class="wwh-lever-title">A Simple Habit to Keep You Centered</div>
+          <p class="wwh-lever-desc">${escapeHtml(levers.grounding_practice || "A few minutes of quiet stillness every morning before the day's noise begins.")}</p>
         </div>
       </div>
     </div>
   `;
 
-  // 7. COLLAPSIBLE ASTROLOGICAL PROOF
+  // 8. COLLAPSIBLE ASTROLOGICAL PROOF
   if (proof) {
     html += `
       <div class="wwh-proof-accordion" id="wwh-sec-proof">
@@ -3152,15 +3279,456 @@ function renderWhatWhyHowDeck(d) {
 }
 window.renderWhatWhyHowDeck = renderWhatWhyHowDeck;
 
+function scrollToCwpSection(e, targetId) {
+  if (e && e.preventDefault) e.preventDefault();
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const container = target.closest(".cwp-container") || document;
+  const pills = container.querySelectorAll(".cwp-nav-pill");
+  pills.forEach((p) => p.classList.remove("active"));
+  if (e && e.currentTarget) {
+    e.currentTarget.classList.add("active");
+  }
+}
+window.scrollToCwpSection = scrollToCwpSection;
+
+function renderCraftWealthDeck(d) {
+  if (!d) return "";
+
+  const archetype = d.vocation_archetype || d.archetype || "The Sovereign Strategist";
+  const verdict = d.summary_verdict || "";
+  const genius = d.work_genius || {};
+  const leadership = d.leadership_and_authority || {};
+  const wealth = d.wealth_engine || {};
+  const enterprise = d.enterprise_vs_employment || {};
+  const timing = d.timing_weather || {};
+  const levers = d.tactical_levers || {};
+  const proof = d.astrological_proof || "";
+
+  let html = `<div class="cwp-container what-why-how-container">`;
+
+  // 0. QUICK-JUMP MICRO-NAVIGATION
+  html += `
+    <nav class="wwh-sticky-nav cwp-sticky-nav">
+      <button type="button" class="wwh-nav-pill cwp-nav-pill active" onclick="scrollToCwpSection(event, 'cwp-sec-overview')">Overview</button>
+      <button type="button" class="wwh-nav-pill cwp-nav-pill" onclick="scrollToCwpSection(event, 'cwp-sec-genius')">Your Craft</button>
+      <button type="button" class="wwh-nav-pill cwp-nav-pill" onclick="scrollToCwpSection(event, 'cwp-sec-leadership')">Leadership</button>
+      <button type="button" class="wwh-nav-pill cwp-nav-pill" onclick="scrollToCwpSection(event, 'cwp-sec-wealth')">Wealth & Money</button>
+      <button type="button" class="wwh-nav-pill cwp-nav-pill" onclick="scrollToCwpSection(event, 'cwp-sec-vehicle')">Career Path</button>
+      <button type="button" class="wwh-nav-pill cwp-nav-pill" onclick="scrollToCwpSection(event, 'cwp-sec-timing')">Timing Windows</button>
+      <button type="button" class="wwh-nav-pill cwp-nav-pill" onclick="scrollToCwpSection(event, 'cwp-sec-levers')">Work Rules</button>
+      ${proof ? `<button type="button" class="wwh-nav-pill cwp-nav-pill" onclick="scrollToCwpSection(event, 'cwp-sec-proof')">Technical Proof</button>` : ""}
+    </nav>
+  `;
+
+  // 1. HERO IDENTITY CARD
+  html += `
+    <div class="wwh-hero-card cwp-hero-card" id="cwp-sec-overview">
+      <div class="wwh-section-tag">[YOUR WORK, WEALTH & CALLING]</div>
+      <h2 class="wwh-hero-title">CRAFT, WEALTH & PUBLIC CALLING</h2>
+      ${verdict ? `<div class="wwh-verdict">"${escapeHtml(verdict)}"</div>` : ""}
+      
+      <div class="wwh-badges-row">
+        <span class="wwh-badge primary">VOCATION: ${escapeHtml(archetype)}</span>
+        ${enterprise.recommended_path ? `<span class="wwh-badge">${escapeHtml(enterprise.recommended_path)}</span>` : ""}
+        ${wealth.wealth_archetype ? `<span class="wwh-badge">${escapeHtml(wealth.wealth_archetype)}</span>` : ""}
+        ${timing.current_season_headline ? `<span class="wwh-badge">${escapeHtml(timing.current_season_headline)}</span>` : ""}
+      </div>
+
+      <div class="wwh-triad-strip cwp-quad-strip">
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">NATURAL CRAFT</span>
+          <span class="wwh-triad-val">${escapeHtml(genius.craft_essence?.headline || "-")}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">LEADERSHIP STYLE</span>
+          <span class="wwh-triad-val">${escapeHtml(leadership.leadership_stance?.headline || leadership.leadership_stance?.style || "-")}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">WEALTH STYLE</span>
+          <span class="wwh-triad-val">${escapeHtml(wealth.wealth_archetype || "-")}</span>
+        </div>
+        <div class="wwh-triad-col">
+          <span class="wwh-triad-role">BEST WORK SETUP</span>
+          <span class="wwh-triad-val">${escapeHtml(enterprise.optimal_vehicle || enterprise.recommended_path || "-")}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 1.1 SEEKER'S VOCATIONAL CROSSROADS & DATED TIMELINE COUNSEL (Only render when a genuine query was asked)
+  const userTypedQuery = (document.getElementById("ai-custom-query-input")?.value || "").trim();
+  const rawQuery = (d.dilemma_counsel?.seeker_query || userTypedQuery || "").trim();
+  const hasGenuineQuery = Boolean(rawQuery && rawQuery !== "Consultation Query" && rawQuery !== "null");
+  if (hasGenuineQuery && d.dilemma_counsel) {
+    html += renderDilemmaCounselCard({ ...d.dilemma_counsel, seeker_query: rawQuery }, true);
+  }
+
+  // 2. NATURAL WORK GENIUS & FLOW STATE
+  if (genius.craft_essence || genius.autonomy_vs_hierarchy || genius.flow_state_trigger || genius.ideal_work_environment) {
+    html += `
+      <div class="wwh-section-block" id="cwp-sec-genius">
+        <div class="wwh-section-header">
+          <span class="wwh-section-tag">[YOUR WORK GENIUS & FLOW]</span>
+          <h3 class="wwh-section-title">How You Work Best & Where You Excel</h3>
+        </div>
+
+        <div class="wwh-why-grid cwp-genius-grid">
+          ${genius.craft_essence ? `
+            <div class="wwh-why-card cwp-genius-card craft">
+              <div class="wwh-why-tag">[YOUR CORE WORK GENIUS]</div>
+              <div class="wwh-why-title">${escapeHtml(genius.craft_essence.headline || "Core Problem-Solving Mastery")}</div>
+              <p class="wwh-why-desc">${escapeHtml(genius.craft_essence.description || "")}</p>
+              ${genius.craft_essence.real_world_scenario ? `
+                <div class="wwh-quality-context power" style="margin-top: 0.85rem;">
+                  <span class="wwh-quality-context-tag">[TUESDAY MORNING TEST]:</span> ${escapeHtml(genius.craft_essence.real_world_scenario)}
+                </div>
+              ` : ""}
+            </div>
+          ` : ""}
+
+          ${genius.autonomy_vs_hierarchy ? `
+            <div class="wwh-why-card cwp-genius-card autonomy">
+              <div class="wwh-why-tag">[HOW MUCH FREEDOM YOU NEED]</div>
+              <div class="wwh-why-title">${escapeHtml(genius.autonomy_vs_hierarchy.headline || "Relationship with Authority")}</div>
+              <p class="wwh-why-desc">${escapeHtml(genius.autonomy_vs_hierarchy.stance || "")}</p>
+              ${genius.autonomy_vs_hierarchy.friction_trigger ? `
+                <div class="wwh-quality-context shadow" style="margin-top: 0.85rem;">
+                  <span class="wwh-quality-context-tag">[WHAT DRAINS YOUR DRIVE]:</span> ${escapeHtml(genius.autonomy_vs_hierarchy.friction_trigger)}
+                </div>
+              ` : ""}
+            </div>
+          ` : ""}
+
+          ${genius.flow_state_trigger ? `
+            <div class="wwh-why-card cwp-genius-card flow">
+              <div class="wwh-why-tag">[WHEN YOU'RE IN THE ZONE]</div>
+              <div class="wwh-why-title">${escapeHtml(genius.flow_state_trigger.headline || "Peak Focus Catalyst")}</div>
+              <p class="wwh-why-desc">${escapeHtml(genius.flow_state_trigger.conditions || "")}</p>
+            </div>
+          ` : ""}
+
+          ${genius.ideal_work_environment ? `
+            <div class="wwh-why-card cwp-genius-card env">
+              <div class="wwh-why-tag">[THE WORK ENVIRONMENT YOU NEED]</div>
+              <div class="wwh-why-title">${escapeHtml(genius.ideal_work_environment.headline || "Ideal Cultural & Physical Arena")}</div>
+              <p class="wwh-why-desc">${escapeHtml(genius.ideal_work_environment.description || "")}</p>
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. LEADERSHIP, AUTHORITY & WORKPLACE PRESENCE
+  if (leadership.leadership_stance || leadership.office_politics_reflex || leadership.delegation_tripwire || leadership.public_presence) {
+    html += `
+      <div class="wwh-section-block" id="cwp-sec-leadership">
+        <div class="wwh-section-header">
+          <span class="wwh-section-tag">[HOW YOU LEAD & HOW OTHERS SEE YOU]</span>
+          <h3 class="wwh-section-title">How You Handle Power, Politics & People</h3>
+        </div>
+
+        <div class="wwh-traits-grid cwp-leadership-grid">
+          ${leadership.leadership_stance ? `
+            <div class="wwh-trait-card cwp-lead-card">
+              <div class="wwh-trait-head">
+                <span class="wwh-trait-label">[HOW YOU LEAD]</span>
+              </div>
+              <div class="wwh-trait-headline">${escapeHtml(leadership.leadership_stance.headline || "Command & Authority")}</div>
+              <p class="wwh-trait-desc">${escapeHtml(leadership.leadership_stance.style || "")}</p>
+              ${leadership.leadership_stance.how_others_perceive_you ? `
+                <div class="wwh-quality-context power" style="margin-top: 0.75rem;">
+                  <span class="wwh-quality-context-tag">[HOW OTHERS ACTUALLY SEE YOU]:</span> ${escapeHtml(leadership.leadership_stance.how_others_perceive_you)}
+                </div>
+              ` : ""}
+            </div>
+          ` : ""}
+
+          ${leadership.office_politics_reflex ? `
+            <div class="wwh-trait-card cwp-lead-card">
+              <div class="wwh-trait-head">
+                <span class="wwh-trait-label">[HOW YOU HANDLE WORKPLACE POLITICS]</span>
+              </div>
+              <div class="wwh-trait-headline">${escapeHtml(leadership.office_politics_reflex.headline || "Navigating Friction")}</div>
+              <p class="wwh-trait-desc">${escapeHtml(leadership.office_politics_reflex.reflex || "")}</p>
+              ${leadership.office_politics_reflex.antidote ? `
+                <div class="wwh-quality-context shadow" style="margin-top: 0.75rem;">
+                  <span class="wwh-quality-context-tag">[HOW TO PROTECT YOURSELF]:</span> ${escapeHtml(leadership.office_politics_reflex.antidote)}
+                </div>
+              ` : ""}
+            </div>
+          ` : ""}
+
+          ${leadership.delegation_tripwire ? `
+            <div class="wwh-trait-card cwp-lead-card">
+              <div class="wwh-trait-head">
+                <span class="wwh-trait-label">[THE DELEGATION & TRUST TRAP]</span>
+              </div>
+              <div class="wwh-trait-headline">${escapeHtml(leadership.delegation_tripwire.headline || "The Delegation Bottleneck")}</div>
+              <p class="wwh-trait-desc">${escapeHtml(leadership.delegation_tripwire.trap || "")}</p>
+              ${leadership.delegation_tripwire.fix ? `
+                <div class="wwh-quality-context shadow" style="margin-top: 0.75rem;">
+                  <span class="wwh-quality-context-tag">[HOW TO FIX THIS]:</span> ${escapeHtml(leadership.delegation_tripwire.fix)}
+                </div>
+              ` : ""}
+            </div>
+          ` : ""}
+
+          ${leadership.public_presence ? `
+            <div class="wwh-trait-card cwp-lead-card">
+              <div class="wwh-trait-head">
+                <span class="wwh-trait-label">[PUBLIC REPUTATION VS. PRIVATE REALITY]</span>
+              </div>
+              <div class="wwh-trait-headline">${escapeHtml(leadership.public_presence.headline || "Public vs. Private Stance")}</div>
+              <div style="font-size: 0.86rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.5rem;">
+                <strong style="color: var(--accent-primary);">What People See Outside:</strong> ${escapeHtml(leadership.public_presence.external_reputation || "")}
+              </div>
+              <div style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.5;">
+                <strong style="color: var(--text-primary);">What You Feel Inside:</strong> ${escapeHtml(leadership.public_presence.internal_reality || "")}
+              </div>
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  // 4. WEALTH ENGINE & FINANCIAL DYNAMICS
+  if (wealth.primary_inflow_channel || wealth.unconscious_financial_leak || wealth.monetization_rule) {
+    html += `
+      <div class="wwh-section-block" id="cwp-sec-wealth">
+        <div class="wwh-section-header">
+          <span class="wwh-section-tag">[HOW MONEY & WEALTH WORK FOR YOU]</span>
+          <h3 class="wwh-section-title">Where Money Comes In, Where It Leaks & Your Golden Rule</h3>
+        </div>
+
+        <div class="wwh-qualities-split cwp-wealth-split">
+          <!-- Inflows -->
+          ${wealth.primary_inflow_channel ? `
+            <div class="wwh-qualities-col superpowers">
+              <div class="wwh-qualities-col-header">
+                <span class="wwh-col-label">[WHERE MONEY FLOWS NATURALLY]</span>
+              </div>
+              <div class="wwh-qualities-list">
+                <div class="wwh-quality-item power">
+                  <div class="wwh-quality-title">${escapeHtml(wealth.primary_inflow_channel.headline || "Natural Wealth Inflow")}</div>
+                  <p class="wwh-quality-desc">${escapeHtml(wealth.primary_inflow_channel.description || "")}</p>
+                </div>
+              </div>
+            </div>
+          ` : ""}
+
+          <!-- Financial Leak -->
+          ${wealth.unconscious_financial_leak ? `
+            <div class="wwh-qualities-col shadows">
+              <div class="wwh-qualities-col-header">
+                <span class="wwh-col-label">[THE HIDDEN MONEY LEAK]</span>
+              </div>
+              <div class="wwh-qualities-list">
+                <div class="wwh-quality-item shadow">
+                  <div class="wwh-quality-title">${escapeHtml(wealth.unconscious_financial_leak.headline || "The Subtle Resource Drain")}</div>
+                  <p class="wwh-quality-desc">${escapeHtml(wealth.unconscious_financial_leak.leak_pattern || "")}</p>
+                  ${wealth.unconscious_financial_leak.antidote ? `
+                    <div class="wwh-quality-context shadow" style="margin-top: 0.65rem;">
+                      <span class="wwh-quality-context-tag">[HOW TO PLUG THIS LEAK]:</span> ${escapeHtml(wealth.unconscious_financial_leak.antidote)}
+                    </div>
+                  ` : ""}
+                </div>
+              </div>
+            </div>
+          ` : ""}
+        </div>
+
+        ${wealth.monetization_rule ? (() => {
+          const mObj = typeof wealth.monetization_rule === "object" ? wealth.monetization_rule : { rule: String(wealth.monetization_rule) };
+          const ruleText = mObj.rule || "";
+          const headText = mObj.headline || "";
+          const isGenericHeadline = !headText || /^(the\s+)?golden\s+(economic\s+)?rule$/i.test(headText.trim());
+          const showHeadline = !isGenericHeadline && headText && headText !== ruleText;
+          const bodyText = ruleText || headText || "";
+          return `
+            <div class="wwh-golden-strip cwp-monetization-strip" style="margin-top: 1.5rem;">
+              <div class="wwh-golden-header">
+                <span class="wwh-golden-tag">[YOUR GOLDEN MONEY RULE]</span>
+                ${showHeadline ? `<span class="wwh-golden-headline">${escapeHtml(headText)}</span>` : ""}
+              </div>
+              <p class="wwh-golden-text">${escapeHtml(bodyText)}</p>
+            </div>
+          `;
+        })() : ""}
+      </div>
+    `;
+  }
+
+  // 5. ENTERPRISE VS EMPLOYMENT CRUCIBLE
+  if (enterprise.recommended_path || enterprise.strategic_rationale || enterprise.optimal_vehicle) {
+    html += `
+      <div class="wwh-section-block" id="cwp-sec-vehicle">
+        <div class="wwh-section-header">
+          <span class="wwh-section-tag">[BUILDING YOUR OWN THING VS. WORKING FOR OTHERS]</span>
+          <h3 class="wwh-section-title">What Kind of Career Structure Fits You Best</h3>
+        </div>
+
+        <div class="cwp-vehicle-box" style="padding: 1.5rem; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.85rem;">
+            <div>
+              <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; color: var(--accent-primary);">[YOUR NATURAL FIT]</span>
+              <h4 style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0.25rem 0 0 0;">${escapeHtml(enterprise.recommended_path || "Sovereign Specialist")}</h4>
+            </div>
+            ${enterprise.optimal_vehicle ? `
+              <div style="padding: 0.4rem 0.85rem; background: rgba(200, 155, 60, 0.12); border: 1px solid rgba(200, 155, 60, 0.35); border-radius: var(--radius-full); font-size: 0.82rem; font-weight: 700; color: var(--accent-primary);">
+                Best Career Setup: ${escapeHtml(enterprise.optimal_vehicle)}
+              </div>
+            ` : ""}
+          </div>
+
+          <p style="font-size: 0.94rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 1.25rem;">
+            ${escapeHtml(enterprise.strategic_rationale || "")}
+          </p>
+
+          ${enterprise.transition_guardrail ? `
+            <div style="padding: 0.85rem 1.15rem; background: rgba(239, 68, 68, 0.08); border-left: 3px solid #EF4444; border-radius: 0 var(--radius-md) var(--radius-md) 0; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.5;">
+              <strong style="color: #EF4444; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">[WATCH OUT FOR THIS BEFORE SWITCHING]</strong>
+              ${escapeHtml(enterprise.transition_guardrail)}
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  // 6. THE CAREER WEATHER & TIMING WINDOWS
+  if (timing.current_season_headline || (Array.isArray(timing.windows) && timing.windows.length)) {
+    const windows = Array.isArray(timing.windows) ? timing.windows : [];
+    html += `
+      <div class="wwh-section-block" id="cwp-sec-timing">
+        <div class="wwh-section-header">
+          <span class="wwh-section-tag">[WHERE YOUR CAREER IS HEADING (NEXT 24 MONTHS)]</span>
+          <h3 class="wwh-section-title">Your Current Career Chapter & What Lies Ahead</h3>
+        </div>
+
+        ${timing.current_season_headline ? `
+          <div style="margin-bottom: 1.25rem; padding: 1.15rem 1.35rem; background: linear-gradient(135deg, rgba(200, 155, 60, 0.12), rgba(200, 155, 60, 0.04)); border: 1px solid rgba(200, 155, 60, 0.35); border-radius: var(--radius-md);">
+            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-primary); font-weight: 800; margin-bottom: 0.35rem;">
+              [CURRENT WORK CHAPTER]: ${escapeHtml(timing.current_season_headline)}
+            </div>
+            ${timing.current_phase_nature ? `
+              <p style="font-size: 0.94rem; color: var(--text-primary); line-height: 1.5; margin: 0;">${escapeHtml(timing.current_phase_nature)}</p>
+            ` : ""}
+          </div>
+        ` : ""}
+
+        ${windows.length ? `
+          <div class="cwp-timing-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+            ${windows.map((win, idx) => `
+              <div class="cwp-timing-card" style="padding: 1.25rem; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.6rem;">
+                  <span style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 800; color: var(--accent-primary); text-transform: uppercase;">${escapeHtml(win.window_label || `Window ${idx + 1}`)}</span>
+                  <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">${escapeHtml(win.phase_title || "")}</span>
+                </div>
+                ${win.focus ? `
+                  <div style="font-size: 0.86rem; line-height: 1.5; color: var(--text-secondary);">
+                    <strong style="color: #10B981; font-size: 0.75rem; display: block; margin-bottom: 0.2rem;">[WHAT TO FOCUS ON]:</strong>
+                    ${escapeHtml(win.focus)}
+                  </div>
+                ` : ""}
+                ${win.caution ? `
+                  <div style="font-size: 0.84rem; line-height: 1.5; color: var(--text-muted); background: rgba(0,0,0,0.02); padding: 0.6rem; border-radius: var(--radius-sm); border-left: 2px solid var(--border-subtle);">
+                    <strong style="color: #F59E0B; font-size: 0.75rem; display: block; margin-bottom: 0.2rem;">[WHAT TO AVOID]:</strong>
+                    ${escapeHtml(win.caution)}
+                  </div>
+                ` : ""}
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  // 7. TACTICAL CAREER LEVERS
+  if (levers.golden_career_lever || levers.trap_to_eliminate || levers.negotiation_mantra) {
+    html += `
+      <div class="wwh-section-block" id="cwp-sec-levers">
+        <div class="wwh-section-header">
+          <span class="wwh-section-tag">[PRACTICAL WORK RULES FOR EVERYDAY LIFE]</span>
+          <h3 class="wwh-section-title">Three Ground Rules to Work Smarter and Earn Fairly</h3>
+        </div>
+
+        <div class="wwh-levers-grid">
+          ${levers.golden_career_lever ? `
+            <div class="wwh-lever-card golden">
+              <div class="wwh-lever-tag">[THE SINGLE BEST CAREER HABIT]</div>
+              <div class="wwh-lever-title">The Daily Habit That Makes the Biggest Difference</div>
+              <p class="wwh-lever-desc">${escapeHtml(levers.golden_career_lever)}</p>
+            </div>
+          ` : ""}
+
+          ${levers.trap_to_eliminate ? `
+            <div class="wwh-lever-card unlearn">
+              <div class="wwh-lever-tag">[THE WORK HABIT TO UNLEARN]</div>
+              <div class="wwh-lever-title">The Blindspot to Catch and Stop</div>
+              <p class="wwh-lever-desc">${escapeHtml(levers.trap_to_eliminate)}</p>
+            </div>
+          ` : ""}
+
+          ${levers.negotiation_mantra ? `
+            <div class="wwh-lever-card anchor">
+              <div class="wwh-lever-tag">[WHEN TALKING MONEY & RECOGNITION]</div>
+              <div class="wwh-lever-title">What to Remember When Negotiating</div>
+              <p class="wwh-lever-desc">${escapeHtml(levers.negotiation_mantra)}</p>
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  // 8. COLLAPSIBLE ASTROLOGICAL PROOF
+  if (proof) {
+    html += `
+      <div class="wwh-proof-accordion" id="cwp-sec-proof">
+        <button type="button" class="wwh-proof-toggle" onclick="toggleLifeProof(this)">
+          <span style="display:flex; align-items:center; gap:0.5rem;">
+            <strong>[+] Classical Astrological Footnotes & Technical Derivations</strong>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(D10 • KP Sub-Lords • Amatyakaraka • SAV)</span>
+          </span>
+          <span class="proof-chevron">▼</span>
+        </button>
+        <div class="wwh-proof-content">
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; font-style:italic;">
+            Technical derivations reconciling BPHS 10th/2nd/11th houses, D10 Dashamsha placements, KP 10th/6th/11th cuspal sub-lords 1–249, Amatyakaraka, and A10 Rajya Pada.
+          </p>
+          <div class="markdown-body">
+            ${formatMarkdown(proof)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  html += `</div>`; // .cwp-container
+  return html;
+}
+window.renderCraftWealthDeck = renderCraftWealthDeck;
+
 function renderSchoolEyeDeck(d, schoolType) {
   if (!d) return "";
   const schoolKey = (schoolType || d.school || "parashari").toLowerCase();
+  const isCareer = (d.pillar === "career" || state.selected_pillar === "career");
 
-  const SCHOOL_METRIC_CONFIGS = {
+  const WWH_SCHOOL_METRIC_CONFIGS = {
     parashari: {
       name: "Parashari (BPHS)",
-      traditionTag: "[PARASHARI PERSPECTIVE • BPHS]",
+      traditionTag: "[PARASHARI PERSPECTIVE • ROOTS & CONDITIONING]",
       accentClass: "school-parashari",
+      navWhatLabel: "What You Are",
+      navWhyLabel: "The Why",
+      navHowLabel: "How You Operate",
       metric1Label: "RULING GRAHA",
       metric1Val: d.metrics?.primary_ruling_graha || "-",
       metric2Label: "D9 NAVAMSHA",
@@ -3169,19 +3737,22 @@ function renderSchoolEyeDeck(d, schoolType) {
       metric3Val: d.metrics?.functional_nature || "-",
       metric4Label: "STRENGTH PROFILE",
       metric4Val: d.metrics?.strength_profile || "-",
-      whatTag: "[WHAT YOU ARE • PARASHARI CONSTITUTION]",
-      whatTitle: "Planetary Constitution & Navamsha Temperament",
-      whyTag: "[WHY YOU ARE • YOGAS & DIGNITIES]",
-      whyTitle: "Inherent Structural Gifts vs. Karmic Tests",
-      howTag: "[HOW YOU OPERATE • VIMSHOTTARI RHYTHM]",
-      howTitle: "Dasha Operating Rhythm & Evolutionary Directives",
+      whatTag: "[WHAT YOU ARE • INNATE TEMPERAMENT & ROOTS]",
+      whatTitle: "Roots, Upbringing & Character Backbone",
+      whyTag: "[WHY YOU ARE • BLESSINGS & LESSONS]",
+      whyTitle: "Lifelong Blessings vs. Recurring Life Lessons",
+      howTag: "[HOW YOU OPERATE • CURRENT MULTI-YEAR SEASON]",
+      howTitle: "Your Current Multi-Year Life Season",
       proofTitle: "Classical Parashari Footnotes & Technical Derivations",
       proofSub: "Brihat Parashara Hora Shastra (BPHS) shloka references, D1/D9 degrees, Shadbala scores, and Vimshottari progression."
     },
     kp: {
       name: "KP Stellar",
-      traditionTag: "[KP STELLAR PERSPECTIVE • 1-249 SUB-LORDS]",
+      traditionTag: "[KP STELLAR PERSPECTIVE • REAL-WORLD OUTCOMES & DOORS]",
       accentClass: "school-kp",
+      navWhatLabel: "What You Are",
+      navWhyLabel: "The Why",
+      navHowLabel: "How You Operate",
       metric1Label: "CUSP 1 SUB-LORD",
       metric1Val: d.metrics?.cuspal_sub_lord_1 || "-",
       metric2Label: "STAR-LORD LINK",
@@ -3190,19 +3761,22 @@ function renderSchoolEyeDeck(d, schoolType) {
       metric3Val: d.metrics?.primary_house_group || "-",
       metric4Label: "NEGATING HOUSES",
       metric4Val: d.metrics?.negating_houses || "-",
-      whatTag: "[WHAT YOU ARE • CUSPAL DECISION FILTER]",
-      whatTitle: "Cuspal Decision Filter & Instinctive Reflex",
-      whyTag: "[WHY YOU ARE • 4-FOLD SIGNIFICATORS]",
-      whyTitle: "Subconscious Star-Lord Linkages Driving Daily Action",
-      howTag: "[HOW YOU OPERATE • KP EVENT READINESS]",
-      howTitle: "Cuspal Operating Season & High-Fruition Directives",
+      whatTag: "[WHAT YOU ARE • RESULTS & OUTCOMES]",
+      whatTitle: "How Results Actually Materialize in Your Life",
+      whyTag: "[WHY YOU ARE • DOORS & BOTTLENECKS]",
+      whyTitle: "Your Green Lights vs. Hidden Bottlenecks",
+      howTag: "[HOW YOU OPERATE • TIMING TRIGGERS]",
+      howTitle: "What Is Unlocked Right Now — Timing Triggers",
       proofTitle: "KP Stellar Technical Footnotes & Cuspal Coordinates",
       proofSub: "Exact 1–249 cuspal degrees, Star-Lord/Sub-Lord/Sub-Sub-Lord hierarchies, and 4-fold A-D significator matrix."
     },
     jaimini: {
       name: "Jaimini Sutras",
-      traditionTag: "[JAIMINI SUTRAS PERSPECTIVE • CHARA KARAKAS]",
+      traditionTag: "[JAIMINI SUTRAS PERSPECTIVE • PUBLIC MASK VS SOUL]",
       accentClass: "school-jaimini",
+      navWhatLabel: "What You Are",
+      navWhyLabel: "The Why",
+      navHowLabel: "How You Operate",
       metric1Label: "ATMAKARAKA (SOUL)",
       metric1Val: d.metrics?.atmakaraka_soul || "-",
       metric2Label: "AMATYAKARAKA (WORK)",
@@ -3211,19 +3785,95 @@ function renderSchoolEyeDeck(d, schoolType) {
       metric3Val: d.metrics?.arudha_lagna_mask || "-",
       metric4Label: "CHARA DASHA",
       metric4Val: d.metrics?.active_chara_dasha || "-",
-      whatTag: "[WHAT YOU ARE • SOUL VS. WORLDLY MASK]",
-      whatTitle: "Soul Essence vs. Worldly Perception",
-      whyTag: "[WHY YOU ARE • CHARA KARAKA COUNCIL]",
-      whyTitle: "Internal Soul Ministers & Manifested Reality",
-      howTag: "[HOW YOU OPERATE • CHARA DASHA SEASON]",
-      howTitle: "Rashi Dasha Season & Spiritual Directives",
+      whatTag: "[WHAT YOU ARE • PUBLIC MASK VS. PRIVATE SOUL]",
+      whatTitle: "First Impressions vs. Who You Are When the Door Closes",
+      whyTag: "[WHY YOU ARE • SOUL PURPOSE VS. MAYA]",
+      whyTitle: "What Feeds Your Soul vs. Worldly Detours",
+      howTag: "[HOW YOU OPERATE • SOUL ALIGNMENT & MIRROR]",
+      howTitle: "Your Mirror in Intimacy & Soul Alignment",
       proofTitle: "Jaimini Upadesha Sutras Footnotes & Karaka Degrees",
       proofSub: "Chara Karaka replacement degrees, Arudha Pada exceptions, Rashi Drishti sign aspects, and Chara Dasha cycle."
     }
   };
 
-  const cfg = SCHOOL_METRIC_CONFIGS[schoolKey] || SCHOOL_METRIC_CONFIGS.parashari;
-  const archetype = d.archetype || "The Sovereign Architect";
+  const CAREER_SCHOOL_METRIC_CONFIGS = {
+    parashari: {
+      name: "Parashari (BPHS)",
+      traditionTag: "[PARASHARI PERSPECTIVE • VOCATIONAL FOUNDATION & DHANA YOGAS]",
+      accentClass: "school-parashari",
+      navWhatLabel: "Natural Craft",
+      navWhyLabel: "Wealth & Lessons",
+      navHowLabel: "Career Season",
+      metric1Label: "10TH LORD & HOUSE",
+      metric1Val: d.metrics?.tenth_house_lord || d.metrics?.primary_ruling_graha || "-",
+      metric2Label: "D10 DASHAMSHA",
+      metric2Val: d.metrics?.d10_dashamsha_dignity || d.metrics?.d9_navamsha_affirmation || "-",
+      metric3Label: "DHANA & RAJA YOGAS",
+      metric3Val: d.metrics?.dhana_raja_yogas || d.metrics?.functional_nature || "-",
+      metric4Label: "CAREER DASHA",
+      metric4Val: d.metrics?.career_dasha_impact || d.metrics?.strength_profile || "-",
+      whatTag: "[CLASSICAL CRAFT & VOCATION]",
+      whatTitle: "Your Natural Vocational Backbone & Calling",
+      whyTag: "[WEALTH BLESSINGS & CAREER FRICTION]",
+      whyTitle: "Where Wealth Flows Naturally vs. Professional Lessons",
+      howTag: "[CURRENT CAREER SEASON]",
+      howTitle: "What the Active Planetary Era Demands in Your Work",
+      proofTitle: "Classical Parashari Footnotes & Technical Derivations",
+      proofSub: "Brihat Parashara Hora Shastra (BPHS) 10th/2nd/11th/6th house mechanics, D10 Dashamsha placements, Dhana & Raja Yogas, and Vimshottari progression."
+    },
+    kp: {
+      name: "KP Stellar",
+      traditionTag: "[KP STELLAR PERSPECTIVE • CAREER GATES & REAL-WORLD TIMING]",
+      accentClass: "school-kp",
+      navWhatLabel: "Career Gates",
+      navWhyLabel: "Promotions & Money",
+      navHowLabel: "Timing Triggers",
+      metric1Label: "CUSP 10 SUB-LORD",
+      metric1Val: d.metrics?.cusp_10_sub_lord || d.metrics?.cuspal_sub_lord_1 || "-",
+      metric2Label: "CUSP 2 SUB-LORD",
+      metric2Val: d.metrics?.cusp_2_sub_lord || d.metrics?.star_lord_link || "-",
+      metric3Label: "ELEVATION (2, 6, 10, 11)",
+      metric3Val: d.metrics?.elevation_significators || d.metrics?.primary_house_group || "-",
+      metric4Label: "DRAINAGE (5, 8, 12)",
+      metric4Val: d.metrics?.drainage_houses || d.metrics?.negating_houses || "-",
+      whatTag: "[REAL-WORLD TRACTION & OUTCOMES]",
+      whatTitle: "Where Professional Results Come Easily vs. Stall",
+      whyTag: "[PROMOTIONS & FINANCIAL GATES]",
+      whyTitle: "Career Green Lights vs. Negotiation Bottlenecks",
+      howTag: "[ACTIVE TIMING TRIGGERS]",
+      howTitle: "What Moves & Deals Are Green-Lit Right Now",
+      proofTitle: "KP Stellar Technical Footnotes & Cuspal Coordinates",
+      proofSub: "Exact 1–249 10th/2nd/6th/11th CSL degrees, Star-Lord/Sub-Lord linkages, and 4-fold A-D significator matrix."
+    },
+    jaimini: {
+      name: "Jaimini Sutras",
+      traditionTag: "[JAIMINI SUTRAS PERSPECTIVE • PUBLIC REPUTATION VS. INNER CRAFT]",
+      accentClass: "school-jaimini",
+      navWhatLabel: "Public vs. Craft",
+      navWhyLabel: "Mastery vs. Status",
+      navHowLabel: "Career Chapter",
+      metric1Label: "AMATYAKARAKA (AmK)",
+      metric1Val: d.metrics?.amatyakaraka_work || d.metrics?.amatyakaraka_career || "-",
+      metric2Label: "ATMAKARAKA (AK)",
+      metric2Val: d.metrics?.atmakaraka_soul || "-",
+      metric3Label: "RAJYA PADA (A10)",
+      metric3Val: d.metrics?.rajya_pada_a10 || d.metrics?.arudha_lagna_mask || "-",
+      metric4Label: "CHARA DASHA",
+      metric4Val: d.metrics?.career_chara_dasha || d.metrics?.active_chara_dasha || "-",
+      whatTag: "[PUBLIC STATUS VS. SOUL CRAFT]",
+      whatTitle: "Your Professional Reputation vs. What Truly Fulfills You",
+      whyTag: "[CAREER PURPOSE VS. STATUS TRAPS]",
+      whyTitle: "Where Mastery Meets Ambition vs. Worldly Detours",
+      howTag: "[CHARA DASHA CAREER ERA]",
+      howTitle: "Your Active Sign Chapter & Public Impact",
+      proofTitle: "Jaimini Upadesha Sutras Footnotes & Karaka Degrees",
+      proofSub: "Amatyakaraka / Atmakaraka rankings, Rajya Pada A10 / Arudha Lagna degrees, and Chara Dasha career periods."
+    }
+  };
+
+  const configMap = isCareer ? CAREER_SCHOOL_METRIC_CONFIGS : WWH_SCHOOL_METRIC_CONFIGS;
+  const cfg = configMap[schoolKey] || configMap.parashari;
+  const archetype = d.archetype || (isCareer ? "The Master Craftsman" : "The Sovereign Architect");
   const verdict = d.summary_verdict || "";
   const whatYouAre = d.what_you_are || {};
   const whatTraits = Array.isArray(whatYouAre.traits) ? whatYouAre.traits : (Array.isArray(d.traits) ? d.traits : []);
@@ -3239,9 +3889,9 @@ function renderSchoolEyeDeck(d, schoolType) {
   html += `
     <nav class="wwh-sticky-nav">
       <button type="button" class="wwh-nav-pill active" onclick="scrollToWwhSection(event, '${schoolKey}-sec-identity')">Overview</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-what')">What You Are</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-why')">The Why</button>
-      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-how')">How You Operate</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-what')">${escapeHtml(cfg.navWhatLabel || "What You Are")}</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-why')">${escapeHtml(cfg.navWhyLabel || "The Why")}</button>
+      <button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-how')">${escapeHtml(cfg.navHowLabel || "How You Operate")}</button>
       ${proof ? `<button type="button" class="wwh-nav-pill" onclick="scrollToWwhSection(event, '${schoolKey}-sec-proof')">Technical Proof</button>` : ""}
     </nav>
   `;
@@ -3256,6 +3906,7 @@ function renderSchoolEyeDeck(d, schoolType) {
       <div class="wwh-badges-row">
         <span class="wwh-badge primary">ARCHETYPE: ${escapeHtml(archetype)}</span>
         <span class="wwh-badge">TRADITION: ${escapeHtml(cfg.name)}</span>
+        ${isCareer ? `<span class="wwh-badge">PILLAR: Craft & Wealth</span>` : ""}
       </div>
 
       <div class="wwh-triad-strip" style="margin-top: 1.25rem;">
@@ -3278,6 +3929,32 @@ function renderSchoolEyeDeck(d, schoolType) {
       </div>
     </div>
   `;
+
+  // 1.1 SEEKER'S CONSULTATION COUNSEL / DATED TIMELINE (Only render when a genuine query was asked)
+  const userTypedQuery = (document.getElementById("ai-custom-query-input")?.value || "").trim();
+  const rawQuery = (d.dilemma_counsel?.seeker_query || d.query_resolution?.seeker_query || userTypedQuery || "").trim();
+  const hasGenuineQuery = Boolean(rawQuery && rawQuery !== "Consultation Query" && rawQuery !== "null");
+
+  if (hasGenuineQuery) {
+    if (d.dilemma_counsel) {
+      html += renderDilemmaCounselCard({ ...d.dilemma_counsel, seeker_query: rawQuery }, true);
+    } else if (d.query_resolution) {
+      const qr = d.query_resolution;
+      const directAns = qr.event_promise || qr.cuspal_sub_lord_verdict || qr.manifestation_promise || "";
+      const directHeadline = qr.governing_house_and_karaka || qr.queried_house || qr.governing_arudha_or_karaka || "";
+      const activeReason = qr.astrological_reason || qr.fructification_rationale || qr.jaimini_rationale || "";
+      html += renderDilemmaCounselCard({
+        seeker_query: rawQuery,
+        direct_answer: directAns ? `Verdict: ${directAns} — ${directHeadline}` : activeReason,
+        exact_timeline: {
+          primary_window: qr.exact_timing_window || "Active Period",
+          active_dasha_trigger: activeReason,
+          transits_trigger: directHeadline
+        },
+        astrological_reality: activeReason
+      }, true);
+    }
+  }
 
   // 2. WHAT YOU ARE
   html += `
@@ -3537,7 +4214,9 @@ function renderSynthesisProgressive(markdown) {
   if (!box) return;
 
   if (metadata) {
-    if (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities) {
+    if (metadata.work_genius || metadata.vocation_archetype || metadata.wealth_engine) {
+      box.innerHTML = renderCraftWealthDeck(metadata);
+    } else if (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities) {
       box.innerHTML = renderWhatWhyHowDeck(metadata);
     } else {
       box.innerHTML = formatHumanReading(cleanMarkdown, metadata);
@@ -3545,17 +4224,127 @@ function renderSynthesisProgressive(markdown) {
   } else {
     const trimmed = (markdown || "").trim();
     if (trimmed.startsWith("```json") || trimmed.startsWith("{")) {
-      box.innerHTML = `
-        <div class="ai-streaming-card" style="padding: 1.75rem; background: var(--bg-surface-elevated); border: 1px dashed var(--border-medium); border-radius: var(--radius-md);">
-          <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; color: var(--accent-primary); font-weight: 700;">
-            <span class="loading-spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>
-            <span>Synthesizing Deep Personal Vedic Life Reading...</span>
+      const isCwp = trimmed.includes('"work_genius"') || trimmed.includes('"vocation_archetype"') || trimmed.includes('"wealth_engine"');
+
+      if (isCwp) {
+        const archMatch = trimmed.match(/"vocation_archetype"\s*:\s*"([^"]+)"/) || trimmed.match(/"archetype"\s*:\s*"([^"]+)"/);
+        const verdMatch = trimmed.match(/"summary_verdict"\s*:\s*"([^"]+)"/);
+
+        const hasS1 = trimmed.includes('"work_genius"');
+        const hasS2 = trimmed.includes('"leadership_and_authority"');
+        const hasS3 = trimmed.includes('"wealth_engine"');
+        const hasS4 = trimmed.includes('"enterprise_vs_employment"');
+        const hasS5 = trimmed.includes('"timing_weather"');
+        const hasS6 = trimmed.includes('"tactical_levers"') || trimmed.includes('"astrological_proof"');
+
+        const stages = [
+          { label: "Analyzing natural craft essence & cognitive flow state (10th Lord & AmK)", done: hasS2, active: hasS1 && !hasS2 },
+          { label: "Mapping authority posture, leadership reflex & public presence", done: hasS3, active: hasS2 && !hasS3 },
+          { label: "Auditing wealth engine, primary inflows & financial leaks", done: hasS4, active: hasS3 && !hasS4 },
+          { label: "Evaluating sovereign enterprise vs. organizational leadership", done: hasS5, active: hasS4 && !hasS5 },
+          { label: "Forecasting 24-month career weather & Dasha timing windows", done: hasS6, active: hasS5 && !hasS6 },
+          { label: "Synthesizing classical BPHS, D10, KP & Jaimini derivations", done: false, active: hasS6 },
+        ];
+
+        const stageItemsHtml = stages.map(s => {
+          let icon = `<span style="display:inline-block; width:18px; color:var(--text-muted); opacity:0.4;">○</span>`;
+          let textStyle = `color: var(--text-muted); opacity: 0.6;`;
+          if (s.done) {
+            icon = `<span style="display:inline-block; width:18px; color: #10B981; font-weight: bold;">[✓]</span>`;
+            textStyle = `color: var(--text-primary); font-weight: 500;`;
+          } else if (s.active) {
+            icon = `<span class="loading-spinner" style="display:inline-block; width:14px; height:14px; border-width:2px; vertical-align:middle; margin-right:4px;"></span>`;
+            textStyle = `color: var(--accent-primary); font-weight: 700;`;
+          }
+          return `
+            <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem; ${textStyle} padding: 0.35rem 0;">
+              ${icon}
+              <span>${escapeHtml(s.label)}</span>
+            </div>
+          `;
+        }).join("");
+
+        box.innerHTML = `
+          <div class="ai-streaming-card" style="padding: 1.75rem; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.85rem;">
+              <div style="display: flex; align-items: center; gap: 0.6rem; color: var(--accent-primary); font-weight: 700; font-size: 0.95rem;">
+                <span class="loading-spinner" style="width: 15px; height: 15px; border-width: 2px;"></span>
+                <span>Assembling Craft, Wealth & Public Calling Blueprint...</span>
+              </div>
+              <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-muted);">Three Eyes Active</span>
+            </div>
+
+            ${(archMatch || verdMatch) ? `
+            <div style="margin-bottom: 1.35rem; padding: 1.1rem 1.35rem; background: linear-gradient(135deg, rgba(200, 155, 60, 0.12), rgba(200, 155, 60, 0.04)); border: 1px solid rgba(200, 155, 60, 0.35); border-radius: var(--radius-md);">
+              ${archMatch ? `<div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-primary); font-weight: 800; margin-bottom: 0.35rem;">✦ Emerging Vocation: ${escapeHtml(archMatch[1])}</div>` : ""}
+              ${verdMatch ? `<div style="font-size: 0.94rem; font-weight: 600; color: var(--text-primary); line-height: 1.5; font-style: italic;">"${escapeHtml(verdMatch[1])}"</div>` : ""}
+            </div>
+            ` : ""}
+
+            <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+              ${stageItemsHtml}
+            </div>
           </div>
-          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 1rem 0;">
-            Translating Parashari yogas, KP cuspal significators, and Jaimini Karakas into personal life insight, soul purpose, upcoming timing, and grounded guidance...
-          </p>
-          <div style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); opacity: 0.7; overflow: hidden; white-space: pre-wrap; max-height: 140px; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
-            ${escapeHtml(trimmed.slice(-350))}
+        `;
+        return;
+      }
+
+      const archMatch = trimmed.match(/"archetype"\s*:\s*"([^"]+)"/);
+      const verdMatch = trimmed.match(/"summary_verdict"\s*:\s*"([^"]+)"/);
+
+      const hasS1 = trimmed.includes('"constitution"');
+      const hasS2 = trimmed.includes('"traits"');
+      const hasS3 = trimmed.includes('"the_why"');
+      const hasS4 = trimmed.includes('"qualities"');
+      const hasS5 = trimmed.includes('"arenas"');
+      const hasS6 = trimmed.includes('"astrological_proof"');
+
+      const stages = [
+        { label: "Reading elemental balance & Ayurvedic temperament", done: hasS2, active: hasS1 && !hasS2 },
+        { label: "Mapping physical, emotional & cognitive reflexes", done: hasS3, active: hasS2 && !hasS3 },
+        { label: "Uncovering your core inner paradox & growth edge", done: hasS4, active: hasS3 && !hasS4 },
+        { label: "Extracting natural superpowers & blindspots", done: hasS5, active: hasS4 && !hasS5 },
+        { label: "Building work, relationship & pressure arenas", done: hasS6, active: hasS5 && !hasS6 },
+        { label: "Synthesizing classical BPHS, KP & Jaimini derivations", done: false, active: hasS6 },
+      ];
+
+      const stageItemsHtml = stages.map(s => {
+        let icon = `<span style="display:inline-block; width:18px; color:var(--text-muted); opacity:0.4;">○</span>`;
+        let textStyle = `color: var(--text-muted); opacity: 0.6;`;
+        if (s.done) {
+          icon = `<span style="display:inline-block; width:18px; color: #10B981; font-weight: bold;">[✓]</span>`;
+          textStyle = `color: var(--text-primary); font-weight: 500;`;
+        } else if (s.active) {
+          icon = `<span class="loading-spinner" style="display:inline-block; width:14px; height:14px; border-width:2px; vertical-align:middle; margin-right:4px;"></span>`;
+          textStyle = `color: var(--accent-primary); font-weight: 700;`;
+        }
+        return `
+          <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem; ${textStyle} padding: 0.35rem 0;">
+            ${icon}
+            <span>${escapeHtml(s.label)}</span>
+          </div>
+        `;
+      }).join("");
+
+      box.innerHTML = `
+        <div class="ai-streaming-card" style="padding: 1.75rem; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem; color: var(--accent-primary); font-weight: 700; font-size: 0.95rem;">
+              <span class="loading-spinner" style="width: 15px; height: 15px; border-width: 2px;"></span>
+              <span>Assembling Your Personal Life Blueprint...</span>
+            </div>
+            <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-muted);">Three Eyes Active</span>
+          </div>
+
+          ${(archMatch || verdMatch) ? `
+          <div style="margin-bottom: 1.35rem; padding: 1.1rem 1.35rem; background: linear-gradient(135deg, rgba(200, 155, 60, 0.12), rgba(200, 155, 60, 0.04)); border: 1px solid rgba(200, 155, 60, 0.35); border-radius: var(--radius-md);">
+            ${archMatch ? `<div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-primary); font-weight: 800; margin-bottom: 0.35rem;">✦ Emerging Archetype: ${escapeHtml(archMatch[1])}</div>` : ""}
+            ${verdMatch ? `<div style="font-size: 0.94rem; font-weight: 600; color: var(--text-primary); line-height: 1.5; font-style: italic;">"${escapeHtml(verdMatch[1])}"</div>` : ""}
+          </div>
+          ` : ""}
+
+          <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+            ${stageItemsHtml}
           </div>
         </div>
       `;
@@ -3577,13 +4366,13 @@ function updateEyesRendered(eyes) {
 
 const PILLAR_CHAPTER_MAP = {
   comprehensive: { chapter: 1, name: "What, Why and How You Are", title: "Identity Blueprint & Traits" },
-  career: { chapter: 3, name: "Career, Wealth & Professional Rise", title: "Career & Leadership Potential" },
-  relationships: { chapter: 4, name: "Relationships, Marriage & Compatibility", title: "Partnership & Intimacy Psychology" },
-  dasha: { chapter: 2, name: "Current Dasha & Future Timings", title: "Operating Life Season & Future Timings" },
+  career: { chapter: 2, name: "Craft, Wealth & Public Calling", title: "Vocational Mastery & Wealth Blueprint" },
+  relationships: { chapter: 3, name: "Relationships, Marriage & Compatibility", title: "Partnership & Intimacy Psychology" },
+  dasha: { chapter: 4, name: "Current Dasha & Future Timings", title: "Operating Life Season & Future Timings" },
 };
 
 function getActiveChartSignature() {
-  return `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.time_offset_seconds}_${state.ayanamsha}`;
+  return `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.gender || "male"}_${state.time_offset_seconds}_${state.ayanamsha}_${state.node_type}_${state.target_date || "now"}`;
 }
 
 function startAiButtonCooldown(seconds = 4) {
@@ -3674,6 +4463,110 @@ function displayAiReadingFromComprehensive(readingData, pillar) {
   if (!box) return;
 
   const info = PILLAR_CHAPTER_MAP[pillar] || { chapter: 1, name: pillar, title: pillar };
+
+  // Check if readingData is a What-Why-How JSON deck
+  const isWwhDeck = metadata && (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities);
+
+  if (isWwhDeck) {
+    // Render focused Pillar Preview & Launch Card instead of duplicating full WWH foundation deck
+    let previewContent = "";
+    let domainTitle = info.name;
+    let domainDesc = "";
+    let btnLabel = `✦ Generate Full ${info.title} Consultation ➔`;
+
+    if (pillar === "career") {
+      domainTitle = "Craft, Wealth & Public Calling Snapshot";
+      domainDesc = "Here is your foundational work & leadership posture from your core blueprint. Ready for your dedicated 6-card vocational, wealth, and timing consultation?";
+      btnLabel = "✦ Generate Full Craft, Wealth & Public Calling Consultation ➔";
+      const arenaWork = renderArenaPanel(metadata, "work");
+      const goldenLever = metadata.growth_levers?.golden_lever;
+      previewContent = `
+        <div class="wwh-section-block" style="margin-top: 1rem;">
+          <div class="wwh-section-header">
+            <span class="wwh-section-tag">[WORK & LEADERSHIP ARENA]</span>
+            <h3 class="wwh-section-title">Your Natural Operating Stance at Work</h3>
+          </div>
+          ${arenaWork}
+          ${goldenLever ? `
+          <div class="wwh-golden-strip" style="margin-top: 1.25rem;">
+            <div class="wwh-golden-tag">[KEY WORKPLACE LEVER]:</div>
+            <p class="wwh-golden-text">${escapeHtml(goldenLever)}</p>
+          </div>
+          ` : ""}
+        </div>
+      `;
+    } else if (pillar === "relationships") {
+      domainTitle = "Partnership & Emotional Wiring Snapshot";
+      domainDesc = "Here is your intimate relationship reflex from your core blueprint. Ready for your complete 5-chapter love, marriage, and timing consultation?";
+      const arenaRel = renderArenaPanel(metadata, "relationships");
+      const emotionalTrait = metadata.traits?.emotional?.bottom_line;
+      previewContent = `
+        <div class="wwh-section-block" style="margin-top: 1rem;">
+          <div class="wwh-section-header">
+            <span class="wwh-section-tag">[RELATIONSHIP & INTIMACY ARENA]</span>
+            <h3 class="wwh-section-title">How Your Heart Operates in Close Partnerships</h3>
+          </div>
+          ${arenaRel}
+          ${emotionalTrait ? `
+          <div class="wwh-golden-strip" style="margin-top: 1.25rem; border-color: rgba(244, 114, 182, 0.35); background: rgba(244, 114, 182, 0.06);">
+            <div class="wwh-golden-tag" style="color: #F472B6;">[EMOTIONAL TRUTH]:</div>
+            <p class="wwh-golden-text">${escapeHtml(emotionalTrait)}</p>
+          </div>
+          ` : ""}
+        </div>
+      `;
+    } else if (pillar === "dasha") {
+      domainTitle = "Operating Season & Growth Edge Snapshot";
+      domainDesc = "Here is your operating season and comfort-zone vs. growth-edge from your core blueprint. Ready for your complete 24-month timeline consultation?";
+      const op = metadata.operating_manual || {};
+      const axis = metadata.the_why?.comfort_zone_vs_growth_edge || {};
+      previewContent = `
+        <div class="wwh-section-block" style="margin-top: 1rem;">
+          <div class="wwh-section-header">
+            <span class="wwh-section-tag">[SEASONAL WIRING & KARMIC AXIS]</span>
+            <h3 class="wwh-section-title">Operating Rhythm & The Territory Calling You Forward</h3>
+          </div>
+          <div class="wwh-why-grid" style="margin-top: 1rem;">
+            <div class="wwh-why-card paradox">
+              <span class="wwh-why-tag">[COMFORT ZONE (HABITUAL TRAP)]</span>
+              <h4 class="wwh-why-title">${escapeHtml(axis.comfort_zone || "Habitual default under stress")}</h4>
+            </div>
+            <div class="wwh-why-card axis">
+              <span class="wwh-why-tag">[ACTIVE GROWTH EDGE]</span>
+              <h4 class="wwh-why-title">${escapeHtml(axis.growth_edge || "Uncomfortable territory unlocking your next level")}</h4>
+            </div>
+          </div>
+          ${op.stress_response ? `
+          <div class="wwh-stress-box" style="margin-top: 1.25rem;">
+            <div class="wwh-stress-title">Stress Response & Reset Mechanism</div>
+            <p class="wwh-stress-desc"><strong>Trigger:</strong> ${escapeHtml(op.stress_response.trigger || "-")}</p>
+            <p class="wwh-stress-desc"><strong>Recovery:</strong> ${escapeHtml(op.stress_response.recovery || "-")}</p>
+          </div>
+          ` : ""}
+        </div>
+      `;
+    } else {
+      previewContent = renderWhatWhyHowDeck(metadata);
+    }
+
+    const previewBannerHtml = `
+      <div class="pillar-focus-banner" style="margin-bottom: 1.25rem;">
+        <div class="pillar-focus-banner-text">
+          <span class="pillar-focus-badge">✦ Core Blueprint Snapshot</span>
+          <h4 class="pillar-focus-title">${escapeHtml(domainTitle)}</h4>
+          <p class="pillar-focus-desc">${escapeHtml(domainDesc)}</p>
+        </div>
+        <button type="button" class="pillar-focus-btn" onclick="triggerAiSynthesis(true)">
+          ${escapeHtml(btnLabel)}
+        </button>
+      </div>
+    `;
+
+    box.innerHTML = previewBannerHtml + previewContent;
+    return;
+  }
+
+  // Otherwise, it is a multi-chapter Markdown reading:
   const bannerHtml = `
     <div class="pillar-focus-banner">
       <div class="pillar-focus-banner-text">
@@ -3687,11 +4580,7 @@ function displayAiReadingFromComprehensive(readingData, pillar) {
     </div>
   `;
 
-  if (metadata && (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities)) {
-    box.innerHTML = bannerHtml + renderWhatWhyHowDeck(metadata);
-  } else {
-    box.innerHTML = bannerHtml + formatHumanReading(cleanMarkdown, metadata);
-  }
+  box.innerHTML = bannerHtml + formatHumanReading(cleanMarkdown, metadata);
 
   // Smoothly scroll to chapter header and highlight it
   setTimeout(() => {
@@ -3794,6 +4683,7 @@ async function triggerAiSynthesis(forceRefresh = false) {
       time_offset_seconds: state.time_offset_seconds,
       ayanamsha: state.ayanamsha,
       node_type: state.node_type,
+      gender: state.gender,
       chart_style: state.chart_style,
       sign_mode: state.sign_mode,
       theme_mode: state.theme_mode,
@@ -4123,6 +5013,33 @@ function buildMarkdownFromWhatWhyHow(d) {
     md += `- Core Drive: ${c.core_drive_tag || c.sun_tag || "-"}\n`;
     md += `- Deepest Hunger: ${c.deepest_hunger_tag || c.atmakaraka_tag || "-"}\n\n`;
   }
+
+  if (d.current_life_season) {
+    const s = d.current_life_season;
+    md += `## Where You Stand Today (Current Life Season)\n\n`;
+    if (s.headline) md += `### ${s.headline}\n\n`;
+    if (s.season_summary) md += `${s.season_summary}\n\n`;
+    if (s.what_to_lean_into) md += `- **What to Lean Into**: ${s.what_to_lean_into}\n`;
+    if (s.what_to_leave_behind) md += `- **What to Leave Behind**: ${s.what_to_leave_behind}\n\n`;
+  }
+
+  if (d.dilemma_counsel && (d.dilemma_counsel.seeker_query || d.dilemma_counsel.seeker_situation || d.dilemma_counsel.direct_answer)) {
+    const dc = d.dilemma_counsel;
+    md += `## Seeker Consultation & Dated Timeline\n\n`;
+    if (dc.seeker_query || dc.seeker_situation) md += `**Question**: "${dc.seeker_query || dc.seeker_situation}"\n\n`;
+    if (dc.direct_answer) md += `> **Direct Verdict**: ${dc.direct_answer}\n\n`;
+    if (dc.exact_timeline) {
+      const et = dc.exact_timeline;
+      if (et.primary_window) md += `- **Primary Timeline Window**: ${et.primary_window}\n`;
+      if (et.secondary_window) md += `- **Secondary Window**: ${et.secondary_window}\n`;
+      if (et.active_dasha_trigger) md += `- **Dasha Activation**: ${et.active_dasha_trigger}\n`;
+      if (et.transits_trigger) md += `- **Transit Catalyst**: ${et.transits_trigger}\n`;
+      md += `\n`;
+    }
+    if (dc.astrological_reality) md += `**Astrological Mechanism**: ${dc.astrological_reality}\n\n`;
+    if (dc.mentor_guidance || dc.mentor_verdict) md += `**Practical Mentor Guidance**: ${dc.mentor_guidance || dc.mentor_verdict}\n\n`;
+  }
+
   if (d.traits) {
     md += `## 1. Constitutional Traits & Wiring\n\n`;
     const tMap = { physical: "Physical & Vitality", emotional: "Emotional Architecture", mental: "Intellect & Problem-Solving", social: "Social Radar & Boundaries" };
@@ -4216,6 +5133,127 @@ function buildMarkdownFromWhatWhyHow(d) {
   return md;
 }
 
+function buildMarkdownFromCraftWealth(d) {
+  if (!d) return "";
+  let md = `# CRAFT, WEALTH & PUBLIC CALLING\n\n`;
+  if (d.summary_verdict) md += `> "${d.summary_verdict}"\n\n`;
+  if (d.vocation_archetype) md += `**Vocation Archetype**: ${d.vocation_archetype}\n`;
+  if (d.enterprise_vs_employment?.recommended_path) md += `**Recommended Path**: ${d.enterprise_vs_employment.recommended_path}\n`;
+  if (d.wealth_engine?.wealth_archetype) md += `**Wealth Style**: ${d.wealth_engine.wealth_archetype}\n`;
+  if (d.timing_weather?.current_season_headline) md += `**Current Chapter**: ${d.timing_weather.current_season_headline}\n\n`;
+
+  if (d.dilemma_counsel && (d.dilemma_counsel.seeker_query || d.dilemma_counsel.seeker_situation || d.dilemma_counsel.direct_answer)) {
+    const dc = d.dilemma_counsel;
+    md += `## Career Consultation & Dated Timeline\n\n`;
+    if (dc.seeker_query || dc.seeker_situation) md += `**Question**: "${dc.seeker_query || dc.seeker_situation}"\n\n`;
+    if (dc.direct_answer) md += `> **Direct Verdict**: ${dc.direct_answer}\n\n`;
+    if (dc.exact_timeline) {
+      const et = dc.exact_timeline;
+      if (et.primary_window) md += `- **Primary Timeline Window**: ${et.primary_window}\n`;
+      if (et.secondary_window) md += `- **Secondary Window**: ${et.secondary_window}\n`;
+      if (et.active_dasha_trigger) md += `- **Dasha Activation**: ${et.active_dasha_trigger}\n`;
+      if (et.transits_trigger) md += `- **Transit Catalyst**: ${et.transits_trigger}\n`;
+      md += `\n`;
+    }
+    if (dc.astrological_reality) md += `**Astrological Mechanism**: ${dc.astrological_reality}\n\n`;
+    if (dc.mentor_guidance || dc.mentor_verdict) md += `**Practical Mentor Guidance**: ${dc.mentor_guidance || dc.mentor_verdict}\n\n`;
+  }
+
+  if (d.work_genius) {
+    const g = d.work_genius;
+    md += `## 1. Your Natural Work Genius & Flow\n\n`;
+    if (g.craft_essence) {
+      md += `### ${g.craft_essence.headline || "Core Work Genius"}\n${g.craft_essence.description || ""}\n`;
+      if (g.craft_essence.real_world_scenario) md += `> *Tuesday morning test: ${g.craft_essence.real_world_scenario}*\n\n`;
+    }
+    if (g.autonomy_vs_hierarchy) {
+      md += `### ${g.autonomy_vs_hierarchy.headline || "How Much Freedom You Need"}\n${g.autonomy_vs_hierarchy.stance || ""}\n`;
+      if (g.autonomy_vs_hierarchy.friction_trigger) md += `> *What drains your drive: ${g.autonomy_vs_hierarchy.friction_trigger}*\n\n`;
+    }
+    if (g.flow_state_trigger) {
+      md += `### ${g.flow_state_trigger.headline || "When You're in the Zone"}\n${g.flow_state_trigger.conditions || ""}\n\n`;
+    }
+    if (g.ideal_work_environment) {
+      md += `### ${g.ideal_work_environment.headline || "The Work Environment You Need"}\n${g.ideal_work_environment.description || ""}\n\n`;
+    }
+  }
+
+  if (d.leadership_and_authority) {
+    const l = d.leadership_and_authority;
+    md += `## 2. How You Lead & How Others See You\n\n`;
+    if (l.leadership_stance) {
+      md += `### ${l.leadership_stance.headline || "How You Lead"}\n${l.leadership_stance.style || ""}\n`;
+      if (l.leadership_stance.how_others_perceive_you) md += `> *How others actually see you: ${l.leadership_stance.how_others_perceive_you}*\n\n`;
+    }
+    if (l.office_politics_reflex) {
+      md += `### ${l.office_politics_reflex.headline || "How You Handle Workplace Politics"}\n${l.office_politics_reflex.reflex || ""}\n`;
+      if (l.office_politics_reflex.antidote) md += `> *How to protect yourself: ${l.office_politics_reflex.antidote}*\n\n`;
+    }
+    if (l.delegation_tripwire) {
+      md += `### ${l.delegation_tripwire.headline || "The Delegation & Trust Trap"}\n${l.delegation_tripwire.trap || ""}\n`;
+      if (l.delegation_tripwire.fix) md += `> *How to fix this: ${l.delegation_tripwire.fix}*\n\n`;
+    }
+    if (l.public_presence) {
+      md += `### ${l.public_presence.headline || "Public Reputation vs. Private Reality"}\n`;
+      md += `- **What People See Outside**: ${l.public_presence.external_reputation || ""}\n`;
+      md += `- **What You Feel Inside**: ${l.public_presence.internal_reality || ""}\n\n`;
+    }
+  }
+
+  if (d.wealth_engine) {
+    const w = d.wealth_engine;
+    md += `## 3. How Money & Wealth Work for You\n\n`;
+    if (w.primary_inflow_channel) {
+      md += `### Where Money Flows Naturally: ${w.primary_inflow_channel.headline || ""}\n${w.primary_inflow_channel.description || ""}\n\n`;
+    }
+    if (w.unconscious_financial_leak) {
+      md += `### The Hidden Money Leak: ${w.unconscious_financial_leak.headline || ""}\n${w.unconscious_financial_leak.leak_pattern || ""}\n`;
+      if (w.unconscious_financial_leak.antidote) md += `> *How to plug this leak: ${w.unconscious_financial_leak.antidote}*\n\n`;
+    }
+    if (w.monetization_rule) {
+      md += `### Your Golden Money Rule\n> ${w.monetization_rule.rule || w.monetization_rule.headline || ""}\n\n`;
+    }
+  }
+
+  if (d.enterprise_vs_employment) {
+    const e = d.enterprise_vs_employment;
+    md += `## 4. Building Your Own Thing vs. Working for Others\n\n`;
+    md += `**Your Natural Fit**: ${e.recommended_path || ""}\n`;
+    if (e.optimal_vehicle) md += `**Best Career Setup**: ${e.optimal_vehicle}\n`;
+    if (e.strategic_rationale) md += `\n${e.strategic_rationale}\n\n`;
+    if (e.transition_guardrail) md += `> *Watch out for this before switching: ${e.transition_guardrail}*\n\n`;
+  }
+
+  if (d.timing_weather) {
+    const t = d.timing_weather;
+    md += `## 5. Where Your Career Is Heading (Next 24 Months)\n\n`;
+    if (t.current_season_headline) md += `### Current Work Chapter: ${t.current_season_headline}\n${t.current_phase_nature || ""}\n\n`;
+    if (Array.isArray(t.windows) && t.windows.length) {
+      t.windows.forEach(w => {
+        md += `#### ${w.window_label || "Window"}: ${w.phase_title || ""}\n`;
+        if (w.focus) md += `- **What to Focus On**: ${w.focus}\n`;
+        if (w.caution) md += `- **What to Avoid**: ${w.caution}\n`;
+        md += `\n`;
+      });
+    }
+  }
+
+  if (d.tactical_levers) {
+    const tl = d.tactical_levers;
+    md += `## 6. Practical Work Rules for Everyday Life\n\n`;
+    if (tl.golden_career_lever) md += `- **The Single Best Career Habit**: ${tl.golden_career_lever}\n`;
+    if (tl.trap_to_eliminate) md += `- **The Work Habit to Unlearn**: ${tl.trap_to_eliminate}\n`;
+    if (tl.negotiation_mantra) md += `- **When Talking Money & Recognition**: ${tl.negotiation_mantra}\n\n`;
+  }
+
+  if (d.astrological_proof) {
+    md += `## Classical Astrological Footnotes & Technical Derivations\n\n${d.astrological_proof}\n`;
+  }
+
+  return md;
+}
+window.buildMarkdownFromCraftWealth = buildMarkdownFromCraftWealth;
+
 function buildSchoolEyeMarkdown(d, schoolType) {
   if (!d) return "";
   const schoolNames = { parashari: "Parashari (BPHS)", kp: "KP Stellar", jaimini: "Jaimini Sutras" };
@@ -4281,17 +5319,18 @@ function buildSchoolEyeMarkdown(d, schoolType) {
 }
 
 function downloadAiSynthesis() {
-  const chartSig = `${state.year}-${state.month}-${state.day}_${state.city}`;
+  const chartSig = getActiveChartSignature();
+  const fileSlug = `${state.year}-${state.month}-${state.day}_${(state.city || "").replace(/[^a-zA-Z0-9]/g, '_')}`;
   const customQuery = document.getElementById("ai-custom-query-input")?.value.trim() || "";
   const cacheKey = `${chartSig}_${state.selected_pillar}_${customQuery}`;
   const cached = state.ai_readings_cache[cacheKey];
   const activePersp = state.active_ai_persp || "synthesis";
 
   let content = "";
-  let filename = `TrinetriAI_${state.selected_pillar}_${chartSig}.md`;
+  let filename = `TrinetriAI_${state.selected_pillar}_${fileSlug}.md`;
 
   if (activePersp !== "synthesis") {
-    filename = `TrinetriAI_${activePersp.toUpperCase()}_${state.selected_pillar}_${chartSig}.md`;
+    filename = `TrinetriAI_${activePersp.toUpperCase()}_${state.selected_pillar}_${fileSlug}.md`;
     const eyeRaw = cached?.eyeVerdicts?.[activePersp];
     if (eyeRaw) {
       const { metadata } = extractConfluenceMetadata(eyeRaw);
@@ -4306,7 +5345,9 @@ function downloadAiSynthesis() {
   } else {
     if (cached && cached.fullSynthesisMarkdown) {
       const { metadata } = extractConfluenceMetadata(cached.fullSynthesisMarkdown);
-      if (metadata && (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities)) {
+      if (metadata && (metadata.work_genius || metadata.vocation_archetype || metadata.wealth_engine)) {
+        content = buildMarkdownFromCraftWealth(metadata);
+      } else if (metadata && (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities)) {
         content = buildMarkdownFromWhatWhyHow(metadata);
       } else {
         content = cached.fullSynthesisMarkdown;
@@ -4359,9 +5400,28 @@ function clearChatMessages() {
       <div class="chat-msg system-msg">
         ✦ Conversation cleared. Your complete astrological dossier remains loaded. Ask any question to begin.
       </div>
+      <div class="chat-starter-chips" id="chat-starter-chips">
+        <button type="button" class="chat-starter-chip" onclick="askSuggestedChatQuestion('Why do I feel pulled in two directions right now?')">Why do I feel pulled in two directions right now?</button>
+        <button type="button" class="chat-starter-chip" onclick="askSuggestedChatQuestion('What kind of work environment actually fits how I\\'m wired?')">What kind of work environment actually fits how I'm wired?</button>
+        <button type="button" class="chat-starter-chip" onclick="askSuggestedChatQuestion('What is my biggest blindspot in close relationships?')">What is my biggest blindspot in close relationships?</button>
+        <button type="button" class="chat-starter-chip" onclick="askSuggestedChatQuestion('When does this current heavy phase start to ease up?')">When does this current heavy phase start to ease up?</button>
+      </div>
     `;
   }
 }
+
+function askSuggestedChatQuestion(questionText) {
+  const textarea = document.getElementById("chat-input-textarea");
+  if (textarea) {
+    textarea.value = questionText;
+  }
+  const chips = document.getElementById("chat-starter-chips");
+  if (chips) {
+    chips.style.display = "none";
+  }
+  sendChatMessage();
+}
+window.askSuggestedChatQuestion = askSuggestedChatQuestion;
 
 function scrollChatToBottom() {
   const container = document.getElementById("chat-messages-container");
@@ -4382,6 +5442,27 @@ function appendChatBubble(role, content) {
   return bubble;
 }
 
+function getActiveReadingContextForChat() {
+  const chartSig = getActiveChartSignature();
+  const customQuery = document.getElementById("ai-custom-query-input")?.value.trim() || "";
+  const pillarKey = `${chartSig}_${state.selected_pillar}_${customQuery}`;
+  const compKey = `${chartSig}_comprehensive_`;
+
+  const cached = state.ai_readings_cache[pillarKey] || state.ai_readings_cache[compKey];
+  if (!cached || !cached.fullSynthesisMarkdown) return null;
+
+  const { metadata, cleanMarkdown } = extractConfluenceMetadata(cached.fullSynthesisMarkdown);
+  if (metadata && (metadata.work_genius || metadata.vocation_archetype || metadata.wealth_engine)) {
+    const text = buildMarkdownFromCraftWealth(metadata);
+    return text.slice(0, 3500);
+  }
+  if (metadata && (metadata.traits || metadata.the_why || metadata.archetype || metadata.qualities)) {
+    const text = buildMarkdownFromWhatWhyHow(metadata);
+    return text.slice(0, 3500);
+  }
+  return (cleanMarkdown || "").slice(0, 3500);
+}
+
 async function sendChatMessage() {
   if (state.is_sending_chat) return;
   const textarea = document.getElementById("chat-input-textarea");
@@ -4398,6 +5479,10 @@ async function sendChatMessage() {
   // Clear input
   textarea.value = "";
   textarea.style.height = "auto";
+
+  // Hide starter chips once user starts chatting
+  const chips = document.getElementById("chat-starter-chips");
+  if (chips) chips.style.display = "none";
 
   // Append user bubble
   appendChatBubble("user", text);
@@ -4424,6 +5509,7 @@ async function sendChatMessage() {
       time_offset_seconds: state.time_offset_seconds,
       ayanamsha: state.ayanamsha,
       node_type: state.node_type,
+      gender: state.gender,
       chart_style: state.chart_style,
       sign_mode: state.sign_mode,
       theme_mode: state.theme_mode,
@@ -4434,6 +5520,7 @@ async function sendChatMessage() {
     messages: state.chat_messages,
     user_api_key: userKey || null,
     model: (localStorage.getItem("trinetri_gemini_model") && localStorage.getItem("trinetri_gemini_model") !== "auto") ? localStorage.getItem("trinetri_gemini_model") : null,
+    active_reading_summary: getActiveReadingContextForChat(),
   };
 
   if (state.chat_abort_controller) {
@@ -4728,6 +5815,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.minute = parseInt(document.getElementById("select-birth-minute").value, 10);
     state.second = parseFloat(document.getElementById("select-birth-second").value) || 0.0;
 
+    state.gender = document.getElementById("select-birth-gender")?.value || "male";
     state.ayanamsha = document.getElementById("select-ayanamsha").value;
     state.node_type = document.getElementById("select-node-type").value;
     state.time_offset_seconds = 0; // Reset scrubber on new birth input
@@ -4756,6 +5844,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.minute = parseInt(document.getElementById("select-quick-minute").value, 10) || 30;
       state.second = parseFloat(document.getElementById("select-quick-second").value) || 0.0;
 
+      state.gender = document.getElementById("select-quick-gender")?.value || "male";
       state.ayanamsha = document.getElementById("select-quick-ayanamsha").value || "Lahiri";
       state.chart_style = document.getElementById("select-quick-chart-style").value || "north";
       state.time_offset_seconds = 0;

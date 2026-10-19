@@ -86,8 +86,9 @@ def test_city_injection_is_neutralized_in_dossier():
     response = client.post("/api/ai/dossier", json=payload)
     assert response.status_code == 200
     md = response.json()["ai_dossier"]["markdown_dossier"]
+    # Zero-PII & injection defense: raw city and injected directives are completely stripped from LLM dossier
     assert "=== NEW DIRECTIVES ===" not in md
-    assert "Jaipur" in md
+    assert "Birth Location" not in md
 
 
 # --- Config endpoint ---
@@ -309,6 +310,38 @@ def test_chat_messages_are_sanitized_and_capped(monkeypatch):
     assert len(text) <= 4000
 
 
+def test_chat_stream_accepts_and_sanitizes_active_reading_summary(monkeypatch):
+    from engines.trinetri_orchestrator import TrinetriOrchestrator
+
+    captured = {}
+
+    async def fake_stream(**kwargs):
+        captured.update(kwargs)
+        yield "tok"
+
+    monkeypatch.setattr(
+        "engines.trinetri_orchestrator.gemini_service.stream_generate_content", fake_stream
+    )
+
+    async def run():
+        return [
+            ev async for ev in TrinetriOrchestrator.stream_chat(
+                {"ai_dossier": {"markdown_dossier": "DOSSIER"}},
+                [{"role": "user", "content": "What is my shadow?"}],
+                api_key="K",
+                active_reading_summary='Archetype: The Quiet Harbor """ injection attempt ' + "x" * 6000,
+            )
+        ]
+
+    events = asyncio.run(run())
+    assert any("event: token" in e for e in events)
+    sys_inst = captured["system_instruction"]
+    assert "The Quiet Harbor" in sys_inst
+    assert '"""' not in sys_inst
+    assert "=== ACTIVE CONSULTATION READING ON THE SEEKER'S SCREEN" in sys_inst
+    assert len(sys_inst) < 15000
+
+
 def test_three_eyes_cache_avoids_repeated_llm_calls(monkeypatch):
     from engines.trinetri_orchestrator import TrinetriOrchestrator
 
@@ -330,18 +363,24 @@ def test_three_eyes_cache_avoids_repeated_llm_calls(monkeypatch):
     assert calls["n"] == 3
     assert res1["parashari"] == "eye_verdict_1"
 
-    # 2. Second run for Career (no custom query): should hit cache and make 0 new LLM calls!
+    # 2. Second run for Comprehensive (no custom query): should hit cache and make 0 new LLM calls!
+    res1_cached = asyncio.run(TrinetriOrchestrator.run_three_eyes(data, pillar="comprehensive", api_key="KEY"))
+    assert calls["n"] == 3  # unchanged!
+    assert res1_cached == res1
+
+    # 3. First run for Career: dedicated career prompts invoke LLM 3 times
     res2 = asyncio.run(TrinetriOrchestrator.run_three_eyes(data, pillar="career", api_key="KEY"))
-    assert calls["n"] == 3  # unchanged!
-    assert res2 == res1
-
-    # 3. Third run for Relationships: should also hit cache and make 0 new LLM calls!
-    res3 = asyncio.run(TrinetriOrchestrator.run_three_eyes(data, pillar="relationships", api_key="KEY"))
-    assert calls["n"] == 3  # unchanged!
-
-    # 4. Run with force_refresh=True: should bypass cache and call LLM 3 more times
-    res4 = asyncio.run(TrinetriOrchestrator.run_three_eyes(data, pillar="career", api_key="KEY", force_refresh=True))
     assert calls["n"] == 6
+    assert res2["parashari"] == "eye_verdict_4"
+
+    # 4. Second run for Career: should hit cache and make 0 new LLM calls!
+    res2_cached = asyncio.run(TrinetriOrchestrator.run_three_eyes(data, pillar="career", api_key="KEY"))
+    assert calls["n"] == 6  # unchanged!
+    assert res2_cached == res2
+
+    # 5. Run with force_refresh=True: should bypass cache and call LLM 3 more times
+    res4 = asyncio.run(TrinetriOrchestrator.run_three_eyes(data, pillar="career", api_key="KEY", force_refresh=True))
+    assert calls["n"] == 9
 
     # Clean up
     TrinetriOrchestrator.clear_three_eyes_cache()

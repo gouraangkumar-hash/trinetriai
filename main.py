@@ -108,6 +108,7 @@ class ChartCalculationRequest(BaseModel):
     selected_varga: str = Field(default="D1")
     show_gochar: bool = Field(default=False)
     target_date: Optional[str] = Field(default=None, description="Optional target date for Dasha/transit lookup (YYYY-MM-DD or ISO)")
+    gender: str = Field(default="male", description="Gender of the native ('male', 'female', 'other')")
 
 
 class VargaCalculationRequest(BaseModel):
@@ -129,6 +130,7 @@ class AIChatRequest(BaseModel):
     messages: List[Dict[str, str]] = Field(default_factory=list)
     user_api_key: Optional[str] = Field(default=None)
     model: Optional[str] = Field(default=None)
+    active_reading_summary: Optional[str] = Field(default=None, max_length=6000)
 
 
 # --- Chart Calculation Pipeline ---
@@ -147,7 +149,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     # Apply time rectification offset
     effective_dt = base_dt + timedelta(seconds=req.time_offset_seconds)
 
-    ayan_enum = AyanamshaType(req.ayanamsha)
+    ayanamsha_val = req.ayanamsha.replace("-", "_") if req.ayanamsha == "Fagan-Bradley" else req.ayanamsha
+    ayan_enum = AyanamshaType(ayanamsha_val)
     node_enum = NodeType.TRUE if req.node_type == "True" else NodeType.MEAN
 
     birth_input = BirthInput(
@@ -166,6 +169,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         ayanamsha=ayan_enum,
         node_type=node_enum,
         house_system=HouseSystemType.PLACIDUS,
+        gender=req.gender,
     )
 
     chart = ephemeris_engine.calculate_chart(birth_input)
@@ -285,7 +289,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "ayanamsha_degree": chart.ayanamsha_dms.formatted,
         "effective_time": effective_dt.strftime("%H:%M:%S"),
         "effective_date": effective_dt.strftime("%Y-%m-%d"),
-        "birth_profile": f"{req.city} • {effective_dt.strftime('%d %b %Y, %H:%M:%S')} • {req.ayanamsha}",
+        "birth_profile": f"{req.city} • {effective_dt.strftime('%d %b %Y, %H:%M:%S')} • {req.gender.capitalize()} • {req.ayanamsha}",
+        "gender": req.gender,
     }
 
     # 2. Planetary Positions Table (9 classical + nodes)
@@ -330,6 +335,14 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         is_vargottama = bool(p_pos.sign.id == d9_placement.sign_id)
         d9_sign_name = ZODIAC_SIGNS[d9_placement.sign_id]["english_name"] if req.sign_mode == "english" else d9_placement.sign_name
         vargottama_status = f"Vargottama (D1 & D9 in {s_name})" if is_vargottama else f"No (D9 in {d9_sign_name})"
+
+        d10_placement = VargaChartEngine.calculate_point_varga(
+            longitude=p_pos.longitude,
+            varga=VargaType.D10,
+            planet=p_name,
+            is_ascendant=False,
+        )
+        d10_sign_name = ZODIAC_SIGNS[d10_placement.sign_id]["english_name"] if req.sign_mode == "english" else d10_placement.sign_name
 
         graha_aspect = aspects_report.planets_aspects.get(p_name.value)
         drishti_badges = graha_aspect.summary_badges if graha_aspect else []
@@ -378,6 +391,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
             "vargottama_status": vargottama_status,
             "d9_sign": d9_sign_name,
             "d9_degree": d9_placement.dms.formatted,
+            "d10_sign": d10_sign_name,
+            "d10_degree": d10_placement.dms.formatted,
             "natal_house": natal_house,
             "drishti_badges": drishti_badges,
             "aspects_cast": aspects_cast_list,
@@ -402,7 +417,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         planets_table.append(p_dict)
         planet_details[p_name.value] = p_dict
 
-    # Calculate Ascendant KP sub-lords and D9 placement
+    # Calculate Ascendant KP sub-lords, D9 and D10 placement
     asc_kp = KPEngine.resolve_kp_sub(chart.angles.ascendant)
     asc_d9 = VargaChartEngine.calculate_point_varga(
         longitude=chart.angles.ascendant,
@@ -412,6 +427,13 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     is_asc_vargottama = bool(asc_sign.id == asc_d9.sign_id)
     asc_d9_sign_name = ZODIAC_SIGNS[asc_d9.sign_id]["english_name"] if req.sign_mode == "english" else asc_d9.sign_name
     asc_vargottama_status = f"Vargottama (D1 & D9 in {asc_sign_name})" if is_asc_vargottama else f"No (D9 in {asc_d9_sign_name})"
+
+    asc_d10 = VargaChartEngine.calculate_point_varga(
+        longitude=chart.angles.ascendant,
+        varga=VargaType.D10,
+        is_ascendant=True,
+    )
+    asc_d10_sign_name = ZODIAC_SIGNS[asc_d10.sign_id]["english_name"] if req.sign_mode == "english" else asc_d10.sign_name
 
     asc_dict = {
         "planet": "Ascendant (Lagna)",
@@ -445,6 +467,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "vargottama_status": asc_vargottama_status,
         "d9_sign": asc_d9_sign_name,
         "d9_degree": asc_d9.dms.formatted,
+        "d10_sign": asc_d10_sign_name,
+        "d10_degree": asc_d10.dms.formatted,
         "natal_house": 1,
         "drishti_badges": [],
         "aspects_cast": [],
@@ -614,7 +638,9 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
 
         cusps_table.append({
             "house": f"House {h_num:02d}",
+            "cusp": h_num,
             "sign": s_name,
+            "sign_lord": cusp.sign.lord.value,
             "degree": cusp.dms.formatted,
             "star_lord": kp_res.star_lord.value,
             "sub_lord": kp_res.sub_lord.value,
@@ -630,6 +656,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         {
             "code": item.role_code,
             "role": item.role_name.value,
+            "karaka": item.role_code,
+            "karaka_name": item.role_name.value,
             "planet": item.planet.value,
             "sign": ZODIAC_SIGNS[item.sign_id]["english_name"] if req.sign_mode == "english" else item.sign_name,
             "degree": item.dms.formatted,
@@ -641,6 +669,8 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         {
             "code": item.role_code,
             "role": item.role_name.value,
+            "karaka": item.role_code,
+            "karaka_name": item.role_name.value,
             "planet": item.planet.value,
             "sign": ZODIAC_SIGNS[item.sign_id]["english_name"] if req.sign_mode == "english" else item.sign_name,
             "degree": item.dms.formatted,
@@ -651,8 +681,11 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     arudha_padas = [
         {
             "pada_name": item.pada_name,
+            "pada": item.pada_name,
             "house": f"House {item.final_house}",
+            "house_from_lagna": item.final_house,
             "sign": ZODIAC_SIGNS[item.sign_id]["english_name"] if req.sign_mode == "english" else item.sign_name,
+            "sign_lord": item.sign_lord.value,
             "exception": "10-House Shift" if item.is_exception_applied else "Standard",
             "is_special": item.house_number in (1, 12),
         }
@@ -751,6 +784,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         effective_time_str=effective_dt.strftime("%H:%M:%S"),
         effective_date_str=effective_dt.strftime("%Y-%m-%d"),
         chara_dasha=chara_dasha,
+        gender=req.gender,
     )
 
     mahadashas = []
@@ -861,6 +895,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         "functional_nature": functional_report.model_dump(),
         "planetary_strength": strength_report.model_dump(),
         "ai_dossier": ai_dossier.model_dump(),
+        "gender": req.gender,
     }
 
 
@@ -943,6 +978,7 @@ async def ai_chat(req: AIChatRequest):
                 messages=req.messages,
                 api_key=req.user_api_key,
                 model=req.model,
+                active_reading_summary=req.active_reading_summary,
             ),
             media_type="text/event-stream",
             headers={

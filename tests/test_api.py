@@ -3,6 +3,7 @@
 import pytest
 from starlette.testclient import TestClient
 
+from engines.trinetri_orchestrator import TrinetriOrchestrator
 from main import app
 
 client = TestClient(app)
@@ -53,6 +54,9 @@ def test_calculate_endpoint_default():
     assert sun_detail["is_vargottama"] is True
     assert "Vargottama" in sun_detail["vargottama_status"]
     assert sun_detail["d9_sign"] == "Kanya"
+    assert sun_detail["d10_sign"] == "Kumbha"
+    asc_detail = data["planet_details"]["Ascendant (Lagna)"]
+    assert asc_detail["d10_sign"] == "Meena"
 
     # Verify Mercury is Exalted in reference chart (Virgo / Kanya)
     merc_detail = data["planet_details"]["Mercury"]
@@ -584,6 +588,7 @@ def test_orchestrator_fact_slicers():
     # Eye 1: Parashari slicing
     p_facts = TrinetriOrchestrator.slice_parashari_facts(data)
     assert "Lagna (Ascendant)" in p_facts
+    assert "D10 Dashamsha" in p_facts
     assert "Vedic Yogas Summary" in p_facts
     assert "Vimshottari" in p_facts
 
@@ -596,6 +601,8 @@ def test_orchestrator_fact_slicers():
     # Eye 3: Jaimini slicing
     j_facts = TrinetriOrchestrator.slice_jaimini_facts(data)
     assert "Chara Karakas" in j_facts
+    assert "Karakamsha (D9)" in j_facts
+    assert "D10 Dashamsha" in j_facts
     assert "Arudha Padas" in j_facts
     assert "Chara Dasha" in j_facts
 
@@ -619,6 +626,18 @@ def test_orchestrator_fact_slicers():
     assert "12 Bhavas (Houses) Ground-Truth" in full_matrix
     assert "Natal Planetary Placements, Dignities & Strengths" in full_matrix
     assert "KP Cuspal Sub-Lords (CSL) Table" in full_matrix
+
+    # Assert that "None" is NOT present in p_facts, kp_facts, j_facts, or full_matrix
+    assert "None" not in p_facts
+    assert "None" not in kp_facts
+    assert "None" not in j_facts
+    assert "None" not in full_matrix
+
+    # Assert that "AL (A1)" and "UL (A12)" are present in j_facts and full_matrix
+    assert "AL (A1)" in j_facts
+    assert "UL (A12)" in j_facts
+    assert "AL (A1)" in full_matrix
+    assert "UL (A12)" in full_matrix
 
 
 def test_ai_synthesize_endpoint_validation():
@@ -712,6 +731,8 @@ def test_dossier_includes_d9_and_kp_significators():
     dossier = resp.json()["ai_dossier"]
     md = dossier["markdown_dossier"]
     assert "D9 Navamsha" in md
+    assert "D10 Dashamsha" in md
+    assert "D10 Dashamsha Lagna (Career Ascendant)" in md
     assert "Vargottama" in md
     assert "KP 4-Fold Planetary Significators" in md
     assert "Level A" in md and "Level B" in md and "Level C" in md and "Level D" in md
@@ -720,6 +741,10 @@ def test_dossier_includes_d9_and_kp_significators():
     structured_planets = dossier["structured_payload"]["planets"]
     sun_data = next(p for p in structured_planets if p["planet"] == "Sun")
     assert "d9_sign" in sun_data
+    assert "d10_sign" in sun_data
+    assert sun_data["d10_sign"] == "Kumbha"
+    assert "d10_lagna" in dossier["structured_payload"]["baseline"]
+    assert dossier["structured_payload"]["baseline"]["d10_lagna"] == "Meena"
     assert sun_data["is_vargottama"] is True
 
 
@@ -751,6 +776,22 @@ def test_deterministic_confluence_scoring():
     assert "parashari" in confluence["components"]
     assert "kp" in confluence["components"]
     assert "jaimini" in confluence["components"]
+
+    # Verify that KP and Jaimini dynamically reflect the chart's actual CSL and Karaka placements
+    # 1. Career pillar (Cusp 10 CSL is calculated dynamically, not static default 70):
+    assert confluence["components"]["kp"] != 70
+    assert confluence["components"]["kp"] == 64
+
+    # 2. Comprehensive pillar (Cusp 1 CSL & Atmakaraka):
+    conf_comp = TrinetriOrchestrator.calculate_triangulated_confluence(chart_data, pillar="comprehensive")
+    # CSL of Cusp 1 is dynamically evaluated from planet strength (score 75, not static default 70)
+    assert conf_comp["components"]["kp"] != 70
+    assert conf_comp["components"]["kp"] == 75
+    # AK (Sun) is in House 9, boosting Jaimini score to 80 (68 + 12), not static default 68
+    assert conf_comp["components"]["jaimini"] != 68
+    assert conf_comp["components"]["jaimini"] == 80
+    # Parashari score is 76 (no false -8 penalty from inactive Sade Sati)
+    assert conf_comp["components"]["parashari"] == 76
 
 
 def test_three_eyes_wwh_deck_assets_and_prompts():
@@ -816,6 +857,11 @@ def test_interactive_polarity_and_arena_switcher():
     assert "function renderArenaPanel(" in js
     assert "function switchWwhArena(" in js
     assert "function renderArenaSwitcher(" in js
+    assert "[HOW YOU'RE WIRED]" in js
+    assert "[HOW YOU SHOW UP]" in js
+    assert "[WHERE YOU STAND TODAY]" in js
+    assert "[YOUR GREATEST STRENGTH]" in js
+    assert "[THE GOLDEN RULE]" in js
 
     # 3. Check style.css classes
     with open("frontend/css/style.css", "r", encoding="utf-8") as f:
@@ -825,6 +871,371 @@ def test_interactive_polarity_and_arena_switcher():
     assert ".wwh-polarity-marker" in css
     assert ".wwh-arena-switcher-box" in css
     assert ".wwh-arena-pill" in css
+    assert ".wwh-season-card" in css
+    assert ".wwh-season-headline" in css
+    assert ".wwh-dilemma-card" in css
+    assert ".wwh-dilemma-verdict-box" in css
+    assert ".wwh-dilemma-timing-grid" in css
+    assert ".wwh-dilemma-direct-box" in css
 
+    # 4. Prompt contains current_life_season and human counselor instructions
+    assert '"current_life_season":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert '"dilemma_counsel":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert '"exact_timeline":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert '"direct_answer":' in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert "GROUNDED HUMAN COUNSELOR" in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert "BANNED VOCABULARY" in WHAT_WHY_HOW_SYSTEM_PROMPT
+    assert "SEEKER'S CURRENT QUERY & EXACT EVENT TIMING" in WHAT_WHY_HOW_SYSTEM_PROMPT
+
+
+def test_fagan_bradley_ayanamsha_and_dignity_in_dossier():
+    """Verify /api/calculate succeeds with ayanamsha='Fagan_Bradley' and reports Exalted Mercury in ai_dossier."""
+    payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+        "ayanamsha": "Fagan_Bradley",
+    }
+    response = client.post("/api/calculate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["summary"]["ayanamsha_name"] == "Fagan_Bradley"
+
+    # Also verify reference chart (Lahiri standard) reports Exalted Mercury in ai_dossier
+    ref_payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+    }
+    ref_resp = client.post("/api/calculate", json=ref_payload)
+    assert ref_resp.status_code == 200
+    ref_data = ref_resp.json()
+    assert "ai_dossier" in ref_data
+    ai_dossier = ref_data["ai_dossier"]
+    md = ai_dossier["markdown_dossier"]
+    assert "Exalted" in md
+    mercury_line = next(line for line in md.split("\n") if "**Mercury**" in line)
+    assert "Exalted" in mercury_line
+
+    # Also verify frontend options contain Fagan_Bradley
+    with open("frontend/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    assert '<option value="Fagan_Bradley">' in html
+    assert '<option value="Fagan-Bradley">' not in html
+
+
+def test_craft_wealth_public_calling_deck_and_prompts():
+    """Verify Pillar 2 (Craft, Wealth & Public Calling) Bento Deck assets, prompt schemas, and titles."""
+    import re
+    from prompts.synthesizer_prompt import CRAFT_WEALTH_CALLING_SYSTEM_PROMPT, build_synthesizer_prompt
+    from engines.trinetri_orchestrator import PILLAR_TITLES
+
+    # 1. PILLAR_TITLES check
+    assert PILLAR_TITLES["career"] == "2. Craft, Wealth & Public Calling (10th/2nd/11th Cusps, D10 & AmK)"
+
+    # 2. System prompt schema checks
+    assert '"work_genius":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"craft_essence":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"autonomy_vs_hierarchy":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"flow_state_trigger":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"ideal_work_environment":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"leadership_and_authority":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"leadership_stance":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"office_politics_reflex":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"delegation_tripwire":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"wealth_engine":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"wealth_archetype":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"primary_inflow_channel":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"unconscious_financial_leak":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"monetization_rule":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"enterprise_vs_employment":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"recommended_path":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"optimal_vehicle":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"timing_weather":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"current_season_headline":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"tactical_levers":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"golden_career_lever":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"negotiation_mantra":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"astrological_proof":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"dilemma_counsel":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"exact_timeline":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert '"direct_answer":' in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert "SEEKER'S CURRENT VOCATIONAL / FINANCIAL CROSSROADS & TIMELINE:" in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+
+    # 2.1 Grounded mentor tone & banned vocabulary invariant checks
+    assert "GROUNDED VOCATIONAL MENTOR" in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert "BANNED VOCABULARY" in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert "ANCHORING IN NATIVE AGE & CURRENT CAREER CHAPTER:" in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+    assert "High-Velocity Monopolist" not in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+
+    # 2.2 Dedicated Career Prompts for the Three Eyes
+    from prompts.parashari_prompt import EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT
+    from prompts.kp_prompt import EYE_2_KP_CAREER_SYSTEM_PROMPT
+    from prompts.jaimini_prompt import EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT
+
+    assert "EYE 1 of TRINETRI AI — the Brihat Parashara Hora Shastra (BPHS) Classical Master evaluating Pillar 2" in EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT
+    assert '"tenth_house_lord":' in EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT
+    assert '"d10_dashamsha_dignity":' in EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT
+    assert '"dhana_raja_yogas":' in EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT
+    assert '"career_dasha_impact":' in EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT
+    assert "GROUNDED VOCATIONAL MENTOR" in EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT
+
+    assert "EYE 2 of TRINETRI AI — the Krishnamurti Paddhati (KP Stellar System) Master evaluating Pillar 2" in EYE_2_KP_CAREER_SYSTEM_PROMPT
+    assert '"cusp_10_sub_lord":' in EYE_2_KP_CAREER_SYSTEM_PROMPT
+    assert '"cusp_2_sub_lord":' in EYE_2_KP_CAREER_SYSTEM_PROMPT
+    assert '"elevation_significators":' in EYE_2_KP_CAREER_SYSTEM_PROMPT
+    assert '"drainage_houses":' in EYE_2_KP_CAREER_SYSTEM_PROMPT
+    assert "GROUNDED VOCATIONAL MENTOR" in EYE_2_KP_CAREER_SYSTEM_PROMPT
+
+    assert "EYE 3 of TRINETRI AI — the Jaimini Upadesha Sutras Master evaluating Pillar 2" in EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT
+    assert '"amatyakaraka_work":' in EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT
+    assert '"atmakaraka_soul":' in EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT
+    assert '"rajya_pada_a10":' in EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT
+    assert '"career_chara_dasha":' in EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT
+    assert "GROUNDED VOCATIONAL MENTOR" in EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT
+
+    # 3. Emoji invariant across all Pillar 2 prompts
+    emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]", flags=re.UNICODE)
+    assert not emoji_pattern.search(CRAFT_WEALTH_CALLING_SYSTEM_PROMPT), "Found emoji in CRAFT_WEALTH_CALLING_SYSTEM_PROMPT!"
+    assert not emoji_pattern.search(EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT), "Found emoji in EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT!"
+    assert not emoji_pattern.search(EYE_2_KP_CAREER_SYSTEM_PROMPT), "Found emoji in EYE_2_KP_CAREER_SYSTEM_PROMPT!"
+    assert not emoji_pattern.search(EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT), "Found emoji in EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT!"
+
+    # 4. build_synthesizer_prompt instruction for career pillar
+    prompt = build_synthesizer_prompt(
+        pillar_title=PILLAR_TITLES["career"],
+        parashari_verdict="P evidence",
+        kp_verdict="KP evidence",
+        jaimini_verdict="J evidence",
+        natal_summary="Ground truth summary",
+        pillar_key="career",
+    )
+    assert "'Craft, Wealth & Public Calling' JSON blueprint" in prompt
+
+    prompt_with_query = build_synthesizer_prompt(
+        pillar_title=PILLAR_TITLES["career"],
+        parashari_verdict="P evidence",
+        kp_verdict="KP evidence",
+        jaimini_verdict="J evidence",
+        natal_summary="Ground truth summary",
+        custom_query="Considering leaving corporate to consult",
+        pillar_key="career",
+    )
+    assert 'Directly evaluate and resolve the seeker\'s crossroads in the "dilemma_counsel" block' in prompt_with_query
+
+    # 5. Frontend index.html verification
+    with open("frontend/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    assert '<div class="ai-pillar-title">Craft, Wealth & Public Calling</div>' in html
+
+    # 6. Frontend app.js verification
+    with open("frontend/js/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+    assert "function renderDilemmaCounselCard(" in js
+    assert "function renderCraftWealthDeck(" in js
+    assert "function scrollToCwpSection(" in js
+    assert "function buildMarkdownFromCraftWealth(" in js
+    assert 'career: { chapter: 2, name: "Craft, Wealth & Public Calling", title: "Vocational Mastery & Wealth Blueprint" }' in js
+    assert "[YOUR WORK, WEALTH & CALLING]" in js
+    assert "[YOUR WORK GENIUS & FLOW]" in js
+    assert "[HOW YOU LEAD & HOW OTHERS SEE YOU]" in js
+    assert "[HOW MONEY & WEALTH WORK FOR YOU]" in js
+    assert "[BUILDING YOUR OWN THING VS. WORKING FOR OTHERS]" in js
+    assert "[WHERE YOUR CAREER IS HEADING (NEXT 24 MONTHS)]" in js
+    assert "[PRACTICAL WORK RULES FOR EVERYDAY LIFE]" in js
+    assert "CAREER_SCHOOL_METRIC_CONFIGS" in js
+    assert "[PARASHARI PERSPECTIVE • VOCATIONAL FOUNDATION & DHANA YOGAS]" in js
+    assert "[KP STELLAR PERSPECTIVE • CAREER GATES & REAL-WORLD TIMING]" in js
+    assert "[JAIMINI SUTRAS PERSPECTIVE • PUBLIC REPUTATION VS. INNER CRAFT]" in js
+
+    # 7. Frontend style.css verification
+    with open("frontend/css/style.css", "r", encoding="utf-8") as f:
+        css = f.read()
+    assert ".cwp-container" in css
+    assert ".cwp-hero-card" in css
+    assert ".cwp-timing-grid" in css
+    assert ".cwp-dilemma-card" in css
+    assert ".wwh-dilemma-win-pill" in css
+    assert ".wwh-golden-strip" in css
+    assert ".cwp-monetization-strip" in css
+    assert ".wwh-golden-tag" in css
+    assert ".wwh-golden-text" in css
+
+
+def test_gender_field_integration_and_karaka_branching():
+    """Verify gender field integration end-to-end: API payload, dossier, orchestrator, and frontend."""
+    from engines.trinetri_orchestrator import TrinetriOrchestrator
+
+    base_payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Jaipur, India",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+    }
+
+    # 1. Default gender (male)
+    resp_male = client.post("/api/calculate", json=base_payload)
+    assert resp_male.status_code == 200
+    data_male = resp_male.json()
+    assert data_male["gender"] == "male"
+    assert data_male["summary"]["gender"] == "male"
+    assert "Male" in data_male["summary"]["birth_profile"]
+
+    dossier_male = data_male["ai_dossier"]["markdown_dossier"]
+    assert "- **Native Gender**: Male" in dossier_male
+    assert "Venus (Kalatrakaraka - Wife/Partner)" in dossier_male
+    assert "- **Native Age**:" in dossier_male
+    assert "Birth Location" not in dossier_male
+    assert "Effective Date & Time" not in dossier_male
+    assert "Julian Day" not in dossier_male
+
+    base_struct = data_male["ai_dossier"]["structured_payload"]["baseline"]
+    assert "age" in base_struct
+    assert "gender" in base_struct
+    assert "operating_cycle" in base_struct
+    assert "city" not in base_struct
+    assert "latitude" not in base_struct
+
+    # 2. Explicit female gender
+    payload_female = dict(base_payload)
+    payload_female["gender"] = "female"
+    resp_female = client.post("/api/calculate", json=payload_female)
+    assert resp_female.status_code == 200
+    data_female = resp_female.json()
+    assert data_female["gender"] == "female"
+    assert data_female["summary"]["gender"] == "female"
+    assert "Female" in data_female["summary"]["birth_profile"]
+
+    dossier_female = data_female["ai_dossier"]["markdown_dossier"]
+    assert "- **Native Gender**: Female" in dossier_female
+    assert "Jupiter (Patikaraka - Husband/Partner, with Mars for attraction)" in dossier_female
+
+    # 3. Orchestrator fact slicers and ground-truth matrix reflection
+    p_facts_female = TrinetriOrchestrator.slice_parashari_facts(data_female)
+    assert "- **Native Gender**: Female" in p_facts_female
+    assert "Jupiter (Patikaraka" in p_facts_female
+
+    gt_matrix_female = TrinetriOrchestrator.build_full_ground_truth_matrix(data_female)
+    assert "- **Native Gender**: Female" in gt_matrix_female
+    assert "Jupiter (Patikaraka" in gt_matrix_female
+
+    # 4. Confluence scoring difference for relationship pillar based on gender karaka
+    conf_male = TrinetriOrchestrator.calculate_triangulated_confluence(data_male, pillar="relationships")
+    conf_female = TrinetriOrchestrator.calculate_triangulated_confluence(data_female, pillar="relationships")
+    assert "score" in conf_male
+    assert "score" in conf_female
+    assert "components" in conf_male
+    assert "components" in conf_female
+
+    # 5. Frontend index.html verification
+    with open("frontend/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    assert '<select id="select-quick-gender"' in html
+    assert '<select id="select-birth-gender"' in html
+    assert '<option value="male"' in html
+    assert '<option value="female"' in html
+    assert '<option value="other"' in html
+
+    # 6. Frontend app.js verification
+    with open("frontend/js/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+    assert 'gender: "male"' in js
+    assert 'state.gender' in js
+    assert 'select-quick-gender' in js
+    assert 'select-birth-gender' in js
+    assert 'state.gender || "male"' in js
+
+
+def test_zero_pii_and_three_tier_vimshottari_timeline():
+    """Verify complete Zero-PII anonymization and 3-tier Vimshottari temporal hierarchy in AI Dossier & Orchestrator."""
+    payload = {
+        "year": 1995,
+        "month": 10,
+        "day": 15,
+        "hour": 14,
+        "minute": 30,
+        "second": 0.0,
+        "city": "Secret City, Wonderland",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "timezone_str": "Asia/Kolkata",
+        "gender": "male",
+    }
+    resp = client.post("/api/calculate", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+
+    ai_dossier = data["ai_dossier"]
+    md_dossier = ai_dossier["markdown_dossier"]
+    st_payload = ai_dossier["structured_payload"]
+
+    # 1. Zero-PII Verification
+    assert "Secret City" not in md_dossier
+    assert "Wonderland" not in md_dossier
+    assert "26.9124" not in md_dossier
+    assert "75.7873" not in md_dossier
+    assert "1995-10-15" not in md_dossier
+    assert "14:30" not in md_dossier
+    assert "Julian Day" not in md_dossier
+
+    from datetime import date
+    current_year = date.today().year
+    expected_age = current_year - 1995
+    assert f"**Native Age**: ~{expected_age} years (Operating Cycle: {current_year})" in md_dossier
+
+    baseline = st_payload["baseline"]
+    assert "city" not in baseline
+    assert "latitude" not in baseline
+    assert "longitude" not in baseline
+    assert "effective_datetime" not in baseline
+    assert baseline["age"] == expected_age
+    assert baseline["operating_cycle"] == current_year
+
+    # 2. 3-Tier Vimshottari Hierarchy in Markdown Dossier
+    assert "## 5. VIMSHOTTARI DASHA CHRONOLOGY & RUNNING PERIOD" in md_dossier
+    assert "### Macro Era Horizon (Mahadasha Eras):" in md_dossier
+    assert "**Previous Era (Concluded)**:" in md_dossier
+    assert "**Current Operating Era (ACTIVE)**:" in md_dossier
+    assert "**Next Horizon Era (Upcoming)**:" in md_dossier
+
+    assert "### Seasonal Strategic Timeline: Antardashas (Recent Past → Current → Upcoming):" in md_dossier
+    assert "| Period (MD-AD) | Start Date | End Date | Duration | Operational Status |" in md_dossier
+    assert "**CURRENT ACTIVE**" in md_dossier
+    assert "Upcoming" in md_dossier
+
+    assert "### Tactical Micro-Dial: Pratyantardasha (PD) Timeline (Immediate 3–6 Months):" in md_dossier
+    assert "| Level (MD-AD-PD) | Start Date | End Date | Duration | Tactical Timing |" in md_dossier
+
+    # 3. 3-Tier Vimshottari Hierarchy in TrinetriOrchestrator
+    p_facts = TrinetriOrchestrator.slice_parashari_facts(data)
+    assert "**Macro Era Horizon (Mahadasha Eras):**" in p_facts
+    assert "**Seasonal Strategic Timeline: Antardashas" in p_facts
+    assert "**Tactical Micro-Dial: Pratyantardasha (PD) Timeline" in p_facts
+
+    gt_matrix = TrinetriOrchestrator.build_full_ground_truth_matrix(data)
+    assert "**Macro Era Horizon (Mahadasha Eras):**" in gt_matrix
+    assert "**Seasonal Strategic Timeline: Antardashas" in gt_matrix
+    assert "**Tactical Micro-Dial: Pratyantardasha (PD) Timeline" in gt_matrix
 
 

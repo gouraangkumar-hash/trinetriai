@@ -2477,8 +2477,12 @@ tr.active-ray-row {
   gap: 1.25rem;
 }
 
+.quick-form-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 @media (max-width: 768px) {
-  .quick-form-grid {
+  .quick-form-grid, .quick-form-grid-3 {
     grid-template-columns: 1fr;
   }
 }
@@ -4635,6 +4639,371 @@ tr.active-ray-row {
   color: var(--text-primary);
 }
 
+/* Grounded Current Life Season Card */
+.wwh-season-card {
+  padding: 1.5rem 1.75rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(239, 246, 255, 0.4) 40%, var(--bg-surface) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-left: 4px solid #3B82F6;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+[data-theme="dark"] .wwh-season-card {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(20, 24, 33, 0.85) 100%), var(--bg-surface);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.wwh-season-badge-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.wwh-season-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #2563EB;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .wwh-season-tag {
+  color: #60A5FA;
+}
+
+.wwh-season-age,
+.wwh-season-cycle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+}
+
+.wwh-season-headline {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.wwh-season-desc {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.wwh-season-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.wwh-season-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.wwh-season-col.lean {
+  border-left: 3px solid #10B981;
+}
+
+.wwh-season-col.leave {
+  border-left: 3px solid #F59E0B;
+}
+
+.wwh-season-col-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.wwh-season-col.lean .wwh-season-col-tag {
+  color: #059669;
+}
+
+[data-theme="dark"] .wwh-season-col.lean .wwh-season-col-tag {
+  color: #34D399;
+}
+
+.wwh-season-col.leave .wwh-season-col-tag {
+  color: #D97706;
+}
+
+[data-theme="dark"] .wwh-season-col.leave .wwh-season-col-tag {
+  color: #FBBF24;
+}
+
+.wwh-season-col-text {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* Grounded Crossroads & Mentor Counsel Card */
+.wwh-dilemma-card {
+  padding: 1.5rem 1.75rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(245, 243, 255, 0.45) 40%, var(--bg-surface) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-left: 4px solid #8B5CF6;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+[data-theme="dark"] .wwh-dilemma-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(26, 21, 38, 0.85) 100%), var(--bg-surface);
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+.wwh-dilemma-card.cwp-dilemma-card {
+  border-left-color: #F59E0B;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(254, 243, 199, 0.35) 40%, var(--bg-surface) 100%);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+[data-theme="dark"] .wwh-dilemma-card.cwp-dilemma-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(36, 28, 17, 0.85) 100%), var(--bg-surface);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.wwh-dilemma-badge-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.wwh-dilemma-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #7C3AED;
+  text-transform: uppercase;
+}
+
+.cwp-dilemma-card .wwh-dilemma-tag {
+  color: #D97706;
+}
+
+[data-theme="dark"] .wwh-dilemma-tag {
+  color: #A78BFA;
+}
+
+[data-theme="dark"] .cwp-dilemma-card .wwh-dilemma-tag {
+  color: #FBBF24;
+}
+
+.wwh-dilemma-title {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.wwh-dilemma-reality {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.wwh-dilemma-verdict-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 1.15rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid #10B981;
+}
+
+[data-theme="dark"] .wwh-dilemma-verdict-box {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+  border-left: 3px solid #10B981;
+}
+
+.wwh-dilemma-verdict-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #059669;
+}
+
+[data-theme="dark"] .wwh-dilemma-verdict-tag {
+  color: #34D399;
+}
+
+.wwh-dilemma-verdict-text {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.wwh-dilemma-win-pill {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #7C3AED;
+}
+
+[data-theme="dark"] .wwh-dilemma-win-pill {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.45);
+  color: #C4B5FD;
+}
+
+.cwp-dilemma-card .wwh-dilemma-win-pill {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #D97706;
+}
+
+[data-theme="dark"] .cwp-dilemma-card .wwh-dilemma-win-pill {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #FCD34D;
+}
+
+.wwh-dilemma-query-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.wwh-dilemma-q-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.wwh-dilemma-direct-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(240, 253, 244, 0.5) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-left: 4px solid #10B981;
+}
+
+[data-theme="dark"] .wwh-dilemma-direct-box {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(13, 31, 23, 0.8) 100%);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.wwh-dilemma-direct-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #059669;
+}
+
+[data-theme="dark"] .wwh-dilemma-direct-tag {
+  color: #34D399;
+}
+
+.wwh-dilemma-direct-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.wwh-dilemma-timing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+}
+
+.wwh-dilemma-time-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.wwh-dilemma-time-card.primary {
+  border-left: 3px solid #3B82F6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, var(--bg-surface-elevated) 100%);
+}
+
+.wwh-dilemma-time-card.secondary {
+  border-left: 3px solid #8B5CF6;
+}
+
+.wwh-dilemma-time-card.dasha {
+  border-left: 3px solid #F59E0B;
+}
+
+.wwh-dilemma-time-card.transit {
+  border-left: 3px solid #10B981;
+}
+
+.wwh-time-card-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.wwh-dilemma-time-card.primary .wwh-time-card-tag {
+  color: #2563EB;
+}
+
+[data-theme="dark"] .wwh-dilemma-time-card.primary .wwh-time-card-tag {
+  color: #60A5FA;
+}
+
+.wwh-time-card-val {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
 /* Section Blocks */
 .wwh-section-block {
   display: flex;
@@ -5503,5 +5872,198 @@ tr.active-ray-row {
   }
 }
 
+/* =============================================================================
+   Chat Conversation Starter Chips (Phase 7)
+   ============================================================================= */
+.chat-starter-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
 
+.chat-starter-chip {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.95rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.45;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
 
+.chat-starter-chip:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  transform: translateX(3px);
+}
+
+/* =============================================================================
+   Pillar 2: Craft, Wealth & Public Calling (Bento Deck Styling)
+   ============================================================================= */
+.cwp-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.cwp-hero-card {
+  border-top: 3px solid #D97706;
+}
+
+.cwp-hero-card .wwh-section-tag {
+  color: #D97706;
+}
+
+[data-theme="dark"] .cwp-hero-card {
+  border-top-color: #F59E0B;
+}
+
+.cwp-quad-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.15rem;
+}
+
+.cwp-genius-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.cwp-genius-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1.35rem 1.45rem;
+  transition: all 0.2s ease;
+}
+
+.cwp-genius-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.cwp-leadership-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.cwp-lead-card {
+  transition: all 0.2s ease;
+}
+
+.cwp-lead-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.cwp-wealth-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Golden Callout Strip & Economic Rule Banner */
+.wwh-golden-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.15rem 1.4rem;
+  background: rgba(200, 155, 60, 0.07);
+  border: 1px solid rgba(200, 155, 60, 0.28);
+  border-left: 4px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .wwh-golden-strip {
+  background: rgba(200, 155, 60, 0.09);
+  border-color: rgba(200, 155, 60, 0.35);
+  border-left: 4px solid var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.wwh-golden-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.wwh-golden-tag {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.wwh-golden-headline {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.wwh-golden-text {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.cwp-monetization-strip {
+  background: rgba(217, 119, 6, 0.07);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  border-left: 4px solid #D97706;
+}
+
+.cwp-monetization-strip .wwh-golden-tag {
+  color: #B45309;
+}
+
+[data-theme="dark"] .cwp-monetization-strip {
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-left: 4px solid #F59E0B;
+}
+
+[data-theme="dark"] .cwp-monetization-strip .wwh-golden-tag {
+  color: #FBBF24;
+}
+
+.cwp-vehicle-box {
+  transition: all 0.2s ease;
+}
+
+.cwp-timing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.cwp-timing-card {
+  transition: all 0.2s ease;
+}
+
+.cwp-timing-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}

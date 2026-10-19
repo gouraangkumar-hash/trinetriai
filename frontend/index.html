@@ -129,7 +129,17 @@
             </div>
           </div>
 
-          <div class="quick-form-grid" style="margin-top: 1rem;">
+          <div class="quick-form-grid quick-form-grid-3" style="margin-top: 1rem;">
+            <!-- Gender -->
+            <div class="form-group">
+              <label class="form-label" for="select-quick-gender">Gender</label>
+              <select id="select-quick-gender" class="form-select">
+                <option value="male" selected>Male (Shukra Karaka)</option>
+                <option value="female">Female (Guru Karaka)</option>
+                <option value="other">Other / Non-Binary</option>
+              </select>
+            </div>
+
             <!-- Ayanamsha -->
             <div class="form-group">
               <label class="form-label" for="select-quick-ayanamsha">Ayanamsha System</label>
@@ -138,7 +148,7 @@
                 <option value="Krishnamurti">Krishnamurti / KP New</option>
                 <option value="Raman">B.V. Raman</option>
                 <option value="Yukteshwar">Sri Yukteshwar</option>
-                <option value="Fagan-Bradley">Fagan-Bradley (Western Sidereal)</option>
+                <option value="Fagan_Bradley">Fagan-Bradley (Western Sidereal)</option>
               </select>
             </div>
 
@@ -1033,9 +1043,9 @@
           <!-- Pillar 2 -->
           <div class="ai-pillar-card" data-pillar="career">
             <div class="ai-pillar-icon" style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 800; color: var(--accent-primary);">02</div>
-            <div class="ai-pillar-title">Career, Wealth & Professional Rise</div>
+            <div class="ai-pillar-title">Craft, Wealth & Public Calling</div>
             <div class="ai-pillar-desc">
-              10th/2nd/11th cusps, D10 Dasamsa, KP 2/6/10/11 sub-lords, Amatyakaraka & financial surge windows.
+              Natural work genius, leadership posture, wealth engine, enterprise vs. employment, and 24-month career timing.
             </div>
           </div>
 
@@ -1058,18 +1068,19 @@
           </div>
         </div>
 
-        <!-- Custom Query Input & Generate Row -->
+        <!-- Optional Seeker Crossroads & Generate Row -->
         <div class="ai-query-form-row">
           <div class="ai-query-input-wrap">
             <input 
               type="text" 
               id="ai-custom-query-input" 
               class="form-input" 
-              placeholder="Ask a specific question (e.g. When will I buy a house? or leave blank for full pillar reading)..." 
+              placeholder="Your current dilemma or crossroads (e.g. Considering leaving corporate to consult, or leave blank for full life blueprint)..." 
+              title="Optional: Bring a specific real-life crossroads or decision to your consultation"
             />
           </div>
           <button id="ai-generate-synthesis-btn" class="btn-hero-primary" style="padding: 0.65rem 1.5rem; font-size: 0.9rem; flex-shrink: 0;">
-            Generate Synthesis ➔
+            Generate Blueprint ➔
           </button>
         </div>
       </div>
@@ -1451,6 +1462,16 @@
           </div>
         </div>
 
+        <!-- Gender Selection -->
+        <div class="form-group">
+          <label class="form-label" for="select-birth-gender">Gender (Relationship Significator)</label>
+          <select id="select-birth-gender" class="form-select">
+            <option value="male" selected>Male (Shukra/Venus Karaka)</option>
+            <option value="female">Female (Guru/Jupiter Karaka)</option>
+            <option value="other">Other / Non-Binary</option>
+          </select>
+        </div>
+
         <!-- Ayanamsha & Nodes -->
         <div class="form-grid-2">
           <div class="form-group">
@@ -1460,7 +1481,7 @@
               <option value="Krishnamurti">Krishnamurti / KP New</option>
               <option value="Raman">B.V. Raman</option>
               <option value="Yukteshwar">Sri Yukteshwar</option>
-              <option value="Fagan-Bradley">Fagan-Bradley (Western Sidereal)</option>
+              <option value="Fagan_Bradley">Fagan-Bradley (Western Sidereal)</option>
             </select>
           </div>
           <div class="form-group">
@@ -1558,6 +1579,12 @@
     <div id="chat-messages-container" class="chat-messages-container">
       <div class="chat-msg system-msg">
         ✦ Welcome to Trinetri AI. Your complete astrological dossier is loaded. Ask any question regarding your natal potentials, career, marriage, or upcoming dasha timing.
+      </div>
+      <div class="chat-starter-chips" id="chat-starter-chips">
+        <button type="button" class="chat-starter-chip" onclick="askSuggestedChatQuestion('Why do I feel pulled in two directions right now?')">Why do I feel pulled in two directions right now?</button>
+        <button type="button" class="chat-starter-chip" onclick="askSuggestedChatQuestion('What kind of work environment actually fits how I\'m wired?')">What kind of work environment actually fits how I'm wired?</button>
+        <button type="button" class="chat-starter-chip" onclick="askSuggestedChatQuestion('What is my biggest blindspot in close relationships?')">What is my biggest blindspot in close relationships?</button>
+        <button type="button" class="chat-starter-chip" onclick="askSuggestedChatQuestion('When does this current heavy phase start to ease up?')">When does this current heavy phase start to ease up?</button>
       </div>
     </div>
 

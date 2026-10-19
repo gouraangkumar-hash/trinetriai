@@ -14,25 +14,29 @@ from core.constants import ZODIAC_SIGNS, PlanetEnum
 from prompts.parashari_prompt import (
     EYE_1_PARASHARI_SYSTEM_PROMPT,
     EYE_1_PARASHARI_WWH_SYSTEM_PROMPT,
+    EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT,
     build_parashari_prompt,
 )
 from prompts.kp_prompt import (
     EYE_2_KP_SYSTEM_PROMPT,
     EYE_2_KP_WWH_SYSTEM_PROMPT,
+    EYE_2_KP_CAREER_SYSTEM_PROMPT,
     build_kp_prompt,
 )
 from prompts.jaimini_prompt import (
     EYE_3_JAIMINI_SYSTEM_PROMPT,
     EYE_3_JAIMINI_WWH_SYSTEM_PROMPT,
+    EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT,
     build_jaimini_prompt,
 )
 from prompts.synthesizer_prompt import (
     MAHA_SYNTHESIZER_SYSTEM_PROMPT,
     WHAT_WHY_HOW_SYSTEM_PROMPT,
+    CRAFT_WEALTH_CALLING_SYSTEM_PROMPT,
     build_synthesizer_prompt,
 )
 from prompts.chat_prompt import build_chat_system_instruction
-from prompts.safety import MAX_CHAT_MESSAGE_CHARS, sanitize_user_text
+from prompts.safety import MAX_CHAT_MESSAGE_CHARS, sanitize_evidence, sanitize_user_text
 from services.llm import gemini_service
 
 logger = logging.getLogger("trinetri.orchestrator")
@@ -46,7 +50,7 @@ _EYES_SEMAPHORE = asyncio.Semaphore(2)
 
 PILLAR_TITLES = {
     "comprehensive": "1. What, Why and How You Are",
-    "career": "2. Career, Wealth & Professional Rise (10th/2nd/11th Cusps, D10 & AmK)",
+    "career": "2. Craft, Wealth & Public Calling (10th/2nd/11th Cusps, D10 & AmK)",
     "relationships": "3. Relationships, Marriage & Soul Compatibility (7th Cusp, D9 & Darakaraka)",
     "dasha": "4. Current Dasha & Timing of Upcoming Shifts (Vimshottari, Chara & Transits)",
     "custom": "Custom Consultation Query",
@@ -216,7 +220,9 @@ class TrinetriOrchestrator:
         moon_sign_name = moon.get("sign", "")
         
         asc_sid = next((p.get("sign_id") for p in planets_table if "Ascendant" in p.get("planet", "")), 1)
-        moon_sid = next((p.get("sign_id") for p in planets_table if "Moon" in p.get("planet", "")), 1)
+        moon_row = next((p for p in planets_table if "Moon" in p.get("planet", "")), {})
+        moon_sid = moon_row.get("sign_id", 1)
+        moon_nakshatra = moon_row.get("nakshatra") or moon.get("nakshatra", "")
 
         asc_elem = ELEMENT_MAP.get(asc_sid, "Earth")
         moon_elem = ELEMENT_MAP.get(moon_sid, "Air")
@@ -224,30 +230,64 @@ class TrinetriOrchestrator:
         # Moon distance from Lagna
         moon_house_from_lagna = ((moon_sid - asc_sid) % 12) + 1
 
+        # Identify planets conjunct Ascendant or Moon
+        planets_on_lagna = [p.get("planet") for p in planets_table if p.get("natal_house") == 1 and "Ascendant" not in p.get("planet", "")]
+        planets_with_moon = [p.get("planet") for p in planets_table if p.get("natal_house") == moon_house_from_lagna and "Moon" not in p.get("planet", "")]
+        
+        lagna_influence = f" with {', '.join(planets_on_lagna)}" if planets_on_lagna else ""
+        moon_influence = f" alongside {', '.join(planets_with_moon)}" if planets_with_moon else ""
+
+        # Rich elemental paradoxes
         if asc_elem in ["Earth", "Water"] and moon_elem in ["Fire", "Air"]:
-            paradox_headline = f"Outer Deliberate Composure ({asc_sign_name}) vs. Inner High-Speed Restlessness ({moon_sign_name})"
+            paradox_headline = f"Grounded Exterior Composure ({asc_sign_name}{lagna_influence}) vs. High-Velocity Inner Mind ({moon_sign_name} Moon in {moon_nakshatra}{moon_influence}, House {moon_house_from_lagna})"
             paradox_narrative = (
-                "Outwardly you project unshakeable calm, patience, and grounded composure. Inwardly, your mind operates at high velocity, "
-                "leaving you privately impatient with friction, delays, or people who take too long to arrive at the point."
+                f"Outwardly you project deliberate patience, composure, and grounded dependability ({asc_sign_name}). "
+                f"Inwardly, your mind ({moon_sign_name} in {moon_nakshatra}) operates at high speed, leaving you privately impatient "
+                f"with friction, delays, or people who take too long to arrive at the point."
             )
         elif asc_elem in ["Fire", "Air"] and moon_elem in ["Earth", "Water"]:
-            paradox_headline = f"Bold Assertive Presence ({asc_sign_name}) vs. Deeply Guarded Emotional Sanctuary ({moon_sign_name})"
+            paradox_headline = f"Spontaneous Outward Spark ({asc_sign_name}{lagna_influence}) vs. Deeply Guarded Emotional Sanctuary ({moon_sign_name} Moon in {moon_nakshatra}{moon_influence}, House {moon_house_from_lagna})"
             paradox_narrative = (
-                "You initiate action and command social attention with spontaneous confidence, yet your true emotional heart is intensely private, "
-                "slow to trust, and heavily guarded behind high protective walls."
+                f"You step into rooms and initiate action with natural ease and expressive spark ({asc_sign_name}), "
+                f"yet your emotional core ({moon_sign_name} in {moon_nakshatra}) is deeply private, vulnerable, and slow to trust, "
+                f"requiring genuine emotional safety before letting anyone see behind your armor."
+            )
+        elif asc_elem == "Fire" and moon_elem == "Fire":
+            paradox_headline = f"Double Fire Catalyst ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna})"
+            paradox_narrative = (
+                f"Your outer instinct and inner emotional rhythm both operate on passion, creative urgency, and immediate truth. "
+                f"Your primary paradox is learning the difference between genuine urgency and restless exhaustion—giving yourself permission to slow down without feeling like you are stagnating."
+            )
+        elif asc_elem == "Earth" and moon_elem == "Earth":
+            paradox_headline = f"Double Earth Steadfastness ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna})"
+            paradox_narrative = (
+                f"Both your presentation and emotional anchor are deeply pragmatic, tangible, and steady. "
+                f"Your paradox lies in unshakeable reliability vs. carrying unexpressed burdens—you become the load-bearing pillar for everyone else while denying yourself the space to ask for help."
+            )
+        elif asc_elem == "Air" and moon_elem == "Air":
+            paradox_headline = f"Double Air Intellectual Mobility ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna})"
+            paradox_narrative = (
+                f"Your mind and persona thrive on ideas, nuance, and continuous synthesis. "
+                f"Your inner paradox is living so intensely in concepts, foresight, and possibility that grounding into the present physical body and quiet emotional stillness feels like an unfamiliar discipline."
+            )
+        elif asc_elem == "Water" and moon_elem == "Water":
+            paradox_headline = f"Double Water Empathic Depth ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna})"
+            paradox_narrative = (
+                f"You perceive atmospheres, unspoken tensions, and emotional shifts before anyone says a word. "
+                f"Your core paradox is an oceanic capacity to absorb others' emotional weather while struggling to maintain clear energetic boundaries between what belongs to you and what belongs to the world."
             )
         else:
             if moon_house_from_lagna in [6, 8, 12]:
-                paradox_headline = f"Persona vs. Private Need Tension (House {moon_house_from_lagna} Moon)"
+                paradox_headline = f"Worldly Role ({asc_sign_name}) vs. Solitary Soul Need (House {moon_house_from_lagna} Moon in {moon_sign_name} / {moon_nakshatra})"
                 paradox_narrative = (
-                    "The external demands that bring you worldly success and recognition frequently run counter to the quiet, solitary conditions "
-                    "your nervous system actually needs to feel rested and psychologically safe."
+                    f"The external demands that bring you worldly success and recognition ({asc_sign_name}) frequently run counter "
+                    f"to the quiet, solitary conditions your nervous system ({moon_sign_name} in House {moon_house_from_lagna}) actually needs to feel rested and psychologically safe."
                 )
             else:
-                paradox_headline = "Unified Drive with Latent Over-Functioning Trap"
+                paradox_headline = f"Unified Purpose with Latent Over-Functioning ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra})"
                 paradox_narrative = (
-                    "Your outer demeanor and inner mind share elemental resonance, giving you strong focus, but your primary vulnerability is "
-                    "an inability to downshift or pause, frequently mistaking necessary recovery for wasted time."
+                    f"Your outer demeanor and inner mind share purposeful harmony, giving you strong focus, but your primary vulnerability is "
+                    f"an inability to downshift or pause, frequently mistaking necessary recovery for wasted time."
                 )
 
         # 4. Karmic Axis (Comfort Zone vs Growth Edge)
@@ -290,7 +330,7 @@ class TrinetriOrchestrator:
             f"- **Karmic Axis (Soul Evolution)**: {prof['karmic_axis']['headline']}",
             f"  *Default Comfort Zone (When Tired/Cornered)*: {prof['karmic_axis']['comfort_zone']}",
             f"  *Active Growth Edge (Unlock Next Level)*: {prof['karmic_axis']['growth_edge']}",
-            "(CRITICAL INSTRUCTION: In your JSON output, use these exact computed constitutional labels and directly anchor the 'the_why.inner_paradox' and 'the_why.comfort_zone_vs_growth_edge' to these exact dynamics!)",
+            "(CRITICAL INSTRUCTION: In your JSON output, use these exact computed constitutional labels and weave the native's specific Lagna, Moon, Nakshatra, and Karmic Axis houses into 'the_why.inner_paradox' and 'the_why.comfort_zone_vs_growth_edge' so the reading speaks directly to this unique human being!)",
         ]
         return "\n".join(lines)
 
@@ -316,8 +356,8 @@ class TrinetriOrchestrator:
                 h_num = b.get("house_number")
                 sign_name = b.get("sign_name", "")
                 lord = b.get("lord", "")
-                occupants = ", ".join(b.get("occupants", [])) or "None (Vacant)"
-                aspects = ", ".join(b.get("benefics_aspecting", []) + b.get("malefics_aspecting", [])) or "None"
+                occupants = ", ".join(b.get("occupants", [])) or "Vacant"
+                aspects = ", ".join(b.get("benefics_aspecting", []) + b.get("malefics_aspecting", [])) or "-"
                 bindus = sav_by_house.get(h_num, 28)
                 bindu_str = f"{bindus} [Strong]" if bindus >= 30 else (f"{bindus} [Challenging]" if bindus < 26 else f"{bindus} [Average]")
                 portfolio = HOUSE_PORTFOLIOS.get(h_num, "")
@@ -346,7 +386,7 @@ class TrinetriOrchestrator:
             lord = s_meta.get("lord", "")
             if hasattr(lord, "value"):
                 lord = lord.value
-            occupants = ", ".join(occupants_map.get(h_num, [])) or "None (Vacant)"
+            occupants = ", ".join(occupants_map.get(h_num, [])) or "Vacant"
             bindus = sav_by_house.get(h_num, 28)
             bindu_str = f"{bindus} [Strong]" if bindus >= 30 else (f"{bindus} [Challenging]" if bindus < 26 else f"{bindus} [Average]")
             portfolio = HOUSE_PORTFOLIOS.get(h_num, "")
@@ -356,40 +396,113 @@ class TrinetriOrchestrator:
 
     @classmethod
     def build_dasha_timeline(cls, data: Dict[str, Any], count: int = 5) -> str:
-        """Extracts the active Vimshottari period and upcoming Antardasha timeline with exact dates."""
+        """Extracts the 3-tier Vimshottari timeline: macro eras, seasonal AD timeline, and tactical PD micro-dial."""
         lines = []
         ds = data.get("dasha_summary", {})
-        lines.append("### Vimshottari Dasha Chronology & Upcoming Timeline:")
+        mahadashas = data.get("mahadashas", [])
+
+        lines.append("### Vimshottari Dasha Chronology & Running Periods:")
         lines.append(
             f"- **Current Active Running Period**: Mahadasha **{ds.get('md', '-')}** ({ds.get('md_range', '-')}) → "
             f"Antardasha **{ds.get('ad', '-')}** ({ds.get('ad_range', '-')}) → "
             f"Pratyantardasha **{ds.get('pd', '-')}** ({ds.get('pd_range', '-')})"
         )
 
+        active_md_lord = ds.get("md")
+        active_ad_lord = ds.get("ad")
+        active_pd_lord = ds.get("pd")
+
+        # 1. Macro Era Horizon (Mahadasha Eras: Previous -> Current -> Next)
+        active_md_idx = next(
+            (i for i, m in enumerate(mahadashas) if m.get("is_active") or m.get("lord") == active_md_lord),
+            None
+        )
+        if active_md_idx is not None and mahadashas:
+            lines.append("\n**Macro Era Horizon (Mahadasha Eras):**")
+            if active_md_idx > 0:
+                pm = mahadashas[active_md_idx - 1]
+                lines.append(f"- **Previous Era (Concluded)**: {pm.get('lord')} ({pm.get('start')} → {pm.get('end')})")
+            cm = mahadashas[active_md_idx]
+            lines.append(f"- **Current Operating Era (ACTIVE)**: {cm.get('lord')} ({cm.get('start')} → {cm.get('end')})")
+            if active_md_idx + 1 < len(mahadashas):
+                nm = mahadashas[active_md_idx + 1]
+                lines.append(f"- **Next Horizon Era (Upcoming)**: {nm.get('lord')} ({nm.get('start')} → {nm.get('end')})")
+
+        # Flatten Antardashas across all Mahadashas
         all_ads = []
-        for md in data.get("mahadashas", []):
+        active_ad_dict = None
+        for md in mahadashas:
             md_lord = md.get("lord", "")
             for ad in md.get("antardashas", []):
-                all_ads.append({
-                    "period": f"{md_lord}-{ad.get('lord', '')}",
+                ad_lord = ad.get("lord", "")
+                is_active = bool(ad.get("is_active") or (md_lord == active_md_lord and ad_lord == active_ad_lord))
+                ad_item = {
+                    "period": f"{md_lord}-{ad_lord}",
+                    "md_lord": md_lord,
+                    "ad_lord": ad_lord,
                     "start": ad.get("start", ""),
                     "end": ad.get("end", ""),
                     "duration": ad.get("duration", ""),
-                    "is_active": ad.get("is_active", False),
+                    "is_active": is_active,
                     "status": ad.get("status", ""),
-                })
+                    "pratyantardashas": ad.get("pratyantardashas", []),
+                }
+                if is_active:
+                    active_ad_dict = ad_item
+                all_ads.append(ad_item)
 
-        # Locate active Antardasha
-        active_idx = next((i for i, a in enumerate(all_ads) if a["is_active"]), None)
-        if active_idx is not None:
-            lines.append("\n**Upcoming 12–36 Month Antardasha Sequence:**")
-            lines.append("| Period (MD-AD) | Start Date | End Date | Duration | Status |")
+        # 2. Seasonal Strategic Timeline: Antardashas (Recent Past -> Current -> Upcoming)
+        active_ad_idx = next((i for i, a in enumerate(all_ads) if a["is_active"]), None)
+        if active_ad_idx is not None:
+            lines.append("\n**Seasonal Strategic Timeline: Antardashas (Recent Past → Current → Upcoming):**")
+            lines.append("| Period (MD-AD) | Start Date | End Date | Duration | Operational Status |")
             lines.append("|---|---|---|---|---|")
-            for ad_item in all_ads[active_idx : active_idx + count]:
-                badge = "**CURRENT ACTIVE**" if ad_item["is_active"] else "Upcoming"
+            start_ad = max(0, active_ad_idx - 2)
+            end_ad = min(len(all_ads), active_ad_idx + 5)
+            for idx in range(start_ad, end_ad):
+                a_item = all_ads[idx]
+                if a_item["is_active"]:
+                    badge = "**CURRENT ACTIVE**"
+                elif idx < active_ad_idx:
+                    badge = "Recently Concluded" if idx == active_ad_idx - 1 else "Concluded"
+                elif idx == active_ad_idx + 1:
+                    badge = "Upcoming (Next Chapter)"
+                else:
+                    badge = "Upcoming"
                 lines.append(
-                    f"| **{ad_item['period']}** | {ad_item['start']} | {ad_item['end']} | {ad_item['duration']} | {badge} |"
+                    f"| **{a_item['period']}** | {a_item['start']} | {a_item['end']} | {a_item['duration']} | {badge} |"
                 )
+
+        # 3. Tactical Micro-Dial: Pratyantardashas (PD) for Active Antardasha
+        if active_ad_dict and active_ad_dict.get("pratyantardashas"):
+            pds = active_ad_dict["pratyantardashas"]
+            active_pd_idx = next(
+                (i for i, p in enumerate(pds) if p.get("is_active") or p.get("lord") == active_pd_lord),
+                None
+            )
+            if active_pd_idx is not None:
+                md_name = active_ad_dict["md_lord"]
+                ad_name = active_ad_dict["ad_lord"]
+                lines.append(f"\n**Tactical Micro-Dial: Pratyantardasha (PD) Timeline (Immediate 3–6 Months):**")
+                lines.append(f"*Active tactical sub-cycles within Mahadasha {md_name} → Antardasha {ad_name}:*")
+                lines.append("| Level (MD-AD-PD) | Start Date | End Date | Duration | Tactical Timing |")
+                lines.append("|---|---|---|---|---|")
+                start_pd = max(0, active_pd_idx - 1)
+                end_pd = min(len(pds), active_pd_idx + 4)
+                for p_idx in range(start_pd, end_pd):
+                    pd_item = pds[p_idx]
+                    if p_idx == active_pd_idx:
+                        pst = "**CURRENT ACTIVE**"
+                    elif p_idx < active_pd_idx:
+                        pst = "Recently Concluded"
+                    elif p_idx == active_pd_idx + 1:
+                        pst = "Upcoming (Next 30–60d)"
+                    else:
+                        pst = "Upcoming"
+                    level_str = f"{md_name}-{ad_name}-{pd_item.get('lord', '')}"
+                    lines.append(
+                        f"| **{level_str}** | {pd_item.get('start', '')} | {pd_item.get('end', '')} | {pd_item.get('duration', '')} | {pst} |"
+                    )
 
         return "\n".join(lines)
 
@@ -466,14 +579,30 @@ class TrinetriOrchestrator:
         asc = summary.get("ascendant", {})
         moon = summary.get("moon", {})
         sun = summary.get("sun", {})
+        gender = data.get("gender") or summary.get("gender") or "male"
+        rel_karaka = "Venus (Kalatrakaraka - Wife/Partner)" if gender.lower() == "male" else ("Jupiter (Patikaraka - Husband/Partner, with Mars for attraction)" if gender.lower() == "female" else "Venus & Jupiter (Primary Relationship Significators)")
+
+        eff_date = summary.get("effective_date", "")
+        age_str = ""
+        if eff_date:
+            try:
+                b_year = int(eff_date.split("-")[0])
+                from datetime import date
+                cur_yr = date.today().year
+                age_val = max(0, cur_yr - b_year)
+                age_str = f" | **Native Age**: ~{age_val} years (Operating Cycle: {cur_yr})"
+            except Exception:
+                pass
+
+        lines_core.append(f"- **Native Gender**: {gender.capitalize()}{age_str} | **Primary Natural Relationship Karaka**: {rel_karaka}")
         lines_core.append(f"- **Lagna (Ascendant)**: {asc.get('sign')} at {asc.get('degree')} (Lord: **{asc.get('lord')}**, Nakshatra: {asc.get('nakshatra')})")
         lines_core.append(f"- **Moon (Chandra)**: {moon.get('sign')} at {moon.get('degree')} (Lord: **{moon.get('lord')}**, Nakshatra: {moon.get('nakshatra')})")
         lines_core.append(f"- **Sun (Surya)**: {sun.get('sign')} at {sun.get('degree')} (Lord: **{sun.get('lord')}**)")
 
         func = data.get("functional_nature", {})
         if func:
-            yk = ", ".join(func.get("yogakaraka_planets", [])) or "None"
-            mar = ", ".join(func.get("maraka_planets", [])) or "None"
+            yk = ", ".join(func.get("yogakaraka_planets", [])) or "-"
+            mar = ", ".join(func.get("maraka_planets", [])) or "-"
             lines_core.append(f"- **Yogakaraka Graha(s)**: {yk} | **Maraka Graha(s)**: {mar}")
             lines_core.append(f"- **Badhaka House**: House {func.get('badhaka_house')} (Lord: {func.get('badhaka_lord')})")
         sections.append("\n".join(lines_core))
@@ -483,22 +612,23 @@ class TrinetriOrchestrator:
 
         # 3. Planetary Placements & Strengths
         lines_planets = ["### Natal Planetary Placements, Dignities & Strengths:"]
-        lines_planets.append("| Graha | Sign | Degree | House | D9 Sign | Dignity | Functional Role | Bala (%) | Grade |")
-        lines_planets.append("|---|---|---|---|---|---|---|---|---|")
+        lines_planets.append("| Graha | Sign | Degree | House | D9 Sign | D10 Dashamsha | Dignity | Functional Role | Bala (%) | Grade |")
+        lines_planets.append("|---|---|---|---|---|---|---|---|---|---|")
         for p in data.get("planets_table", []):
             pl_name = p.get("planet")
             d1_sign = p.get("sign")
             deg = p.get("degree")
             house = p.get("natal_house")
             d9_sign = p.get("d9_sign", "-")
-            varg = " [V]" if "Yes" in p.get("vargottama_status", "") or p.get("is_vargottama") else ""
+            d10_sign = p.get("d10_sign", "-")
+            varg = " [V]" if bool(p.get("is_vargottama")) or p.get("vargottama_status", "").startswith("Vargottama") else ""
             dig = p.get("dignity_label", "")
             nb = " [Neechabhanga]" if p.get("has_neechabhanga") else ""
             str_pct = p.get("strength_percentage", "-")
             str_grade = p.get("strength_grade", "-")
             func_role = p.get("functional_role", "")
             lines_planets.append(
-                f"| **{pl_name}** | {d1_sign} | {deg} | H{house} | {d9_sign}{varg} | {dig}{nb} | {func_role} | {str_pct} | {str_grade} |"
+                f"| **{pl_name}** | {d1_sign} | {deg} | H{house} | {d9_sign}{varg} | {d10_sign} | {dig}{nb} | {func_role} | {str_pct} | {str_grade} |"
             )
         sections.append("\n".join(lines_planets))
 
@@ -524,7 +654,7 @@ class TrinetriOrchestrator:
 
         padas = data.get("arudha_padas", [])
         if padas:
-            p_strs = [f"**{p.get('pada_name', p.get('pada', ''))}**: {p.get('sign')} ({p.get('house', '')})" for p in padas if p.get("pada_name", p.get("pada", "")) in ["AL", "UL", "A10", "A7", "A11"]]
+            p_strs = [f"**{p.get('pada_name', p.get('pada', ''))}**: {p.get('sign')} ({p.get('house', '')})" for p in padas if p.get("pada_name", p.get("pada", "")) in ("AL (A1)", "UL (A12)", "AL", "UL", "A10", "A7", "A11")]
             lines_jaimini.append("- **Key Arudha Padas**: " + " | ".join(p_strs))
 
         cs = data.get("chara_dasha_summary", {})
@@ -556,24 +686,42 @@ class TrinetriOrchestrator:
         asc = summary.get("ascendant", {})
         moon = summary.get("moon", {})
         sun = summary.get("sun", {})
+        gender = data.get("gender") or summary.get("gender") or "male"
+        rel_karaka = "Venus (Kalatrakaraka - Wife/Partner)" if gender.lower() == "male" else ("Jupiter (Patikaraka - Husband/Partner, with Mars for attraction)" if gender.lower() == "female" else "Venus & Jupiter (Primary Relationship Significators)")
 
+        eff_date = summary.get("effective_date", "")
+        age_str = ""
+        if eff_date:
+            try:
+                b_year = int(eff_date.split("-")[0])
+                from datetime import date
+                cur_yr = date.today().year
+                age_val = max(0, cur_yr - b_year)
+                age_str = f" | **Native Age**: ~{age_val} years (Operating Cycle: {cur_yr})"
+            except Exception:
+                pass
+
+        lines.append(f"- **Native Gender**: {gender.capitalize()}{age_str} | **Relationship Karaka**: {rel_karaka}")
         lines.append(f"- **Lagna (Ascendant)**: {asc.get('sign')} at {asc.get('degree')} (Lord: {asc.get('lord')}, Nakshatra: {asc.get('nakshatra')})")
+        asc_d10_sign = data.get("planet_details", {}).get("Ascendant (Lagna)", {}).get("d10_sign")
+        if asc_d10_sign:
+            lines.append(f"- **D10 Dashamsha Lagna (Career Ascendant)**: {asc_d10_sign}")
         lines.append(f"- **Moon (Chandra)**: {moon.get('sign')} at {moon.get('degree')} (Lord: {moon.get('lord')}, Nakshatra: {moon.get('nakshatra')})")
         lines.append(f"- **Sun (Surya)**: {sun.get('sign')} at {sun.get('degree')} (Lord: {sun.get('lord')})")
 
         # Functional nature
         func = data.get("functional_nature", {})
         if func:
-            yk = ", ".join(func.get("yogakaraka_planets", [])) or "None"
-            mar = ", ".join(func.get("maraka_planets", [])) or "None"
+            yk = ", ".join(func.get("yogakaraka_planets", [])) or "-"
+            mar = ", ".join(func.get("maraka_planets", [])) or "-"
             lines.append(f"- **Yogakaraka Graha(s)**: {yk} | **Maraka Graha(s)**: {mar}")
             lines.append(f"- **Badhaka House**: House {func.get('badhaka_house')} (Lord: {func.get('badhaka_lord')})")
 
         # 12 Bhavas Rulership & Occupancy Matrix
         lines.append(f"\n{cls.build_houses_matrix(data)}")
 
-        # Planets summary with D9 & Dignity & Strength
-        lines.append("\n**Planetary D1/D9 Dignities & Strengths:**")
+        # Planets summary with D9 & D10 Dignity & Strength
+        lines.append("\n**Planetary D1/D9/D10 Dignities & Strengths:**")
         planets_table = data.get("planets_table", [])
         for p in planets_table:
             pl_name = p.get("planet")
@@ -581,14 +729,15 @@ class TrinetriOrchestrator:
             deg = p.get("degree")
             house = p.get("natal_house")
             d9_sign = p.get("d9_sign")
-            varg = " (Vargottama)" if "Yes" in p.get("vargottama_status", "") else ""
+            varg = " (Vargottama)" if bool(p.get("is_vargottama")) or p.get("vargottama_status", "").startswith("Vargottama") else ""
+            d10_sign = p.get("d10_sign", "-")
             dig = p.get("dignity_label", "")
             nb = " [Neechabhanga Cancelled]" if p.get("has_neechabhanga") else ""
             str_pct = p.get("strength_percentage", "-")
             str_grade = p.get("strength_grade", "-")
             func_role = p.get("functional_role", "")
             lines.append(
-                f"- **{pl_name}**: in {d1_sign} {deg} (House {house}) | D9: {d9_sign}{varg} | "
+                f"- **{pl_name}**: in {d1_sign} {deg} (House {house}) | D9: {d9_sign}{varg} | D10 Dashamsha: {d10_sign} | "
                 f"Dignity: {dig}{nb} | Functional: {func_role} | Bala: {str_pct} ({str_grade})"
             )
 
@@ -665,15 +814,29 @@ class TrinetriOrchestrator:
         # Chara Karakas (7 and 8)
         lines.append("**7 Chara Karakas (BPHS / Jaimini Classical):**")
         karakas = data.get("chara_karakas_7", [])
+        planets_details = data.get("planet_details", {})
         for k in karakas:
-            lines.append(f"- **{k.get('karaka_name')} ({k.get('karaka')})**: {k.get('planet')} ({k.get('sign')} {k.get('degree')})")
+            role = k.get("role") or k.get("karaka_name")
+            code = k.get("code") or k.get("karaka")
+            pl_name = k.get("planet")
+            pl_meta = planets_details.get(pl_name, {})
+            d9_sign = pl_meta.get("d9_sign", "-")
+            d10_sign = pl_meta.get("d10_sign", "-")
+            extra = ""
+            if code == "AK":
+                extra = f" | Karakamsha (D9): {d9_sign} | D10: {d10_sign}"
+            elif code == "AmK":
+                extra = f" | D9: {d9_sign} | D10 Dashamsha: {d10_sign}"
+            lines.append(f"- **{role} ({code})**: {pl_name} ({k.get('sign')} {k.get('degree')}){extra}")
 
         # 12 Arudha Padas
         lines.append("\n**12 Arudha Padas (Manifested World / Maya):**")
         padas = data.get("arudha_padas", [])
         for ap in padas:
             ex = f" [{ap.get('exception')}]" if ap.get("exception") != "Standard" else ""
-            lines.append(f"- **{ap.get('pada')}** ({ap.get('name')}): {ap.get('sign')} (House {ap.get('house_from_lagna')}){ex}")
+            pada_name = ap.get("pada_name") or ap.get("pada")
+            house_str = ap.get("house") or f"House {ap.get('house_from_lagna')}"
+            lines.append(f"- **{pada_name}**: {ap.get('sign')} ({house_str}){ex}")
 
         # Chara Dasha
         cs = data.get("chara_dasha_summary", {})
@@ -715,15 +878,10 @@ class TrinetriOrchestrator:
         macro_key = f"{chart_fp}_comprehensive_"
 
         if not force_refresh:
-            # 1. Exact match hit
+            # Exact match hit (per-chart, per-pillar, per-query)
             if cache_key in _THREE_EYES_CACHE:
                 logger.info("Three Eyes cache HIT (exact): %s", cache_key)
                 return _THREE_EYES_CACHE[cache_key]
-
-            # 2. Re-use comprehensive macro eyes for standard pillars when no custom query is given
-            if not clean_query and macro_key in _THREE_EYES_CACHE:
-                logger.info("Three Eyes cache HIT (reusing comprehensive macro for pillar %s): %s", pillar, macro_key)
-                return _THREE_EYES_CACHE[macro_key]
 
         pillar_title = PILLAR_TITLES.get(pillar, PILLAR_TITLES["comprehensive"])
 
@@ -753,6 +911,10 @@ class TrinetriOrchestrator:
             p_sys = EYE_1_PARASHARI_WWH_SYSTEM_PROMPT
             kp_sys = EYE_2_KP_WWH_SYSTEM_PROMPT
             j_sys = EYE_3_JAIMINI_WWH_SYSTEM_PROMPT
+        elif pillar == "career":
+            p_sys = EYE_1_PARASHARI_CAREER_SYSTEM_PROMPT
+            kp_sys = EYE_2_KP_CAREER_SYSTEM_PROMPT
+            j_sys = EYE_3_JAIMINI_CAREER_SYSTEM_PROMPT
         else:
             p_sys = EYE_1_PARASHARI_SYSTEM_PROMPT
             kp_sys = EYE_2_KP_SYSTEM_PROMPT
@@ -812,8 +974,19 @@ class TrinetriOrchestrator:
         dhana_cnt = yogas.get("dhana_count", 0)
         p_score += min(raja_cnt * 3.0 + dhana_cnt * 2.0, 15.0)
 
-        if yogas.get("sade_sati_status") not in ("No", "None", "", None):
+        if yogas.get("sade_sati_status") not in ("Inactive", "Inactive (Clear)", "No", "None", "", None):
             p_score -= 8.0
+
+        if pillar == "relationships":
+            gender = (data.get("gender") or data.get("summary", {}).get("gender") or "male").lower()
+            rel_graha = "Venus" if gender == "male" else ("Jupiter" if gender == "female" else None)
+            if rel_graha:
+                pl_obj = next((p for p in data.get("planets_table", []) if p.get("planet") == rel_graha), None)
+                if pl_obj:
+                    if pl_obj.get("is_exalted") or pl_obj.get("is_own_sign") or pl_obj.get("is_moolatrikona") or "Exalted" in pl_obj.get("dignity_label", "") or "Own" in pl_obj.get("dignity_label", ""):
+                        p_score += 8.0
+                    elif (pl_obj.get("is_debilitated") or "Debilitated" in pl_obj.get("dignity_label", "")) and not pl_obj.get("has_neechabhanga"):
+                        p_score -= 8.0
 
         p_score = max(35.0, min(95.0, p_score))
 
@@ -821,7 +994,7 @@ class TrinetriOrchestrator:
         kp_score = 70.0
         cusps = data.get("cusps_table", [])
         target_cusp_num = 10 if pillar == "career" else (7 if pillar == "relationships" else 1)
-        target_cusp = next((c for c in cusps if c.get("cusp") == target_cusp_num), None)
+        target_cusp = next((c for c in cusps if c.get("cusp") == target_cusp_num or c.get("house") == f"House {target_cusp_num:02d}"), None)
         if target_cusp:
             csl = target_cusp.get("sub_lord", "")
             csl_planet = next((p for p in data.get("planets_table", []) if p.get("planet") == csl), None)
@@ -836,7 +1009,7 @@ class TrinetriOrchestrator:
         j_score = 68.0
         karakas = data.get("chara_karakas_7", [])
         target_karaka_code = "AmK" if pillar == "career" else ("DK" if pillar == "relationships" else "AK")
-        k_entry = next((k for k in karakas if k.get("karaka") == target_karaka_code), None)
+        k_entry = next((k for k in karakas if (k.get("code") or k.get("karaka")) == target_karaka_code), None)
         if k_entry:
             k_planet = next((p for p in data.get("planets_table", []) if p.get("planet") == k_entry.get("planet")), None)
             if k_planet:
@@ -918,6 +1091,8 @@ class TrinetriOrchestrator:
         active_system_prompt = (
             WHAT_WHY_HOW_SYSTEM_PROMPT
             if pillar == "comprehensive"
+            else CRAFT_WEALTH_CALLING_SYSTEM_PROMPT
+            if pillar == "career"
             else MAHA_SYNTHESIZER_SYSTEM_PROMPT
         )
 
@@ -945,12 +1120,17 @@ class TrinetriOrchestrator:
         messages: List[Dict[str, str]],
         api_key: Optional[str] = None,
         model: Optional[str] = None,
+        active_reading_summary: Optional[str] = None,
     ) -> AsyncIterator[str]:
         """Streams conversation replies with ground truth dossier anchored in system_instruction."""
         ai_dossier = data.get("ai_dossier", {})
         dossier_md = ai_dossier.get("markdown_dossier") or cls.build_full_ground_truth_matrix(data)
 
-        system_instruction = build_chat_system_instruction(dossier_md)
+        sanitized_summary = None
+        if active_reading_summary:
+            sanitized_summary = sanitize_evidence(active_reading_summary, max_chars=4000)
+
+        system_instruction = build_chat_system_instruction(dossier_md, active_reading_summary=sanitized_summary)
 
         # Sliding window of last 12 messages to keep token usage lean and avoid context bloat
         recent_messages = messages[-12:] if len(messages) > 12 else messages

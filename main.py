@@ -102,7 +102,7 @@ class ChartCalculationRequest(BaseModel):
     timezone_str: str = Field(default="Asia/Kolkata")
     time_offset_seconds: int = Field(default=0)
     ayanamsha: str = Field(default="Lahiri")
-    node_type: str = Field(default="True")
+    node_type: str = Field(default="Mean")
     chart_style: str = Field(default="north")  # "north" or "south"
     sign_mode: str = Field(default="sanskrit")  # "sanskrit" or "english"
     theme_mode: str = Field(default="light")  # "light" or "dark"

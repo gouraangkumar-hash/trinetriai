@@ -204,7 +204,7 @@ class EphemerisEngine:
         self,
         jd_ut: float,
         ayanamsha: AyanamshaType = AyanamshaType.LAHIRI,
-        node_type: NodeType = NodeType.TRUE,
+        node_type: NodeType = NodeType.MEAN,
     ) -> dict[PlanetEnum, PlanetPositionModel]:
         """Calculates 9 Grahas (Sun through Ketu) and outer planets."""
         self.configure_ayanamsha(ayanamsha)

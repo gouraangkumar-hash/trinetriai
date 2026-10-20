@@ -15,7 +15,7 @@ const state = {
   timezone_str: "Asia/Kolkata",
   time_offset_seconds: 0,
   ayanamsha: "Lahiri",
-  node_type: "True",
+  node_type: "Mean",
   gender: "male",
   chart_style: "north", // "north" | "south"
   sign_mode: "sanskrit", // "sanskrit" | "english"
@@ -2155,6 +2155,7 @@ function loadSampleChartAndEnterStudio() {
   state.timezone_str = "Asia/Kolkata";
   state.gender = "male";
   state.ayanamsha = "Lahiri";
+  state.node_type = "Mean";
   state.chart_style = "north";
   state.time_offset_seconds = 0;
 

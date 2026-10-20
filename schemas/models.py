@@ -76,7 +76,7 @@ class BirthInput(BaseModel):
     second: float = Field(default=0.0, ge=0.0, lt=60.0, description="Birth second (0 to 59.999)")
     location: GeoLocationModel = Field(..., description="Geographical birth location")
     ayanamsha: AyanamshaType = Field(default=AyanamshaType.LAHIRI, description="Ayanamsha system")
-    node_type: NodeType = Field(default=NodeType.TRUE, description="Lunar node calculation mode (True or Mean)")
+    node_type: NodeType = Field(default=NodeType.MEAN, description="Lunar node calculation mode (True or Mean)")
     house_system: HouseSystemType = Field(default=HouseSystemType.PLACIDUS, description="Primary house system")
     gender: str = Field(default="male", description="Gender of the native ('male', 'female', 'other')")
 

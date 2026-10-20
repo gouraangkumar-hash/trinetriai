@@ -4628,7 +4628,6 @@ async function triggerAiSynthesis(forceRefresh = false) {
   const pillar = state.selected_pillar || "comprehensive";
   const customQueryInput = document.getElementById("ai-custom-query-input");
   const customQuery = customQueryInput ? customQueryInput.value.trim() : "";
-  const userKey = localStorage.getItem("trinetri_gemini_key") || "";
 
   const chartSig = getActiveChartSignature();
   const cacheKey = `${chartSig}_${pillar}_${customQuery}`;
@@ -4695,8 +4694,8 @@ async function triggerAiSynthesis(forceRefresh = false) {
     },
     pillar: pillar,
     custom_query: customQuery,
-    user_api_key: userKey || null,
-    model: (localStorage.getItem("trinetri_gemini_model") && localStorage.getItem("trinetri_gemini_model") !== "auto") ? localStorage.getItem("trinetri_gemini_model") : null,
+    user_api_key: null,
+    model: null,
     force_refresh: isForceRefresh,
   };
 
@@ -4806,20 +4805,17 @@ async function triggerAiSynthesis(forceRefresh = false) {
       } catch (_) {}
     }
     if (msg.includes("Gemini API Key is not configured") || msg.includes("API key not valid")) {
-      msg = `Gemini API Key is not configured. Please enter your personal Google Gemini API key to start generating readings.`;
+      msg = `Gemini API Key is not configured on the server. Please define GEMINI_API_KEY in your server environment (Render dashboard) or local .env file.`;
     } else if (msg.includes("ReadTimeout") || msg.includes("Timeout")) {
-      msg = `The Gemini API timed out while generating your reading (Google servers are experiencing temporary latency). You can switch model to Gemini 3.8 Flash in API Key settings, or try again in a moment.`;
+      msg = `The Gemini API timed out while generating your reading (Google servers are experiencing temporary latency). Please try again in a moment.`;
     } else if (msg.includes("503") || msg.includes("overloaded") || msg.includes("busy")) {
-      msg = `Google Gemini servers are currently overloaded (503 Service Unavailable). Switching model to Gemini 3.8 Flash in API Key settings or trying again in a moment is recommended.`;
+      msg = `Google Gemini servers are currently overloaded (503 Service Unavailable). Please try again in a moment.`;
     }
     if (renderBox) {
       renderBox.innerHTML = `
         <div style="padding: 1.5rem; background: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 8px; color: #EF4444;">
           <strong style="display: block; font-size: 1rem; margin-bottom: 0.35rem;">[SYNTHESIS NOTICE]</strong>
           <p style="margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.5;">${escapeHtml(msg)}</p>
-          <button class="action-pill" onclick="openApiKeyModal()" style="margin-top: 0.75rem; background: var(--accent-primary); color: #000; font-weight: 700; border: none;">
-            Configure Gemini API Key
-          </button>
         </div>
       `;
     }
@@ -4831,157 +4827,17 @@ async function triggerAiSynthesis(forceRefresh = false) {
   }
 }
 
-// API Key Modal Management
-function openApiKeyModal() {
-  const modal = document.getElementById("api-key-modal");
-  const input = document.getElementById("input-custom-gemini-key");
-  const modelSel = document.getElementById("select-gemini-model");
-  if (modal) {
-    modal.classList.add("open");
-  }
-  if (input) {
-    input.value = localStorage.getItem("trinetri_gemini_key") || "";
-    setTimeout(() => {
-      input.focus();
-      input.select();
-    }, 100);
-  }
-  if (modelSel) {
-    modelSel.value = localStorage.getItem("trinetri_gemini_model") || "auto";
-  }
-  checkAiConfig();
-}
-
-function closeApiKeyModal() {
-  const modal = document.getElementById("api-key-modal");
-  if (modal) {
-    modal.classList.remove("open");
-  }
-}
-
+// API Key Modal Management (Deprecated: Server-side environment key is used)
+function openApiKeyModal() {}
+function closeApiKeyModal() {}
 window.openApiKeyModal = openApiKeyModal;
 window.closeApiKeyModal = closeApiKeyModal;
 
-function toggleApiKeyVisibility() {
-  const input = document.getElementById("input-custom-gemini-key");
-  const btn = document.getElementById("btn-toggle-key-visibility");
-  if (!input) return;
-  if (input.type === "password") {
-    input.type = "text";
-    if (btn) btn.textContent = "Hide";
-  } else {
-    input.type = "password";
-    if (btn) btn.textContent = "Show";
-  }
-}
-
-function saveApiKey() {
-  const input = document.getElementById("input-custom-gemini-key");
-  const modelSel = document.getElementById("select-gemini-model");
-  const val = input ? input.value.trim() : "";
-  const modelVal = modelSel ? modelSel.value : "auto";
-
-  if (val) {
-    localStorage.setItem("trinetri_gemini_key", val);
-    localStorage.setItem("trinetri_gemini_model", modelVal);
-    showCopyToast("✓ Gemini API Key saved to browser storage!");
-  } else {
-    localStorage.removeItem("trinetri_gemini_key");
-    localStorage.removeItem("trinetri_gemini_model");
-    showCopyToast("Custom Gemini API Key removed.");
-  }
-  closeApiKeyModal();
-  checkAiConfig();
-}
-
-function clearApiKey() {
-  localStorage.removeItem("trinetri_gemini_key");
-  localStorage.removeItem("trinetri_gemini_model");
-  const input = document.getElementById("input-custom-gemini-key");
-  if (input) input.value = "";
-  const modelSel = document.getElementById("select-gemini-model");
-  if (modelSel) modelSel.value = "auto";
-  showCopyToast("Gemini API Key cleared.");
-  checkAiConfig();
-}
-
 async function checkAiConfig() {
-  const badge = document.getElementById("ai-key-status-badge");
-  const headerDot = document.getElementById("header-api-dot");
-  const serverInfo = document.getElementById("api-key-server-status-info");
-  const modelSel = document.getElementById("select-gemini-model");
-  const userKey = localStorage.getItem("trinetri_gemini_key");
-  const userModel = localStorage.getItem("trinetri_gemini_model") || "auto";
-
   try {
-    const res = await fetch("/api/ai/config", {
-      headers: userKey ? { "X-Gemini-Api-Key": userKey } : {},
-    });
-    const data = await res.json();
-    const hasServerKey = data.has_server_key;
-    const defaultModel = data.default_model || "gemini-3.5-flash-lite";
-    const available = data.available_models || [];
-
-    // If available models returned, populate select dropdown
-    if (modelSel && available.length > 0) {
-      const existingVals = new Set(Array.from(modelSel.options).map(o => o.value));
-      for (const m of available) {
-        if (!existingVals.has(m)) {
-          const opt = document.createElement("option");
-          opt.value = m;
-          opt.textContent = m;
-          modelSel.appendChild(opt);
-        }
-      }
-      modelSel.value = userModel;
-    }
-
-    if (userKey) {
-      const displayModel = userModel === "auto" ? defaultModel : userModel;
-      if (badge) {
-        badge.className = "status-badge active";
-        badge.style.backgroundColor = "";
-        badge.style.color = "";
-        badge.innerHTML = `<span class="status-dot"></span> User Key Active (${escapeHtml(displayModel)})`;
-      }
-      if (headerDot) {
-        headerDot.style.background = "#10B981";
-      }
-      if (serverInfo) {
-        serverInfo.innerHTML = `✓ Custom key active in local storage. Active model: <strong>${escapeHtml(displayModel)}</strong>. (Server default: ${hasServerKey ? "Available" : "None"})`;
-      }
-    } else if (hasServerKey) {
-      if (badge) {
-        badge.className = "status-badge active";
-        badge.style.backgroundColor = "";
-        badge.style.color = "";
-        badge.innerHTML = `<span class="status-dot"></span> Server Key Active (${escapeHtml(defaultModel)})`;
-      }
-      if (headerDot) {
-        headerDot.style.background = "#10B981";
-      }
-      if (serverInfo) {
-        serverInfo.innerHTML = `✓ Using default server GEMINI_API_KEY. Active model: <strong>${escapeHtml(defaultModel)}</strong>. You may optionally enter your own personal key below.`;
-      }
-    } else {
-      if (badge) {
-        badge.className = "status-badge";
-        badge.style.backgroundColor = "rgba(245, 158, 11, 0.15)";
-        badge.style.color = "#F59E0B";
-        badge.innerHTML = '<span class="status-dot warning"></span> Key Missing';
-      }
-      if (headerDot) {
-        headerDot.style.background = "#F59E0B";
-      }
-      if (serverInfo) {
-        serverInfo.innerHTML = `No Gemini API key detected on server. Please enter your Google Gemini API key below to enable AI readings. (Default target: <code>${escapeHtml(defaultModel)}</code>)`;
-      }
-    }
+    await fetch("/api/ai/config");
   } catch (err) {
     console.warn("Could not check AI config:", err);
-    if (headerDot) {
-      headerDot.style.background = userKey ? "#10B981" : "#F59E0B";
-    }
   }
 }
 
@@ -5494,8 +5350,6 @@ async function sendChatMessage() {
   const aiBubble = appendChatBubble("ai", '<span class="ai-spinner" style="width: 12px; height: 12px;"></span> Consulting planetary anchors...');
   state.is_sending_chat = true;
 
-  const userKey = localStorage.getItem("trinetri_gemini_key") || "";
-
   const payload = {
     chart_params: {
       year: state.year,
@@ -5520,8 +5374,8 @@ async function sendChatMessage() {
       target_date: state.target_date,
     },
     messages: state.chat_messages,
-    user_api_key: userKey || null,
-    model: (localStorage.getItem("trinetri_gemini_model") && localStorage.getItem("trinetri_gemini_model") !== "auto") ? localStorage.getItem("trinetri_gemini_model") : null,
+    user_api_key: null,
+    model: null,
     active_reading_summary: getActiveReadingContextForChat(),
   };
 
@@ -5599,11 +5453,7 @@ async function sendChatMessage() {
     }
     console.error("Chat error:", err);
     const errMsg = err.message || "Failed to get response.";
-    if (errMsg.includes("Gemini API Key is not configured") || errMsg.includes("API key not valid")) {
-      aiBubble.innerHTML = `<span style="color: #EF4444; line-height: 1.5; display: block;">⚠️ Gemini API Key is not configured. <button onclick="openApiKeyModal()" class="action-pill" style="display:inline-block; margin-top:0.35rem; font-size:0.75rem; background:var(--accent-primary); color:#000; font-weight:700; border:none; cursor:pointer;">Configure Gemini Key</button></span>`;
-    } else {
-      aiBubble.innerHTML = `<span style="color: #EF4444; line-height: 1.5; display: block;">⚠️ ${escapeHtml(errMsg)}</span>`;
-    }
+    aiBubble.innerHTML = `<span style="color: #EF4444; line-height: 1.5; display: block;">⚠️ ${escapeHtml(errMsg)}</span>`;
   } finally {
     state.is_sending_chat = false;
     state.chat_abort_controller = null;
@@ -5920,24 +5770,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // API Key Settings Modal
-  document.getElementById("btn-header-api-key")?.addEventListener("click", openApiKeyModal);
-  document.getElementById("chat-api-key-btn")?.addEventListener("click", openApiKeyModal);
-  document.getElementById("btn-open-api-key-modal")?.addEventListener("click", openApiKeyModal);
-  document.getElementById("api-key-modal-close")?.addEventListener("click", closeApiKeyModal);
-  document.getElementById("btn-save-api-key")?.addEventListener("click", saveApiKey);
-  document.getElementById("btn-clear-api-key")?.addEventListener("click", clearApiKey);
-  document.getElementById("btn-toggle-key-visibility")?.addEventListener("click", toggleApiKeyVisibility);
-  document.getElementById("input-custom-gemini-key")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      saveApiKey();
-    }
-  });
-  document.getElementById("api-key-modal")?.addEventListener("click", (e) => {
-    if (e.target.id === "api-key-modal") closeApiKeyModal();
-  });
-
   // Floating Chat Drawer Listeners
   document.getElementById("trinetri-floating-chat-btn")?.addEventListener("click", toggleChatDrawer);
   document.getElementById("chat-close-btn")?.addEventListener("click", closeChatDrawer);
@@ -5960,7 +5792,6 @@ document.addEventListener("DOMContentLoaded", () => {
       closeAiDossierModal();
       closePlanetDrawer();
       closeBirthModal();
-      closeApiKeyModal();
       closeChatDrawer();
     }
   });

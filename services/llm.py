@@ -16,8 +16,12 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Set
 import httpx
 from dotenv import load_dotenv
 
-# Ensure local .env file is loaded if present
-load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
+# Ensure local .env file is loaded if present (.env or Windows .env.txt)
+for _fname in (".env", ".env.txt"):
+    _ep = Path(__file__).resolve().parent.parent / _fname
+    if _ep.exists():
+        load_dotenv(dotenv_path=_ep)
+        break
 
 logger = logging.getLogger("trinetri.llm")
 
@@ -67,6 +71,13 @@ def get_effective_api_key(client_key: Optional[str] = None) -> Optional[str]:
     if client_key and client_key.strip():
         return client_key.strip()
     env_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not env_key:
+        for fname in (".env", ".env.txt"):
+            p = Path(__file__).resolve().parent.parent / fname
+            if p.exists():
+                load_dotenv(dotenv_path=p, override=True)
+                break
+        env_key = os.getenv("GEMINI_API_KEY", "").strip()
     return env_key if env_key else None
 
 
@@ -212,8 +223,8 @@ class GeminiService:
         effective_key = get_effective_api_key(api_key)
         if not effective_key:
             raise ValueError(
-                "Gemini API Key is not configured. Please supply an API key via "
-                "the UI settings or define GEMINI_API_KEY in your server environment."
+                "Gemini API Key is not configured. Please define GEMINI_API_KEY in your "
+                "server environment or local .env file."
             )
 
         active_model = model or await resolve_best_model(effective_key)
@@ -360,8 +371,8 @@ class GeminiService:
         effective_key = get_effective_api_key(api_key)
         if not effective_key:
             raise ValueError(
-                "Gemini API Key is not configured. Please supply an API key via "
-                "the UI settings or define GEMINI_API_KEY in your server environment."
+                "Gemini API Key is not configured. Please define GEMINI_API_KEY in your "
+                "server environment or local .env file."
             )
 
         active_model = model or await resolve_best_model(effective_key)

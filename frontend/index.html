@@ -48,10 +48,6 @@
     <!-- Header Actions & Utilities -->
     <div class="header-actions">
       <button id="nav-view-toggle-btn" class="action-pill primary-action-pill header-view-toggle" title="Toggle between Landing Page and Studio">✦ Enter Studio</button>
-      <button id="btn-header-api-key" class="action-pill" title="Configure Google Gemini API Key" style="display: inline-flex; align-items: center; gap: 0.4rem;">
-        <span id="header-api-dot" class="status-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #F59E0B;"></span>
-        <span>⚙️ Gemini Key</span>
-      </button>
       <button id="btn-ai-dossier" class="action-pill studio-only" style="display: none; background: linear-gradient(135deg, rgba(217, 119, 6, 0.18), rgba(180, 83, 9, 0.28)); border-color: var(--accent-primary); color: var(--accent-primary); font-weight: 700;" title="View & Export Ground-Truth AI Context Dossier">✦ AI Dossier</button>
       <button id="chart-style-toggle" class="action-pill studio-only" style="display: none;" title="Toggle Chart Style">North Diamond</button>
       <button id="sign-mode-toggle" class="action-pill studio-only" style="display: none;" title="Toggle Sanskrit / English Sign Names">Sanskrit</button>
@@ -1004,15 +1000,6 @@
             </p>
           </div>
         </div>
-
-        <div class="ai-api-status-group">
-          <span id="ai-key-status-badge" class="status-badge" title="Gemini API Key Status">
-            <span class="status-dot"></span> Checking API...
-          </span>
-          <button id="btn-open-api-key-modal" class="action-pill" style="font-size: 0.75rem;" title="Configure Gemini API Key">
-            API Key
-          </button>
-        </div>
       </div>
 
       <!-- Parameter Update Invalidation Alert Banner -->
@@ -1563,7 +1550,6 @@
         </div>
       </div>
       <div class="chat-drawer-actions">
-        <button id="chat-api-key-btn" class="chat-icon-btn" title="Configure Gemini API Key" style="font-size: 0.75rem; font-weight: 700;">KEY</button>
         <button id="chat-clear-btn" class="chat-icon-btn" title="Clear Conversation" style="font-size: 0.75rem; font-weight: 700;">CLR</button>
         <button id="chat-minimize-btn" class="chat-icon-btn" title="Minimize Chat">—</button>
         <button id="chat-close-btn" class="chat-icon-btn" title="Close Chat">✕</button>
@@ -1598,73 +1584,6 @@
       ></textarea>
       <button type="submit" id="chat-send-btn" class="chat-send-btn" title="Send Question">➔</button>
     </form>
-  </div>
-
-  <!-- ======================================================================= -->
-  <!-- API Key Settings Modal                                                  -->
-  <!-- ======================================================================= -->
-  <div id="api-key-modal" class="modal-overlay">
-    <div class="modal-container" style="max-width: 480px;">
-      <div class="modal-header">
-        <h3 class="modal-title">Gemini API Key Configuration</h3>
-        <button id="api-key-modal-close" class="drawer-close-btn" title="Close">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
-          Enter your personal Google Gemini API key to power Trinetri AI's Three Eyes multi-agent synthesis and interactive chat.
-        </p>
-
-        <div class="form-group" style="margin-bottom: 0;">
-          <label class="form-label" for="input-custom-gemini-key">Google Gemini API Key</label>
-          <div style="position: relative; display: flex; align-items: center;">
-            <input 
-              type="password" 
-              id="input-custom-gemini-key" 
-              class="form-input" 
-              placeholder="AIzaSy..." 
-              autocomplete="off"
-              style="padding-right: 3rem; width: 100%;"
-            />
-            <button 
-              type="button" 
-              id="btn-toggle-key-visibility" 
-              style="position: absolute; right: 0.5rem; background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 700;"
-              title="Toggle Key Visibility"
-            >Show</button>
-          </div>
-          <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.35rem;">
-            Stored securely in your local browser storage. Never sent to any external server except directly to Google's Gemini API endpoints.
-          </span>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 0;">
-          <label class="form-label" for="select-gemini-model">Gemini Model</label>
-          <select id="select-gemini-model" class="form-input" style="width: 100%;">
-            <option value="auto">Auto (Gemini 3.5 Flash-Lite with 3.8 Fallback)</option>
-            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Primary - Ultra Fast)</option>
-            <option value="gemini-3.8-flash">Gemini 3.8 Flash (Fallback Model)</option>
-          </select>
-        </div>
-
-        <div id="api-key-server-status-info" style="font-size: 0.8rem; padding: 0.6rem; border-radius: 6px; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); line-height: 1.4;">
-          Checking server environment key...
-        </div>
-
-        <div style="display: flex; gap: 0.75rem; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="font-size: 0.75rem; color: var(--accent-primary); text-decoration: none; font-weight: 600;">
-            Get Free Key ↗
-          </a>
-          <div style="display: flex; gap: 0.5rem;">
-            <button type="button" id="btn-clear-api-key" class="btn-hero-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
-              Clear Key
-            </button>
-            <button type="button" id="btn-save-api-key" class="btn-hero-primary" style="padding: 0.5rem 1.25rem; font-size: 0.8rem;">
-              Save Key
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Application Logic -->

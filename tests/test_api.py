@@ -467,7 +467,7 @@ def test_frontend_markup_and_scripts():
     assert "ai-confluence-card" in html
     assert "trinetri-floating-chat-btn" in html
     assert "trinetri-chat-drawer" in html
-    assert "api-key-modal" in html
+    assert "api-key-modal" not in html
     assert ".ai-consult-header-card" in css
     assert ".floating-chat-btn" in css
     assert ".trinetri-chat-drawer" in css
@@ -692,24 +692,17 @@ def test_ai_chat_endpoint_validation():
 
 
 def test_api_key_modal_and_entry_points():
-    """Verify that Gemini API Key modal and its access entry points are present and correctly configured."""
+    """Verify that client-side Gemini API Key modal and entry points are removed so server key is used."""
     response = client.get("/")
     assert response.status_code == 200
     html = response.text
-    # Header entry point
-    assert "btn-header-api-key" in html
-    assert "header-api-dot" in html
-    # Chat drawer entry point
-    assert "chat-api-key-btn" in html
-    # Tab 8 entry point
-    assert "btn-open-api-key-modal" in html
-    # Modal structure: must not be hardcoded to display:none inline
-    assert 'id="api-key-modal" class="modal-overlay"' in html
-    assert "btn-toggle-key-visibility" in html
-    assert "btn-save-api-key" in html
-    assert "btn-clear-api-key" in html
-    assert "input-custom-gemini-key" in html
-    assert "select-gemini-model" in html
+    # Client-side key entry points must NOT be present
+    assert "btn-header-api-key" not in html
+    assert "header-api-dot" not in html
+    assert "chat-api-key-btn" not in html
+    assert "btn-open-api-key-modal" not in html
+    assert "api-key-modal" not in html
+    assert "input-custom-gemini-key" not in html
 
 
 def test_dossier_includes_d9_and_kp_significators():

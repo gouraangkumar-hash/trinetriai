@@ -10,6 +10,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 from zoneinfo import ZoneInfo
 
+from dotenv import load_dotenv
+
+# Ensure local .env or .env.txt is loaded upon startup
+for _fname in (".env", ".env.txt"):
+    _ep = Path(__file__).resolve().parent / _fname
+    if _ep.exists():
+        load_dotenv(dotenv_path=_ep)
+        break
+
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware

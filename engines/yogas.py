@@ -511,7 +511,7 @@ class YogaDetectorEngine:
                         nature=YogaNature.RAJA,
                         category="Transformative Raja Yoga",
                         intensity=intensity,
-                        planets_involved=[p.value for p in involved_planets],
+                        planets_involved=[p_name.value] + sorted(p.value for p in involved_planets if p != p_name),
                         houses_involved=sorted(list(involved_houses)),
                         description=desc,
                         classical_effects=effects,
@@ -1195,10 +1195,10 @@ class YogaDetectorEngine:
                     planets_involved=["Saturn", "Moon"],
                     houses_involved=[planet_houses[PlanetEnum.SATURN], planet_houses[PlanetEnum.MOON]],
                     description=(
-                        f"Saturn in {sat_name} is located in the {sat_from_moon}th house from natal Moon ({moon_name}). "
-                        "The native is completely free from the 7.5-year Sade Sati (12th, 1st, 2nd) and 2.5-year Dhaiya (4th, 8th)."
+                        f"Saturn in {sat_name} is located in the {sat_from_moon}th house from natal Moon ({moon_name}) at birth. "
+                        "Natally, the chart is clear of the 7.5-year Sade Sati (12th, 1st, 2nd) and 2.5-year Dhaiya (4th, 8th) placements."
                     ),
-                    cancellation_reason=f"Saturn is in {sat_from_moon}th house from Moon — safely outside the 12th, 1st, 2nd, 4th, and 8th transit impact zones.",
+                    cancellation_reason=f"Natal Saturn is in {sat_from_moon}th house from Moon — safely outside the 12th, 1st, 2nd, 4th, and 8th natal lunar zones.",
                     classical_effects="No severe Saturnian pressure upon the lunar mind. Emotional equilibrium, psychological clarity, and unhindered focus on personal growth.",
                 )
             )

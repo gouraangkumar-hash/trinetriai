@@ -10,6 +10,7 @@ Implements:
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -511,13 +512,35 @@ class VimshottariDashaEngine:
         target_date: datetime,
     ) -> Optional[tuple[MahadashaNode, AntardashaNode, PratyantardashaNode]]:
         """Finds the active (MD, AD, PD) triplet for any target timestamp."""
+        if not dasha_tree.mahadashas:
+            return None
+
+        # Normalize target_date to match tree timezone (UTC)
+        if target_date.tzinfo is None:
+            first_tz = dasha_tree.mahadashas[0].start_date.tzinfo or ZoneInfo("UTC")
+            target_date = target_date.replace(tzinfo=first_tz)
+        else:
+            first_tz = dasha_tree.mahadashas[0].start_date.tzinfo
+            if first_tz and target_date.tzinfo != first_tz:
+                target_date = target_date.astimezone(first_tz)
+
+        last_md = dasha_tree.mahadashas[-1]
+        is_exact_end = (target_date == last_md.end_date)
+
         for md in dasha_tree.mahadashas:
-            if md.start_date <= target_date <= md.end_date:
+            if md.start_date <= target_date < md.end_date or (is_exact_end and md == last_md):
+                last_ad = md.antardashas[-1] if md.antardashas else None
                 for ad in md.antardashas:
-                    if ad.start_date <= target_date <= ad.end_date:
+                    if ad.start_date <= target_date < ad.end_date or (is_exact_end and ad == last_ad):
+                        last_pd = ad.pratyantardashas[-1] if ad.pratyantardashas else None
                         for pd in ad.pratyantardashas:
-                            if pd.start_date <= target_date <= pd.end_date:
+                            if pd.start_date <= target_date < pd.end_date or (is_exact_end and pd == last_pd):
                                 return md, ad, pd
-                        return md, ad, ad.pratyantardashas[-1]
-                return md, md.antardashas[-1], md.antardashas[-1].pratyantardashas[-1]
+                        if ad.pratyantardashas:
+                            return md, ad, ad.pratyantardashas[-1]
+                if md.antardashas:
+                    fallback_ad = md.antardashas[-1]
+                    fallback_pd = fallback_ad.pratyantardashas[-1] if fallback_ad.pratyantardashas else None
+                    if fallback_pd:
+                        return md, fallback_ad, fallback_pd
         return None

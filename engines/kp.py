@@ -21,6 +21,18 @@ from core.constants import (
 )
 from schemas.models import DMSModel, UnifiedChartData
 
+VEDIC_GRAHAS: tuple[PlanetEnum, ...] = (
+    PlanetEnum.SUN,
+    PlanetEnum.MOON,
+    PlanetEnum.MARS,
+    PlanetEnum.MERCURY,
+    PlanetEnum.JUPITER,
+    PlanetEnum.VENUS,
+    PlanetEnum.SATURN,
+    PlanetEnum.RAHU,
+    PlanetEnum.KETU,
+)
+
 
 class KPSubTableEntry(BaseModel):
     """A single row in the canonical 1–249 KP Sub-Lord Table."""
@@ -295,9 +307,11 @@ class KPEngine:
         Level C: Planets in the Star of the House Owner (Lord).
         Level D: Planet owning (ruling) the House Cusp sign.
         """
-        # Map star lord for each planet
+        # Map star lord for each Vedic planet
         planet_star_lords: dict[PlanetEnum, PlanetEnum] = {}
         for p_name, p_pos in chart.planets.items():
+            if p_name not in VEDIC_GRAHAS:
+                continue
             star_lord = p_pos.nakshatra.lord
             planet_star_lords[p_name] = star_lord
 
@@ -310,8 +324,10 @@ class KPEngine:
             cusp = cusps[h - 1]
             house_owners[h] = cusp.sign.lord
 
-        # Assign planets to Placidus houses based on cuspal spans
+        # Assign Vedic planets to Placidus houses based on cuspal spans
         for p_name, p_pos in chart.planets.items():
+            if p_name not in VEDIC_GRAHAS:
+                continue
             p_lon = p_pos.longitude
             assigned_house = 12  # fallback
 

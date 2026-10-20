@@ -27,6 +27,7 @@ from engines.aspects import AspectsEngine
 from engines.ashtakavarga import AshtakavargaEngine
 from engines.gochar import GocharEngine
 from engines.yogas import YogaDetectorEngine, YogaNature
+from engines.trinetri_orchestrator import TrinetriOrchestrator
 from schemas.models import BirthInput, GeoLocationModel
 
 
@@ -1132,11 +1133,130 @@ class TestAIContextEngine:
         assert "gochar_transits" in payload
 
 
+# =========================================================================
+# 11. Codebase Fix Verification: Targeted Regression Tests
+# =========================================================================
+
+class TestOuterPlanetsExclusion:
+    """Verifies modern outer planets (Uranus, Neptune, Pluto) are excluded from classical Vedic engines."""
+
+    def test_aspects_engine_excludes_outer_planets(self, reference_chart):
+        report = AspectsEngine.evaluate(reference_chart)
+        outer_names = {"Uranus", "Neptune", "Pluto"}
+        for p_name in outer_names:
+            assert p_name not in report.planets_aspects
+
+        for p_name, p_aspect in report.planets_aspects.items():
+            for cast in p_aspect.aspects_cast:
+                assert not any(op in cast.aspected_planets for op in outer_names)
+            for rcv in p_aspect.aspects_received:
+                assert rcv.from_planet not in outer_names
+            for conj in p_aspect.conjunctions:
+                assert conj not in outer_names
+
+    def test_kp_engine_excludes_outer_planets(self, reference_chart):
+        matrix = KPEngine.calculate_4fold_significators(reference_chart)
+        outer_enums = {PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO}
+
+        for h_num, h_signifs in matrix.houses.items():
+            assert not any(p in outer_enums for p in h_signifs.level_a)
+            assert not any(p in outer_enums for p in h_signifs.level_b)
+            assert not any(p in outer_enums for p in h_signifs.level_c)
+            assert not any(p in outer_enums for p in h_signifs.level_d)
+
+        for p in outer_enums:
+            assert matrix.planets_significations[p]["A"] == []
+            assert matrix.planets_significations[p]["B"] == []
+            assert matrix.planets_significations[p]["C"] == []
+            assert matrix.planets_significations[p]["D"] == []
+
+    def test_jaimini_engine_excludes_outer_planets(self, reference_chart):
+        arudhas = JaiminiEngine.calculate_arudha_padas(reference_chart)
+        outer_enums = {PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO}
+        for ap in arudhas.padas:
+            assert ap.sign_lord not in outer_enums
+
+        drishti = JaiminiEngine.calculate_rashi_drishti(reference_chart)
+        for p in outer_enums:
+            assert p not in drishti.planets_aspecting_signs
 
 
+class TestGocharTimezoneHandling:
+    """Verifies GocharEngine.calculate_transit_chart does not double-shift transit_dt by birth timezone."""
+
+    def test_transit_chart_uses_utc_timezone(self, reference_chart):
+        transit_dt = datetime(2025, 6, 1, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
+        transit_chart = GocharEngine.calculate_transit_chart(reference_chart, transit_dt=transit_dt)
+
+        assert transit_chart.input_data.location.timezone_str == "UTC"
+        assert transit_chart.utc_datetime.year == 2025
+        assert transit_chart.utc_datetime.month == 6
+        assert transit_chart.utc_datetime.day == 1
+        assert transit_chart.utc_datetime.hour == 12
+        assert transit_chart.utc_datetime.minute == 0
+
+    def test_transit_chart_handles_naive_transit_dt(self, reference_chart):
+        transit_dt_naive = datetime(2025, 6, 1, 12, 0, 0)
+        transit_chart = GocharEngine.calculate_transit_chart(reference_chart, transit_dt=transit_dt_naive)
+        assert transit_chart.input_data.location.timezone_str == "UTC"
+        assert transit_chart.utc_datetime.year == 2025
+        assert transit_chart.utc_datetime.month == 6
+        assert transit_chart.utc_datetime.day == 1
+        assert transit_chart.utc_datetime.hour == 12
 
 
+class TestTrinetriOrchestratorElementalAndDoshaBalance:
+    """Verifies Jupiter Kapha points and elemental weight logic in TrinetriOrchestrator."""
+
+    def test_jupiter_dosha_mapping_has_zero_vata_and_positive_kapha(self):
+        from engines.trinetri_orchestrator import PLANET_NATURAL_DOSHA
+        jup_dosha = PLANET_NATURAL_DOSHA["Jupiter"]
+        assert jup_dosha["vata"] == 0.0
+        assert jup_dosha["kapha"] == 0.8
+        assert jup_dosha["pitta"] == 0.2
+
+    def test_compute_constitutional_blueprint(self):
+        from main import _compute_chart_and_visuals, ChartCalculationRequest
+        req = ChartCalculationRequest()
+        data = _compute_chart_and_visuals(req)
+        blueprint = TrinetriOrchestrator.compute_constitutional_blueprint(data)
+        assert "element_pcts" in blueprint
+        assert "dosha_pcts" in blueprint
+        assert blueprint["dosha_pcts"]["vata"] >= 0
+        assert blueprint["dosha_pcts"]["pitta"] >= 0
+        assert blueprint["dosha_pcts"]["kapha"] >= 0
+        assert "prakriti_label" in blueprint
 
 
+class TestVimshottariDashaTargetDateHandling:
+    """Verifies VimshottariDashaEngine.get_current_dasha handles timezone-naive target_date."""
+
+    def test_get_current_dasha_naive_and_aware(self, reference_chart):
+        moon_lon = reference_chart.planets[PlanetEnum.MOON].longitude
+        tree = VimshottariDashaEngine.generate_dasha_tree(reference_chart.utc_datetime, moon_lon)
+
+        aware_target = datetime(2025, 1, 15, 10, 0, 0, tzinfo=ZoneInfo("UTC"))
+        dasha_aware = VimshottariDashaEngine.get_current_dasha(tree, target_date=aware_target)
+        assert dasha_aware is not None
+        md, ad, pd = dasha_aware
+
+        naive_target = datetime(2025, 1, 15, 10, 0, 0)
+        dasha_naive = VimshottariDashaEngine.get_current_dasha(tree, target_date=naive_target)
+        assert dasha_naive is not None
+        md_n, ad_n, pd_n = dasha_naive
+
+        assert md.lord == md_n.lord
+        assert ad.lord == ad_n.lord
+        assert pd.lord == pd_n.lord
+
+    def test_neechabhanga_extracts_only_debilitated_planet(self):
+        from main import _compute_chart_and_visuals, ChartCalculationRequest
+        # Oct 24, 1995 has Sun debilitated in Libra with Neechabhanga via Venus (dispositor)
+        req = ChartCalculationRequest(year=1995, month=10, day=24, hour=14, minute=30)
+        data = _compute_chart_and_visuals(req)
+        sun_detail = data["planet_details"]["Sun"]
+        venus_detail = data["planet_details"]["Venus"]
+        assert sun_detail["has_neechabhanga"] is True
+        assert venus_detail["has_neechabhanga"] is False
 
 

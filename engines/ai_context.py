@@ -121,8 +121,8 @@ class AIContextEngine:
         # Identify planets with classical Neechabhanga cancellation
         neechabhanga_planets = set()
         for y in yogas_report.yogas:
-            if y.id.startswith("neechabhanga_") or "Neechabhanga" in y.name:
-                for p_inv in y.planets_involved:
+            if y.id.startswith("neechabhanga_"):
+                for p_inv in [y.id.removeprefix("neechabhanga_").capitalize()]:
                     neechabhanga_planets.add(p_inv)
 
         structured_planets = []

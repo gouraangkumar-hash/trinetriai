@@ -128,7 +128,7 @@ class DignityEngine:
         planet: PlanetEnum,
         sign_id: int,
         sign_name: str,
-        degree_in_sign: float,
+        degree_in_sign: Optional[float] = None,
         neechabhanga_planets: Optional[Set[str]] = None,
     ) -> PlanetDignityReport:
         """Evaluates whether a planet is Exalted, Debilitated, Moolatrikona, or in Own Sign."""
@@ -140,17 +140,20 @@ class DignityEngine:
         # Mercury in Virgo is Exalted 0°-15°, Moolatrikona 15°-20°, and Own Sign 20°-30°.
         is_ex = False
         if sign_id == EXALTATION_SIGNS.get(planet):
-            if planet == PlanetEnum.MOON:
-                is_ex = (degree_in_sign <= 3.0)
-            elif planet == PlanetEnum.MERCURY:
-                is_ex = (degree_in_sign <= 15.0)
+            if degree_in_sign is not None:
+                if planet == PlanetEnum.MOON:
+                    is_ex = (degree_in_sign <= 3.0)
+                elif planet == PlanetEnum.MERCURY:
+                    is_ex = (degree_in_sign <= 15.0)
+                else:
+                    is_ex = True
             else:
                 is_ex = True
         is_deb = bool(sign_id == DEBILITATION_SIGNS.get(planet))
 
-        # Check Moolatrikona range
+        # Check Moolatrikona range (only when intra-sign degree is provided)
         is_mt = False
-        if planet in MOOLATRIKONA_RANGES:
+        if degree_in_sign is not None and planet in MOOLATRIKONA_RANGES:
             mt_sign, mt_min, mt_max = MOOLATRIKONA_RANGES[planet]
             if sign_id == mt_sign and mt_min <= degree_in_sign <= mt_max:
                 is_mt = True
@@ -158,16 +161,21 @@ class DignityEngine:
         # Check Own Sign
         is_own = bool(sign_id in OWN_SIGNS.get(planet, []))
 
+        deg_val = round(degree_in_sign, 2) if degree_in_sign is not None else 0.0
+
         # Priority resolution
         if is_ex:
-            deep_deg = DEEP_EXALTATION_DEGREES.get(planet, 0.0)
-            is_deep = abs(degree_in_sign - deep_deg) <= 3.0
-            deep_note = f" (Near Deep Exaltation point {deep_deg:g}°)" if is_deep else f" (Deep point {deep_deg:g}°)"
+            if degree_in_sign is not None:
+                deep_deg = DEEP_EXALTATION_DEGREES.get(planet, 0.0)
+                is_deep = abs(degree_in_sign - deep_deg) <= 3.0
+                deep_note = f" (Near Deep Exaltation point {deep_deg:g}°)" if is_deep else f" (Deep point {deep_deg:g}°)"
+            else:
+                deep_note = ""
             return PlanetDignityReport(
                 planet=p_val,
                 sign_id=sign_id,
                 sign_name=sign_name,
-                degree_in_sign=round(degree_in_sign, 2),
+                degree_in_sign=deg_val,
                 is_exalted=True,
                 is_debilitated=False,
                 is_own_sign=is_own,
@@ -181,15 +189,18 @@ class DignityEngine:
             )
 
         if is_deb:
-            deep_deg = DEEP_DEBILITATION_DEGREES.get(planet, 0.0)
-            is_deep = abs(degree_in_sign - deep_deg) <= 3.0
-            deep_note = f" (Near Deep Debilitation point {deep_deg:g}°)" if is_deep else f" (Deep point {deep_deg:g}°)"
+            if degree_in_sign is not None:
+                deep_deg = DEEP_DEBILITATION_DEGREES.get(planet, 0.0)
+                is_deep = abs(degree_in_sign - deep_deg) <= 3.0
+                deep_note = f" (Near Deep Debilitation point {deep_deg:g}°)" if is_deep else f" (Deep point {deep_deg:g}°)"
+            else:
+                deep_note = ""
             nb_suffix = " — Neechabhanga Cancelled" if has_nb else ""
             return PlanetDignityReport(
                 planet=p_val,
                 sign_id=sign_id,
                 sign_name=sign_name,
-                degree_in_sign=round(degree_in_sign, 2),
+                degree_in_sign=deg_val,
                 is_exalted=False,
                 is_debilitated=True,
                 is_own_sign=False,
@@ -208,7 +219,7 @@ class DignityEngine:
                 planet=p_val,
                 sign_id=sign_id,
                 sign_name=sign_name,
-                degree_in_sign=round(degree_in_sign, 2),
+                degree_in_sign=deg_val,
                 is_exalted=False,
                 is_debilitated=False,
                 is_own_sign=is_own,
@@ -226,7 +237,7 @@ class DignityEngine:
                 planet=p_val,
                 sign_id=sign_id,
                 sign_name=sign_name,
-                degree_in_sign=round(degree_in_sign, 2),
+                degree_in_sign=deg_val,
                 is_exalted=False,
                 is_debilitated=False,
                 is_own_sign=True,
@@ -243,7 +254,7 @@ class DignityEngine:
             planet=p_val,
             sign_id=sign_id,
             sign_name=sign_name,
-            degree_in_sign=round(degree_in_sign, 2),
+            degree_in_sign=deg_val,
             is_exalted=False,
             is_debilitated=False,
             is_own_sign=False,

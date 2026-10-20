@@ -53,12 +53,7 @@ THE REQUIRED JSON SCHEMA:
   "school": "parashari",
   "archetype": "<Human Archetype through Parashari lens matching their root nature, e.g. 'The Steady Anchor', 'The Devoted Custodian', 'The Patient Catalyst'>",
   "summary_verdict": "<One punchy, honest sentence summarizing their classical roots and character backbone>",
-  "query_resolution": {
-    "governing_house_and_karaka": "<e.g. '4th House & Venus (Natural Vehicle Karaka)'>",
-    "event_promise": "<Favorable | Neutral | Delayed | Afflicted>",
-    "exact_timing_window": "<Exact Month Year range from Dasha dates, e.g. 'November 2026 to April 2027'>",
-    "astrological_reason": "<Why this dasha period activates the required houses and planets>"
-  },
+  "query_resolution": null, // ONLY IF a SPECIFIC USER QUERY is provided, set to { "governing_house_and_karaka": "<e.g. 4th House & Venus>", "event_promise": "<Favorable | Neutral | Delayed | Afflicted>", "exact_timing_window": "<Month Year range>", "astrological_reason": "<explanation>" }. If NO specific query was provided, MUST BE null!
   "metrics": {
     "primary_ruling_graha": "<Primary ruling influence, e.g. 'Saturn (Lagna Lord)'>",
     "d9_navamsha_affirmation": "<Inner character dignity, e.g. 'Vargottama in Capricorn (Deep Resilience)'>",

@@ -97,7 +97,7 @@ PLANET_NATURAL_DOSHA: Dict[str, Dict[str, float]] = {
     "Moon": {"kapha": 0.75, "vata": 0.25, "pitta": 0.0},
     "Mars": {"pitta": 1.0, "vata": 0.0, "kapha": 0.0},
     "Mercury": {"vata": 0.6, "pitta": 0.4, "kapha": 0.0},
-    "Jupiter": {"kapha": 0.8, "pitta": 0.2, "kapha": 0.0},
+    "Jupiter": {"kapha": 0.8, "pitta": 0.2, "vata": 0.0},
     "Venus": {"kapha": 0.7, "vata": 0.3, "pitta": 0.0},
     "Saturn": {"vata": 1.0, "pitta": 0.0, "kapha": 0.0},
     "Rahu": {"vata": 1.0, "pitta": 0.0, "kapha": 0.0},
@@ -748,8 +748,10 @@ class TrinetriOrchestrator:
 
         # Active Yogas
         yogas_summary = data.get("yogas_summary", {})
+        live_sade = data.get("gochar", {}).get("summary", {}).get("sade_sati")
+        sade_sati_str = f"Live Transit: {live_sade}" if live_sade else f"Natal: {yogas_summary.get('sade_sati_status')}"
         lines.append(f"\n**Vedic Yogas Summary**: Total: {yogas_summary.get('total_yogas')}, Raja: {yogas_summary.get('raja_count')}, Dhana: {yogas_summary.get('dhana_count')}")
-        lines.append(f"- Sade Sati: {yogas_summary.get('sade_sati_status')} | Kuja Dosha: {yogas_summary.get('kuja_dosha_status')}")
+        lines.append(f"- Sade Sati: {sade_sati_str} | Kuja Dosha: {yogas_summary.get('kuja_dosha_status')}")
         yogas_list = data.get("yogas_list", [])
         active_yogas = [y for y in yogas_list if y.get("is_active")]
         if active_yogas:
@@ -974,7 +976,11 @@ class TrinetriOrchestrator:
         dhana_cnt = yogas.get("dhana_count", 0)
         p_score += min(raja_cnt * 3.0 + dhana_cnt * 2.0, 15.0)
 
-        if yogas.get("sade_sati_status") not in ("Inactive", "Inactive (Clear)", "No", "None", "", None):
+        live_sade = data.get("gochar", {}).get("summary", {}).get("sade_sati", "")
+        if live_sade:
+            if live_sade not in ("Inactive", "Inactive (Clear)", "No", "None", "") and "Not Active" not in live_sade:
+                p_score -= 8.0
+        elif yogas.get("sade_sati_status") not in ("Inactive", "Inactive (Clear)", "No", "None", "", None):
             p_score -= 8.0
 
         if pillar == "relationships":

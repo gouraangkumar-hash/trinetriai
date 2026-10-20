@@ -1014,7 +1014,7 @@ function renderYogasWorkspace() {
       // Cancellation callout
       const cancellationHtml = (y.is_cancelled && y.cancellation_reason)
         ? `<div class="cancellation-callout">
-             ${y.id === "sade_sati" ? "✨" : "🛡️"} <strong>${y.id === "sade_sati" ? "Transit Assessment" : "Apavada (Cancellation)"}:</strong> ${y.cancellation_reason}
+             ✦ <strong>${y.id === "sade_sati" ? "Natal Assessment" : "Apavada (Cancellation)"}:</strong> ${y.cancellation_reason}
            </div>`
         : "";
 
@@ -4372,7 +4372,7 @@ const PILLAR_CHAPTER_MAP = {
 };
 
 function getActiveChartSignature() {
-  return `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.gender || "male"}_${state.time_offset_seconds}_${state.ayanamsha}_${state.node_type}_${state.target_date || "now"}`;
+  return `${state.year}-${state.month}-${state.day}_${state.hour}:${state.minute}:${state.second}_${state.city}_${state.latitude}_${state.longitude}_${state.timezone_str}_${state.gender || "male"}_${state.time_offset_seconds}_${state.ayanamsha}_${state.node_type}_${state.target_date || "now"}`;
 }
 
 function startAiButtonCooldown(seconds = 4) {
@@ -4616,6 +4616,7 @@ function displayAiReading(readingData) {
 }
 
 async function triggerAiSynthesis(forceRefresh = false) {
+  const isForceRefresh = (typeof forceRefresh === "boolean") ? forceRefresh : false;
   if (state.is_generating_synthesis) return;
   const d = state.currentData;
   if (!d) {
@@ -4632,7 +4633,7 @@ async function triggerAiSynthesis(forceRefresh = false) {
   const cacheKey = `${chartSig}_${pillar}_${customQuery}`;
 
   // If not forcing refresh and reading is already cached for this exact pillar + query, display immediately (0 API calls)
-  if (!forceRefresh && state.ai_readings_cache[cacheKey]) {
+  if (!isForceRefresh && state.ai_readings_cache[cacheKey]) {
     displayAiReading(state.ai_readings_cache[cacheKey]);
     return;
   }
@@ -4695,7 +4696,7 @@ async function triggerAiSynthesis(forceRefresh = false) {
     custom_query: customQuery,
     user_api_key: userKey || null,
     model: (localStorage.getItem("trinetri_gemini_model") && localStorage.getItem("trinetri_gemini_model") !== "auto") ? localStorage.getItem("trinetri_gemini_model") : null,
-    force_refresh: Boolean(forceRefresh),
+    force_refresh: isForceRefresh,
   };
 
   try {
@@ -4814,7 +4815,7 @@ async function triggerAiSynthesis(forceRefresh = false) {
       renderBox.innerHTML = `
         <div style="padding: 1.5rem; background: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 8px; color: #EF4444;">
           <strong style="display: block; font-size: 1rem; margin-bottom: 0.35rem;">[SYNTHESIS NOTICE]</strong>
-          <p style="margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.5;">${msg}</p>
+          <p style="margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.5;">${escapeHtml(msg)}</p>
           <button class="action-pill" onclick="openApiKeyModal()" style="margin-top: 0.75rem; background: var(--accent-primary); color: #000; font-weight: 700; border: none;">
             Configure Gemini API Key
           </button>
@@ -4940,26 +4941,26 @@ async function checkAiConfig() {
         badge.className = "status-badge active";
         badge.style.backgroundColor = "";
         badge.style.color = "";
-        badge.innerHTML = `<span class="status-dot"></span> User Key Active (${displayModel})`;
+        badge.innerHTML = `<span class="status-dot"></span> User Key Active (${escapeHtml(displayModel)})`;
       }
       if (headerDot) {
         headerDot.style.background = "#10B981";
       }
       if (serverInfo) {
-        serverInfo.innerHTML = `✓ Custom key active in local storage. Active model: <strong>${displayModel}</strong>. (Server default: ${hasServerKey ? "Available" : "None"})`;
+        serverInfo.innerHTML = `✓ Custom key active in local storage. Active model: <strong>${escapeHtml(displayModel)}</strong>. (Server default: ${hasServerKey ? "Available" : "None"})`;
       }
     } else if (hasServerKey) {
       if (badge) {
         badge.className = "status-badge active";
         badge.style.backgroundColor = "";
         badge.style.color = "";
-        badge.innerHTML = `<span class="status-dot"></span> Server Key Active (${defaultModel})`;
+        badge.innerHTML = `<span class="status-dot"></span> Server Key Active (${escapeHtml(defaultModel)})`;
       }
       if (headerDot) {
         headerDot.style.background = "#10B981";
       }
       if (serverInfo) {
-        serverInfo.innerHTML = `✓ Using default server GEMINI_API_KEY. Active model: <strong>${defaultModel}</strong>. You may optionally enter your own personal key below.`;
+        serverInfo.innerHTML = `✓ Using default server GEMINI_API_KEY. Active model: <strong>${escapeHtml(defaultModel)}</strong>. You may optionally enter your own personal key below.`;
       }
     } else {
       if (badge) {
@@ -4972,7 +4973,7 @@ async function checkAiConfig() {
         headerDot.style.background = "#F59E0B";
       }
       if (serverInfo) {
-        serverInfo.innerHTML = `No Gemini API key detected on server. Please enter your Google Gemini API key below to enable AI readings. (Default target: <code>${defaultModel}</code>)`;
+        serverInfo.innerHTML = `No Gemini API key detected on server. Please enter your Google Gemini API key below to enable AI readings. (Default target: <code>${escapeHtml(defaultModel)}</code>)`;
       }
     }
   } catch (err) {
@@ -5436,7 +5437,7 @@ function appendChatBubble(role, content) {
 
   const bubble = document.createElement("div");
   bubble.className = `chat-msg ${role === "user" ? "user-msg" : "ai-msg"}`;
-  bubble.innerHTML = role === "user" ? content : formatMarkdown(content);
+  bubble.innerHTML = role === "user" ? escapeHtml(content) : formatMarkdown(content);
   container.appendChild(bubble);
   scrollChatToBottom();
   return bubble;
@@ -5596,11 +5597,12 @@ async function sendChatMessage() {
       return;
     }
     console.error("Chat error:", err);
-    let errMsg = err.message || "Failed to get response.";
+    const errMsg = err.message || "Failed to get response.";
     if (errMsg.includes("Gemini API Key is not configured") || errMsg.includes("API key not valid")) {
-      errMsg = 'Gemini API Key is not configured. <button onclick="openApiKeyModal()" class="action-pill" style="display:inline-block; margin-top:0.35rem; font-size:0.75rem; background:var(--accent-primary); color:#000; font-weight:700; border:none; cursor:pointer;">⚙️ Configure Gemini Key</button>';
+      aiBubble.innerHTML = `<span style="color: #EF4444; line-height: 1.5; display: block;">⚠️ Gemini API Key is not configured. <button onclick="openApiKeyModal()" class="action-pill" style="display:inline-block; margin-top:0.35rem; font-size:0.75rem; background:var(--accent-primary); color:#000; font-weight:700; border:none; cursor:pointer;">Configure Gemini Key</button></span>`;
+    } else {
+      aiBubble.innerHTML = `<span style="color: #EF4444; line-height: 1.5; display: block;">⚠️ ${escapeHtml(errMsg)}</span>`;
     }
-    aiBubble.innerHTML = `<span style="color: #EF4444; line-height: 1.5; display: block;">⚠️ ${errMsg}</span>`;
   } finally {
     state.is_sending_chat = false;
     state.chat_abort_controller = null;
@@ -5610,10 +5612,7 @@ async function sendChatMessage() {
 // Window bindings
 window.copyAiSynthesis = copyAiSynthesis;
 window.downloadAiSynthesis = downloadAiSynthesis;
-window.openApiKeyModal = openApiKeyModal;
-window.closeApiKeyModal = closeApiKeyModal;
 window.triggerAiSynthesis = triggerAiSynthesis;
-window.toggleLifeProof = toggleLifeProof;
 
 // --- Initialization & Event Listeners ---
 
@@ -5910,8 +5909,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.getElementById("ai-generate-synthesis-btn")?.addEventListener("click", triggerAiSynthesis);
-  document.getElementById("btn-recalc-synthesis")?.addEventListener("click", triggerAiSynthesis);
+  document.getElementById("ai-generate-synthesis-btn")?.addEventListener("click", () => triggerAiSynthesis(false));
+  document.getElementById("btn-recalc-synthesis")?.addEventListener("click", () => triggerAiSynthesis(false));
 
   document.getElementById("ai-custom-query-input")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {

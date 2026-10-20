@@ -35,6 +35,20 @@ GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 _MODEL_CACHE: Dict[str, List[str]] = {}
 _WORKING_MODEL_CACHE: Dict[str, str] = {}
 
+
+def _model_cache_put(cache_key: str, models: List[str]) -> None:
+    """Caches discovered models, capping cache at 64 entries using FIFO eviction."""
+    if len(_MODEL_CACHE) >= 64 and cache_key not in _MODEL_CACHE:
+        _MODEL_CACHE.pop(next(iter(_MODEL_CACHE)))
+    _MODEL_CACHE[cache_key] = models
+
+
+def _working_model_cache_put(cache_key: str, model: str) -> None:
+    """Caches working default model, capping cache at 64 entries using FIFO eviction."""
+    if len(_WORKING_MODEL_CACHE) >= 64 and cache_key not in _WORKING_MODEL_CACHE:
+        _WORKING_MODEL_CACHE.pop(next(iter(_WORKING_MODEL_CACHE)))
+    _WORKING_MODEL_CACHE[cache_key] = model
+
 # Astrology discusses death, health and conflict; relax only the default thresholds so
 # legitimate readings are not blocked while still blocking clearly harmful output.
 SAFETY_SETTINGS: List[Dict[str, str]] = [
@@ -115,7 +129,7 @@ async def discover_available_models(api_key: Optional[str] = None) -> List[str]:
                         if clean_name:
                             valid.append(clean_name)
                 if valid:
-                    _MODEL_CACHE[cache_key] = valid
+                    _model_cache_put(cache_key, valid)
                     logger.info("Discovered %d active Gemini models for key: %s", len(valid), valid[:5])
                     return valid
     except Exception as exc:
@@ -138,10 +152,10 @@ async def resolve_best_model(api_key: Optional[str] = None, requested_model: Opt
         available = await discover_available_models(effective_key)
         for pref in PREFERRED_MODELS:
             if pref in available:
-                _WORKING_MODEL_CACHE[cache_key] = pref
+                _working_model_cache_put(cache_key, pref)
                 return pref
         if available:
-            _WORKING_MODEL_CACHE[cache_key] = available[0]
+            _working_model_cache_put(cache_key, available[0])
             return available[0]
 
     return DEFAULT_MODEL
@@ -178,7 +192,7 @@ class GeminiService:
         available = await discover_available_models(effective_key)
         fallback = _pick_fallback(available, tried)
         if fallback:
-            _WORKING_MODEL_CACHE[_key_fingerprint(effective_key)] = fallback
+            _working_model_cache_put(_key_fingerprint(effective_key), fallback)
         return fallback
 
     _next_model_on_404 = _next_model_on_fallback

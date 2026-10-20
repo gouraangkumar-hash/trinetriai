@@ -7,7 +7,7 @@ supporting both Sanskrit and English sign notation.
 from typing import Optional
 
 from core.constants import ZODIAC_SIGNS, PlanetEnum
-from engines.dignity import EXALTATION_SIGNS, DEBILITATION_SIGNS
+from engines.dignity import EXALTATION_SIGNS, DEBILITATION_SIGNS, DignityEngine
 from engines.parashari import VargaChart
 from schemas.models import UnifiedChartData
 
@@ -143,8 +143,14 @@ def generate_north_indian_svg(
                 if sign_mode == "english"
                 else p_pos.sign.sanskrit_name
             )
-            is_ex = bool(p_pos.sign.id == EXALTATION_SIGNS.get(p_name))
-            is_deb = bool(p_pos.sign.id == DEBILITATION_SIGNS.get(p_name))
+            dignity_rep = DignityEngine.evaluate_planet_dignity(
+                planet=p_name,
+                sign_id=p_pos.sign.id,
+                sign_name=s_name,
+                degree_in_sign=p_pos.longitude % 30.0,
+            )
+            is_ex = dignity_rep.is_exalted
+            is_deb = dignity_rep.is_debilitated
             house_planets[h_num].append({
                 "name": p_name,
                 "glyph": theme["glyph"],

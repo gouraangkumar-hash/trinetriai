@@ -7,10 +7,11 @@ Vimshottari and Chara Dashas, Ashtakavarga, transits, and AI dossier export.
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Header, HTTPException, Query, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -133,10 +134,10 @@ class AIChatRequest(BaseModel):
     active_reading_summary: Optional[str] = Field(default=None, max_length=6000)
 
 
-# --- Chart Calculation Pipeline ---
+# --- Chart Calculation Pipeline Helpers ---
 
-def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
-    """Runs complete end-to-end calculations and serializes data for frontend consumption."""
+def _build_birth_input(req: ChartCalculationRequest) -> BirthInput:
+    """Builds a normalized BirthInput model from chart calculation request parameters."""
     base_dt = datetime(
         year=req.year,
         month=req.month,
@@ -146,14 +147,13 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         second=int(req.second),
         microsecond=int((req.second % 1.0) * 1_000_000),
     )
-    # Apply time rectification offset
     effective_dt = base_dt + timedelta(seconds=req.time_offset_seconds)
 
     ayanamsha_val = req.ayanamsha.replace("-", "_") if req.ayanamsha == "Fagan-Bradley" else req.ayanamsha
     ayan_enum = AyanamshaType(ayanamsha_val)
     node_enum = NodeType.TRUE if req.node_type == "True" else NodeType.MEAN
 
-    birth_input = BirthInput(
+    return BirthInput(
         year=effective_dt.year,
         month=effective_dt.month,
         day=effective_dt.day,
@@ -170,6 +170,242 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
         node_type=node_enum,
         house_system=HouseSystemType.PLACIDUS,
         gender=req.gender,
+    )
+
+
+def _parse_target_datetime(target_date: Optional[str]) -> datetime:
+    """Resolves target evaluation datetime for Dashas & Transits (defaults to current UTC)."""
+    now_utc = datetime.now(ZoneInfo("UTC"))
+    if not target_date:
+        return now_utc
+    try:
+        parsed_td = datetime.fromisoformat(target_date.replace("Z", "+00:00"))
+        if parsed_td.tzinfo is None:
+            parsed_td = parsed_td.replace(tzinfo=ZoneInfo("UTC"))
+        return parsed_td
+    except Exception:
+        return now_utc
+
+
+def _build_varga_table(
+    chart: UnifiedChartData,
+    varga_chart: Optional[Any],
+    varga_enum: VargaType,
+    sign_mode: str = "sanskrit",
+    neechabhanga_planets: Optional[Set[str]] = None,
+) -> List[Dict[str, Any]]:
+    """Constructs the divisional varga table for the given chart and harmonic."""
+    if neechabhanga_planets is None:
+        neechabhanga_planets = set()
+
+    asc_sign = chart.angles.ascendant_sign
+    varga_table: List[Dict[str, Any]] = []
+
+    if varga_chart is not None:
+        asc_v = varga_chart.ascendant
+        asc_v_sign = ZODIAC_SIGNS[asc_v.sign_id]["english_name"] if sign_mode == "english" else asc_v.sign_name
+        is_asc_v = bool(varga_enum == VargaType.D9 and asc_sign.id == asc_v.sign_id)
+        varga_table.append({
+            "planet": "Ascendant (Lagna)",
+            "sign": asc_v_sign,
+            "degree": asc_v.dms.formatted,
+            "sign_lord": asc_v.sign_lord.value,
+            "house": "House 1 (Lagna)",
+            "is_retro": False,
+            "is_combust": False,
+            "is_exalted": False,
+            "is_debilitated": False,
+            "is_own_sign": False,
+            "is_vargottama": is_asc_v,
+            "dignity_label": "Vargottama Lagna" if is_asc_v else "Lagna",
+            "dignity_short": "[V]" if is_asc_v else "",
+        })
+        asc_sign_id = asc_v.sign_id
+        for p_enum, v_pos in varga_chart.planets.items():
+            if p_enum in (PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO):
+                continue
+            s_name = ZODIAC_SIGNS[v_pos.sign_id]["english_name"] if sign_mode == "english" else v_pos.sign_name
+            house_num = ((v_pos.sign_id - asc_sign_id) % 12) + 1
+            is_retro = chart.planets[p_enum].is_retrograde if p_enum in chart.planets else False
+            is_combust = chart.planets[p_enum].is_combust if p_enum in chart.planets else False
+
+            v_deg = v_pos.intra_sign_degree
+            v_dignity = DignityEngine.evaluate_planet_dignity(
+                planet=p_enum,
+                sign_id=v_pos.sign_id,
+                sign_name=s_name,
+                degree_in_sign=None if varga_enum != VargaType.D1 else v_deg,
+            )
+            d1_sign_id = chart.planets[p_enum].sign.id
+            is_varg = bool(varga_enum == VargaType.D9 and d1_sign_id == v_pos.sign_id)
+
+            badges = []
+            if v_dignity.is_exalted:
+                badges.append("[Ex]")
+            elif v_dignity.is_debilitated:
+                badges.append("[Deb]")
+            elif v_dignity.is_own_sign:
+                badges.append("[Own]")
+            if is_varg:
+                badges.append("[V]")
+            dignity_short_str = " ".join(badges)
+
+            varga_table.append({
+                "planet": p_enum.value,
+                "sign": s_name,
+                "degree": v_pos.dms.formatted,
+                "sign_lord": v_pos.sign_lord.value,
+                "house": f"House {house_num}",
+                "is_retro": is_retro,
+                "is_combust": is_combust,
+                "is_exalted": v_dignity.is_exalted,
+                "is_debilitated": v_dignity.is_debilitated,
+                "is_own_sign": v_dignity.is_own_sign,
+                "is_vargottama": is_varg,
+                "dignity_label": v_dignity.dignity_label,
+                "dignity_short": dignity_short_str,
+            })
+    else:
+        # D1 fallback
+        asc_name = asc_sign.english_name if sign_mode == "english" else asc_sign.sanskrit_name
+        varga_table.append({
+            "planet": "Ascendant (Lagna)",
+            "sign": asc_name,
+            "degree": asc_sign.dms.formatted,
+            "sign_lord": asc_sign.lord.value,
+            "house": "House 1 (Lagna)",
+            "is_retro": False,
+            "is_combust": False,
+            "is_exalted": False,
+            "is_debilitated": False,
+            "is_own_sign": False,
+            "is_vargottama": False,
+            "dignity_label": "Lagna",
+            "dignity_short": "",
+        })
+        asc_id = asc_sign.id
+        for p_enum, p_pos in chart.planets.items():
+            if p_enum in (PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO):
+                continue
+            s_name = p_pos.sign.english_name if sign_mode == "english" else p_pos.sign.sanskrit_name
+            house_num = ((p_pos.sign.id - asc_id) % 12) + 1
+            intra_deg = p_pos.sign.intra_sign_degree
+            v_dignity = DignityEngine.evaluate_planet_dignity(
+                planet=p_enum,
+                sign_id=p_pos.sign.id,
+                sign_name=s_name,
+                degree_in_sign=intra_deg,
+                neechabhanga_planets=neechabhanga_planets,
+            )
+            d9_placement = VargaChartEngine.calculate_point_varga(
+                longitude=p_pos.longitude,
+                varga=VargaType.D9,
+                planet=p_enum,
+                is_ascendant=False,
+            )
+            is_varg = bool(p_pos.sign.id == d9_placement.sign_id)
+
+            badges = []
+            if v_dignity.is_exalted:
+                badges.append("[Ex]")
+            elif v_dignity.is_debilitated:
+                badges.append("[Deb]")
+            elif v_dignity.is_own_sign:
+                badges.append("[Own]")
+            if is_varg:
+                badges.append("[V]")
+            dignity_short_str = " ".join(badges)
+
+            varga_table.append({
+                "planet": p_enum.value,
+                "sign": s_name,
+                "degree": p_pos.sign.dms.formatted,
+                "sign_lord": p_pos.sign.lord.value,
+                "house": f"House {house_num}",
+                "is_retro": p_pos.is_retrograde,
+                "is_combust": p_pos.is_combust,
+                "is_exalted": v_dignity.is_exalted,
+                "is_debilitated": v_dignity.is_debilitated,
+                "is_own_sign": v_dignity.is_own_sign,
+                "is_vargottama": is_varg,
+                "dignity_label": v_dignity.dignity_label,
+                "dignity_short": dignity_short_str,
+            })
+
+    return varga_table
+
+
+def _compute_varga_only(req: ChartCalculationRequest, varga_str: str) -> dict[str, Any]:
+    """Lightweight calculation for switching harmonic divisional charts without re-evaluating full synthesis."""
+    birth_input = _build_birth_input(req)
+    chart = ephemeris_engine.calculate_chart(birth_input)
+    varga_enum = VargaType(varga_str)
+
+    transit_overlay = None
+    if req.show_gochar:
+        target_dt = _parse_target_datetime(req.target_date)
+        transit_overlay = GocharEngine.calculate_transit_chart(chart, transit_dt=target_dt)
+
+    neechabhanga_planets: Set[str] = set()
+    if varga_enum == VargaType.D1:
+        yogas_report = YogaDetectorEngine.evaluate(chart, sign_mode=req.sign_mode)
+        for y in yogas_report.yogas:
+            if y.id.startswith("neechabhanga_"):
+                neechabhanga_planets.add(y.id.removeprefix("neechabhanga_").capitalize())
+
+    varga_chart = None
+    if varga_enum != VargaType.D1:
+        varga_chart = VargaChartEngine.generate_varga_chart(chart, varga_enum)
+
+    varga_table = _build_varga_table(
+        chart=chart,
+        varga_chart=varga_chart,
+        varga_enum=varga_enum,
+        sign_mode=req.sign_mode,
+        neechabhanga_planets=neechabhanga_planets,
+    )
+
+    varga_title = f"{varga_str} Chart"
+    if req.chart_style == "north":
+        chart_svg = generate_north_indian_svg(
+            chart=chart,
+            varga_chart=varga_chart,
+            transit_chart=transit_overlay,
+            title=varga_title,
+            sign_mode=req.sign_mode,
+            theme_mode=req.theme_mode,
+        )
+    else:
+        chart_svg = generate_south_indian_svg(
+            chart=chart,
+            varga_chart=varga_chart,
+            transit_chart=transit_overlay,
+            title=varga_title,
+            sign_mode=req.sign_mode,
+            theme_mode=req.theme_mode,
+        )
+
+    return {
+        "status": "success",
+        "varga": varga_str,
+        "chart_svg": chart_svg,
+        "varga_table": varga_table,
+    }
+
+
+# --- Chart Calculation Pipeline ---
+
+def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
+    """Runs complete end-to-end calculations and serializes data for frontend consumption."""
+    birth_input = _build_birth_input(req)
+    effective_dt = datetime(
+        year=birth_input.year,
+        month=birth_input.month,
+        day=birth_input.day,
+        hour=birth_input.hour,
+        minute=birth_input.minute,
+        second=int(birth_input.second),
+        microsecond=int((birth_input.second % 1.0) * 1_000_000),
     )
 
     chart = ephemeris_engine.calculate_chart(birth_input)
@@ -189,16 +425,7 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     arudhas = JaiminiEngine.calculate_arudha_padas(chart)
 
     # Resolve target evaluation datetime for Dashas & Transits (defaults to current UTC)
-    now_utc = datetime.now(ZoneInfo("UTC"))
-    target_dt = now_utc
-    if req.target_date:
-        try:
-            parsed_td = datetime.fromisoformat(req.target_date.replace("Z", "+00:00"))
-            if parsed_td.tzinfo is None:
-                parsed_td = parsed_td.replace(tzinfo=ZoneInfo("UTC"))
-            target_dt = parsed_td
-        except Exception:
-            target_dt = now_utc
+    target_dt = _parse_target_datetime(req.target_date)
 
     chara_dasha = JaiminiEngine.calculate_chara_dasha(chart, target_date=target_dt)
 
@@ -228,11 +455,10 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     friendships_report = FriendshipEngine.evaluate(chart)
 
     # Identify planets with classical Neechabhanga cancellation
-    neechabhanga_planets = set()
+    neechabhanga_planets: Set[str] = set()
     for y in yogas_report.yogas:
-        if y.id.startswith("neechabhanga_") or "Neechabhanga" in y.name:
-            for p_inv in y.planets_involved:
-                neechabhanga_planets.add(p_inv)
+        if y.id.startswith("neechabhanga_"):
+            neechabhanga_planets.add(y.id.removeprefix("neechabhanga_").capitalize())
 
     # Classical Functional Nature (BPHS Chapter 34)
     functional_report = FunctionalNatureEngine.evaluate(chart)
@@ -491,137 +717,13 @@ def _compute_chart_and_visuals(req: ChartCalculationRequest) -> dict[str, Any]:
     planet_details["Ascendant"] = asc_dict
 
     # 3. Varga Table Data for current selected varga
-    varga_table = []
-    if varga_chart is not None:
-        asc_v = varga_chart.ascendant
-        asc_v_sign = ZODIAC_SIGNS[asc_v.sign_id]["english_name"] if req.sign_mode == "english" else asc_v.sign_name
-        is_asc_v = bool(varga_enum == VargaType.D9 and asc_sign.id == asc_v.sign_id)
-        varga_table.append({
-            "planet": "Ascendant (Lagna)",
-            "sign": asc_v_sign,
-            "degree": asc_v.dms.formatted,
-            "sign_lord": asc_v.sign_lord.value,
-            "house": "House 1 (Lagna)",
-            "is_retro": False,
-            "is_combust": False,
-            "is_exalted": False,
-            "is_debilitated": False,
-            "is_own_sign": False,
-            "is_vargottama": is_asc_v,
-            "dignity_label": "Vargottama Lagna" if is_asc_v else "Lagna",
-            "dignity_short": "[V]" if is_asc_v else "",
-        })
-        asc_sign_id = asc_v.sign_id
-        for p_enum, v_pos in varga_chart.planets.items():
-            if p_enum in (PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO):
-                continue
-            s_name = ZODIAC_SIGNS[v_pos.sign_id]["english_name"] if req.sign_mode == "english" else v_pos.sign_name
-            house_num = ((v_pos.sign_id - asc_sign_id) % 12) + 1
-            is_retro = chart.planets[p_enum].is_retrograde if p_enum in chart.planets else False
-            is_combust = chart.planets[p_enum].is_combust if p_enum in chart.planets else False
-
-            v_deg = v_pos.intra_sign_degree
-            v_dignity = DignityEngine.evaluate_planet_dignity(
-                planet=p_enum,
-                sign_id=v_pos.sign_id,
-                sign_name=s_name,
-                degree_in_sign=v_deg,
-            )
-            d1_sign_id = chart.planets[p_enum].sign.id
-            is_varg = bool(varga_enum == VargaType.D9 and d1_sign_id == v_pos.sign_id)
-
-            badges = []
-            if v_dignity.is_exalted:
-                badges.append("[Ex]")
-            elif v_dignity.is_debilitated:
-                badges.append("[Deb]")
-            elif v_dignity.is_own_sign:
-                badges.append("[Own]")
-            if is_varg:
-                badges.append("[V]")
-            dignity_short_str = " ".join(badges)
-
-            varga_table.append({
-                "planet": p_enum.value,
-                "sign": s_name,
-                "degree": v_pos.dms.formatted,
-                "sign_lord": v_pos.sign_lord.value,
-                "house": f"House {house_num}",
-                "is_retro": is_retro,
-                "is_combust": is_combust,
-                "is_exalted": v_dignity.is_exalted,
-                "is_debilitated": v_dignity.is_debilitated,
-                "is_own_sign": v_dignity.is_own_sign,
-                "is_vargottama": is_varg,
-                "dignity_label": v_dignity.dignity_label,
-                "dignity_short": dignity_short_str,
-            })
-    else:
-        # D1 fallback
-        asc_name = asc_sign.english_name if req.sign_mode == "english" else asc_sign.sanskrit_name
-        varga_table.append({
-            "planet": "Ascendant (Lagna)",
-            "sign": asc_name,
-            "degree": asc_sign.dms.formatted,
-            "sign_lord": asc_sign.lord.value,
-            "house": "House 1 (Lagna)",
-            "is_retro": False,
-            "is_combust": False,
-            "is_exalted": False,
-            "is_debilitated": False,
-            "is_own_sign": False,
-            "is_vargottama": False,
-            "dignity_label": "Lagna",
-            "dignity_short": "",
-        })
-        asc_id = asc_sign.id
-        for p_enum, p_pos in chart.planets.items():
-            if p_enum in (PlanetEnum.URANUS, PlanetEnum.NEPTUNE, PlanetEnum.PLUTO):
-                continue
-            s_name = p_pos.sign.english_name if req.sign_mode == "english" else p_pos.sign.sanskrit_name
-            house_num = ((p_pos.sign.id - asc_id) % 12) + 1
-            intra_deg = p_pos.sign.intra_sign_degree
-            v_dignity = DignityEngine.evaluate_planet_dignity(
-                planet=p_enum,
-                sign_id=p_pos.sign.id,
-                sign_name=s_name,
-                degree_in_sign=intra_deg,
-                neechabhanga_planets=neechabhanga_planets,
-            )
-            d9_placement = VargaChartEngine.calculate_point_varga(
-                longitude=p_pos.longitude,
-                varga=VargaType.D9,
-                planet=p_enum,
-                is_ascendant=False,
-            )
-            is_varg = bool(p_pos.sign.id == d9_placement.sign_id)
-
-            badges = []
-            if v_dignity.is_exalted:
-                badges.append("[Ex]")
-            elif v_dignity.is_debilitated:
-                badges.append("[Deb]")
-            elif v_dignity.is_own_sign:
-                badges.append("[Own]")
-            if is_varg:
-                badges.append("[V]")
-            dignity_short_str = " ".join(badges)
-
-            varga_table.append({
-                "planet": p_enum.value,
-                "sign": s_name,
-                "degree": p_pos.sign.dms.formatted,
-                "sign_lord": p_pos.sign.lord.value,
-                "house": f"House {house_num}",
-                "is_retro": p_pos.is_retrograde,
-                "is_combust": p_pos.is_combust,
-                "is_exalted": v_dignity.is_exalted,
-                "is_debilitated": v_dignity.is_debilitated,
-                "is_own_sign": v_dignity.is_own_sign,
-                "is_vargottama": is_varg,
-                "dignity_label": v_dignity.dignity_label,
-                "dignity_short": dignity_short_str,
-            })
+    varga_table = _build_varga_table(
+        chart=chart,
+        varga_chart=varga_chart,
+        varga_enum=varga_enum,
+        sign_mode=req.sign_mode,
+        neechabhanga_planets=neechabhanga_planets,
+    )
 
     # 4. Placidus House Cusps & KP Table
     cusps_table = []
@@ -946,7 +1048,7 @@ async def get_ai_config(x_gemini_api_key: Optional[str] = Header(default=None)):
 async def ai_synthesize(req: AISynthesizeRequest):
     """Streams multi-agent Three Eyes analysis and Maha-Synthesis via SSE."""
     try:
-        data = _compute_chart_and_visuals(req.chart_params)
+        data = await run_in_threadpool(_compute_chart_and_visuals, req.chart_params)
         return StreamingResponse(
             TrinetriOrchestrator.stream_synthesis(
                 data=data,
@@ -971,7 +1073,7 @@ async def ai_synthesize(req: AISynthesizeRequest):
 async def ai_chat(req: AIChatRequest):
     """Streams conversational astrological dialogue with ground-truth dossier anchor."""
     try:
-        data = _compute_chart_and_visuals(req.chart_params)
+        data = await run_in_threadpool(_compute_chart_and_visuals, req.chart_params)
         return StreamingResponse(
             TrinetriOrchestrator.stream_chat(
                 data=data,
@@ -995,14 +1097,7 @@ async def ai_chat(req: AIChatRequest):
 def calculate_vargas(req: VargaCalculationRequest):
     """Calculates a specific harmonic Varga chart and returns updated SVG and table."""
     try:
-        req.chart_params.selected_varga = req.varga
-        data = _compute_chart_and_visuals(req.chart_params)
-        return {
-            "status": "success",
-            "varga": req.varga,
-            "chart_svg": data["chart_svg"],
-            "varga_table": data["varga_table"],
-        }
+        return _compute_varga_only(req.chart_params, req.varga)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

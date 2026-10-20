@@ -111,8 +111,12 @@ class GocharEngine:
             transit_dt = datetime.now(ZoneInfo("UTC"))
         elif transit_dt.tzinfo is None:
             transit_dt = transit_dt.replace(tzinfo=ZoneInfo("UTC"))
+        else:
+            transit_dt = transit_dt.astimezone(ZoneInfo("UTC"))
 
-        loc = natal_chart.input_data.location
+        loc = natal_chart.input_data.location.model_copy(
+            update={"timezone_str": "UTC"}
+        )
         transit_input = BirthInput(
             year=transit_dt.year,
             month=transit_dt.month,

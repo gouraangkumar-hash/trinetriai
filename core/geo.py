@@ -165,9 +165,21 @@ class GeoResolver:
         self._timeout = timeout
         self._geolocator = Nominatim(user_agent=self._user_agent, timeout=self._timeout)
         self._tf = TimezoneFinder()
-        # In-memory cache to avoid redundant lookups
+        # In-memory cache to avoid redundant lookups (capped at 256 entries FIFO)
         self._cache: dict[str, tuple[float, float, Optional[str], Optional[str]]] = {}
         self._tz_cache: dict[tuple[float, float], str] = {}
+
+    def _cache_put(self, key: str, val: tuple[float, float, Optional[str], Optional[str]]) -> None:
+        """Caches geocoding results, capping cache at 256 entries using FIFO eviction."""
+        if len(self._cache) >= 256 and key not in self._cache:
+            self._cache.pop(next(iter(self._cache)))
+        self._cache[key] = val
+
+    def _tz_cache_put(self, key: tuple[float, float], tz: str) -> None:
+        """Caches coordinate-to-timezone mappings, capping cache at 256 entries using FIFO eviction."""
+        if len(self._tz_cache) >= 256 and key not in self._tz_cache:
+            self._tz_cache.pop(next(iter(self._tz_cache)))
+        self._tz_cache[key] = tz
 
     def _try_parse_coordinates(self, query: str) -> Optional[tuple[float, float, str, str]]:
         """Checks if the user entered raw numeric coordinates (e.g. '26.9124, 75.7873')."""
@@ -305,9 +317,9 @@ class GeoResolver:
         for candidate in lookup_candidates:
             if candidate in OFFLINE_CITIES:
                 lat, lon, city, country, tz = OFFLINE_CITIES[candidate]
-                self._tz_cache[(round(lat, 4), round(lon, 4))] = tz
+                self._tz_cache_put((round(lat, 2), round(lon, 2)), tz)
                 result = (lat, lon, city, country)
-                self._cache[norm_key] = result
+                self._cache_put(norm_key, result)
                 return result
 
         # Tier 3: Open-Meteo Geocoding API (Primary Cloud Resolver)
@@ -315,9 +327,9 @@ class GeoResolver:
         if om_res:
             lat, lon, city, country, tz = om_res
             if tz:
-                self._tz_cache[(round(lat, 4), round(lon, 4))] = tz
+                self._tz_cache_put((round(lat, 2), round(lon, 2)), tz)
             result = (lat, lon, city, country)
-            self._cache[norm_key] = result
+            self._cache_put(norm_key, result)
             return result
 
         # Tier 4: Photon Geocoding API (Secondary Cloud Resolver)
@@ -325,7 +337,7 @@ class GeoResolver:
         if ph_res:
             lat, lon, city, country, _ = ph_res
             result = (lat, lon, city, country)
-            self._cache[norm_key] = result
+            self._cache_put(norm_key, result)
             return result
 
         # Tier 5: Nominatim (Tertiary Fallback)
@@ -333,7 +345,7 @@ class GeoResolver:
         if nom_res:
             lat, lon, city, country, _ = nom_res
             result = (lat, lon, city, country)
-            self._cache[norm_key] = result
+            self._cache_put(norm_key, result)
             return result
 
         raise ValueError(f"Could not resolve coordinates for location: '{query}'. Please verify the spelling or enter coordinates manually.")
@@ -351,6 +363,10 @@ class GeoResolver:
         Raises:
             ValueError: If timezone cannot be determined for given coordinates.
         """
+        coord_key = (round(latitude, 2), round(longitude, 2))
+        if coord_key in self._tz_cache:
+            return self._tz_cache[coord_key]
+
         tz_name = self._tf.timezone_at(lat=latitude, lng=longitude)
         if not tz_name:
             # Fallback to closest timezone if on border/water
@@ -359,6 +375,7 @@ class GeoResolver:
         if not tz_name:
             raise ValueError(f"Could not determine IANA timezone for lat={latitude}, lon={longitude}")
 
+        self._tz_cache_put(coord_key, tz_name)
         return tz_name
 
 

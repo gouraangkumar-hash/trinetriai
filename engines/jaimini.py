@@ -145,6 +145,18 @@ class CharaDashaResult(BaseModel):
 class JaiminiEngine:
     """Core Jaimini astrological algorithms."""
 
+    VEDIC_GRAHAS: Final[set[PlanetEnum]] = {
+        PlanetEnum.SUN,
+        PlanetEnum.MOON,
+        PlanetEnum.MARS,
+        PlanetEnum.MERCURY,
+        PlanetEnum.JUPITER,
+        PlanetEnum.VENUS,
+        PlanetEnum.SATURN,
+        PlanetEnum.RAHU,
+        PlanetEnum.KETU,
+    }
+
     @staticmethod
     def _build_dms(degrees: float) -> DMSModel:
         d, m, s, formatted = decimal_to_dms(degrees)
@@ -277,9 +289,11 @@ class JaiminiEngine:
             house_to_sign[h] = s_id
             sign_to_house[s_id] = h
 
-        # Map each planet to its Whole Sign house
+        # Map each Vedic planet to its Whole Sign house
         planet_houses: dict[PlanetEnum, int] = {}
         for p_name, p_pos in chart.planets.items():
+            if p_name not in cls.VEDIC_GRAHAS:
+                continue
             p_sign_id = p_pos.sign.id
             planet_houses[p_name] = sign_to_house[p_sign_id]
 
@@ -381,6 +395,8 @@ class JaiminiEngine:
         planets_aspecting_signs: dict[PlanetEnum, list[int]] = {}
         if chart is not None:
             for p_name, p_pos in chart.planets.items():
+                if p_name not in cls.VEDIC_GRAHAS:
+                    continue
                 p_sign_id = p_pos.sign.id
                 planets_aspecting_signs[p_name] = aspects_map.get(p_sign_id, [])
 
@@ -394,17 +410,6 @@ class JaiminiEngine:
     DAYS_PER_SOLAR_YEAR: float = 365.2425
     SAVYA_SIGNS: Final[set[int]] = {1, 2, 3, 7, 8, 9}
     APASAVYA_SIGNS: Final[set[int]] = {4, 5, 6, 10, 11, 12}
-    VEDIC_GRAHAS: Final[set[PlanetEnum]] = {
-        PlanetEnum.SUN,
-        PlanetEnum.MOON,
-        PlanetEnum.MARS,
-        PlanetEnum.MERCURY,
-        PlanetEnum.JUPITER,
-        PlanetEnum.VENUS,
-        PlanetEnum.SATURN,
-        PlanetEnum.RAHU,
-        PlanetEnum.KETU,
-    }
 
     @classmethod
     def _resolve_dual_lord(cls, chart: UnifiedChartData, sign_id: int) -> tuple[PlanetEnum, int]:
@@ -415,7 +420,7 @@ class JaiminiEngine:
         2. If both are in the sign itself, pick Mars for Scorpio / Saturn for Aquarius (giving 12 years).
         3. If both are outside, determine the stronger lord:
            a) Associated with a greater number of planets (conjunctions with Vedic Grahas only).
-           b) If tied, lord in its sign of exaltation (Mars in 10, Ketu in 9; Saturn in 7, Rahu in 2).
+           b) If tied, lord in its sign of exaltation (Mars in 10, Ketu in 8; Saturn in 7, Rahu in 2).
            c) If still tied, lord with higher intra-sign degree.
         """
         if sign_id == 8:  # Scorpio: Mars vs Ketu
@@ -438,11 +443,9 @@ class JaiminiEngine:
             if c2 > c1:
                 return p2, s2
 
-            # Exaltation check
-            if s1 == 10 and s2 != 9:
+            # Exaltation check (Ketu's exaltation sign 8 is Scorpio itself, already resolved above)
+            if s1 == 10:
                 return p1, s1
-            if s2 == 9 and s1 != 10:
-                return p2, s2
 
             # Intra-sign degree check
             d1 = chart.planets[p1].sign.intra_sign_degree

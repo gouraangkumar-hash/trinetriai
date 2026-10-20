@@ -311,13 +311,25 @@ class EphemerisEngine:
         is_polar_fallback = False
         hsys_used = hsys
 
-        # Primary Placidus / requested house calculation
+        # Map requested house system to Swiss Ephemeris byte code
+        hsys_map = {
+            HouseSystemType.PLACIDUS: SWE_HOUSES_PLACIDUS,
+            HouseSystemType.PORPHYRY: SWE_HOUSES_PORPHYRY,
+            HouseSystemType.WHOLE_SIGN: b"W",
+            HouseSystemType.EQUAL: b"A",
+            HouseSystemType.KOCH: b"K",
+            HouseSystemType.CAMPANUS: b"C",
+            HouseSystemType.REGIOMONTANUS: b"R",
+        }
+        hsys_code = hsys_map.get(hsys, SWE_HOUSES_PLACIDUS)
+
+        # Primary requested house calculation
         try:
             cusps, ascmc = swe.houses_ex(
                 jd_ut,
                 latitude,
                 longitude,
-                SWE_HOUSES_PLACIDUS,
+                hsys_code,
                 flags,
             )
         except Exception:

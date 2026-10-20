@@ -42,6 +42,18 @@ NATURAL_MALEFICS: Set[PlanetEnum] = {
     PlanetEnum.SUN,
 }
 
+VEDIC_GRAHAS: Tuple[PlanetEnum, ...] = (
+    PlanetEnum.SUN,
+    PlanetEnum.MOON,
+    PlanetEnum.MARS,
+    PlanetEnum.MERCURY,
+    PlanetEnum.JUPITER,
+    PlanetEnum.VENUS,
+    PlanetEnum.SATURN,
+    PlanetEnum.RAHU,
+    PlanetEnum.KETU,
+)
+
 PLANET_GLYPHS: Dict[str, str] = {
     "Sun": "☉",
     "Moon": "☽",
@@ -167,18 +179,24 @@ class AspectsEngine:
         planet_houses: Dict[PlanetEnum, int] = {}
         house_occupants: Dict[int, List[PlanetEnum]] = {h: [] for h in range(1, 13)}
 
-        for p_enum, p_pos in chart.planets.items():
+        for p_enum in VEDIC_GRAHAS:
+            if p_enum not in chart.planets:
+                continue
+            p_pos = chart.planets[p_enum]
             h = ((p_pos.sign.id - asc_sign_id) % 12) + 1
             planet_houses[p_enum] = h
             house_occupants[h].append(p_enum)
 
         # Aspects cast and received by each planet
         planets_cast_map: Dict[PlanetEnum, List[GrahaAspectCast]] = {}
-        planets_received_map: Dict[PlanetEnum, List[GrahaAspectReceived]] = {p: [] for p in chart.planets.keys()}
+        planets_received_map: Dict[PlanetEnum, List[GrahaAspectReceived]] = {p: [] for p in VEDIC_GRAHAS if p in chart.planets}
         bhava_benefics_map: Dict[int, List[str]] = {h: [] for h in range(1, 13)}
         bhava_malefics_map: Dict[int, List[str]] = {h: [] for h in range(1, 13)}
 
-        for p_enum, p_pos in chart.planets.items():
+        for p_enum in VEDIC_GRAHAS:
+            if p_enum not in chart.planets:
+                continue
+            p_pos = chart.planets[p_enum]
             p_name = p_enum.value
             p_house = planet_houses[p_enum]
             offsets = PARASHARI_FULL_ASPECTS.get(p_enum, [7])
@@ -280,7 +298,10 @@ class AspectsEngine:
 
         # Planet aspect details and badge payloads
         planets_aspects_dict: Dict[str, GrahaAspectDetail] = {}
-        for p_enum, p_pos in chart.planets.items():
+        for p_enum in VEDIC_GRAHAS:
+            if p_enum not in chart.planets:
+                continue
+            p_pos = chart.planets[p_enum]
             p_name = p_enum.value
             p_house = planet_houses[p_enum]
             casts = planets_cast_map[p_enum]

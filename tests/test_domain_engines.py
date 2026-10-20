@@ -1226,6 +1226,49 @@ class TestTrinetriOrchestratorElementalAndDoshaBalance:
         assert blueprint["dosha_pcts"]["pitta"] >= 0
         assert blueprint["dosha_pcts"]["kapha"] >= 0
         assert "prakriti_label" in blueprint
+        assert "character_archetype" in blueprint
+        assert "triad_tags" in blueprint
+        assert "natural_instinct_tag" in blueprint["triad_tags"]
+        assert "emotional_anchor_tag" in blueprint["triad_tags"]
+        assert "core_drive_tag" in blueprint["triad_tags"]
+        assert "deepest_hunger_tag" in blueprint["triad_tags"]
+        assert "paradox" in blueprint
+        assert "stress_response" in blueprint
+        assert "growth_levers" in blueprint
+
+    def test_constitutional_blueprint_diversity_across_charts(self):
+        from main import _compute_chart_and_visuals, ChartCalculationRequest
+        c1 = ChartCalculationRequest(year=1995, month=10, day=15, hour=14, minute=30, city="Jaipur, India")
+        d1 = _compute_chart_and_visuals(c1)
+        b1 = TrinetriOrchestrator.compute_constitutional_blueprint(d1)
+
+        c2 = ChartCalculationRequest(year=1985, month=4, day=12, hour=8, minute=0, city="Berlin, Germany", latitude=52.52, longitude=13.405, timezone_str="Europe/Berlin")
+        d2 = _compute_chart_and_visuals(c2)
+        b2 = TrinetriOrchestrator.compute_constitutional_blueprint(d2)
+
+        c3 = ChartCalculationRequest(year=1993, month=1, day=10, hour=18, minute=0, city="Mumbai, India", latitude=19.076, longitude=72.8777, timezone_str="Asia/Kolkata")
+        d3 = _compute_chart_and_visuals(c3)
+        b3 = TrinetriOrchestrator.compute_constitutional_blueprint(d3)
+
+        # Ensure all character archetypes are distinct
+        archetypes = {b1["character_archetype"], b2["character_archetype"], b3["character_archetype"]}
+        assert len(archetypes) == 3
+
+        # Ensure emotional anchor tags are distinct
+        emotional_tags = {
+            b1["triad_tags"]["emotional_anchor_tag"],
+            b2["triad_tags"]["emotional_anchor_tag"],
+            b3["triad_tags"]["emotional_anchor_tag"]
+        }
+        assert len(emotional_tags) == 3
+
+        # Ensure paradox headlines are distinct
+        paradox_heads = {
+            b1["paradox"]["headline"],
+            b2["paradox"]["headline"],
+            b3["paradox"]["headline"]
+        }
+        assert len(paradox_heads) == 3
 
 
 class TestVimshottariDashaTargetDateHandling:
@@ -1258,5 +1301,37 @@ class TestVimshottariDashaTargetDateHandling:
         venus_detail = data["planet_details"]["Venus"]
         assert sun_detail["has_neechabhanga"] is True
         assert venus_detail["has_neechabhanga"] is False
+
+
+class TestTrinetriOrchestratorVocationalBlueprint:
+    """Verifies deterministic vocational engine and anti-hybrid alignment."""
+
+    def test_compute_vocational_blueprint(self):
+        from main import _compute_chart_and_visuals, ChartCalculationRequest
+        req = ChartCalculationRequest()
+        data = _compute_chart_and_visuals(req)
+        v_blueprint = TrinetriOrchestrator.compute_vocational_blueprint(data)
+
+        assert "recommended_path" in v_blueprint
+        assert "Hybrid Path" not in v_blueprint["recommended_path"]
+        assert v_blueprint["recommended_path"] in (
+            "Building Your Own Independent Venture (Founder / Business Operator)",
+            "Leading Within an Established Organization (Executive / Institutional Pillar)",
+            "Specialized Independent Practice & Expert Advisory (Boutique Specialist / High-Trust Advisor)",
+        )
+        assert "vocation_archetype" in v_blueprint
+        assert len(v_blueprint["vocation_archetype"]) > 3
+        assert "craft_essence" in v_blueprint
+        assert "wealth_channel" in v_blueprint
+        assert "leak_headline" in v_blueprint
+        assert "scores" in v_blueprint
+
+        # Check ground truth formatting
+        gt_text = TrinetriOrchestrator.build_vocational_ground_truth(data)
+        assert "COMPUTED VOCATIONAL ENGINE & CAREER GROUND TRUTH" in gt_text
+        assert "NEVER output 'Hybrid Path'" in gt_text
+        assert f"- **Enterprise vs. Employment Verdict**: {v_blueprint['recommended_path']}" in gt_text
+        assert "None" not in gt_text
+
 
 

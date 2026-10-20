@@ -5761,7 +5761,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("ai-generate-synthesis-btn")?.addEventListener("click", () => triggerAiSynthesis(false));
-  document.getElementById("btn-recalc-synthesis")?.addEventListener("click", () => triggerAiSynthesis(false));
+  document.getElementById("btn-recalc-synthesis")?.addEventListener("click", () => triggerAiSynthesis(true));
 
   document.getElementById("ai-custom-query-input")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {

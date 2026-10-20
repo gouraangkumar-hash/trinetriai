@@ -134,6 +134,137 @@ KARMIC_GROWTH_MAP: Dict[int, str] = {
     12: "Conscious decompression, spiritual surrender, creative solitude, and letting go of control.",
 }
 
+ASC_ARCHETYPE_PREFIX: Dict[int, str] = {
+    1: "Pioneering Catalyst",
+    2: "Grounded Realist",
+    3: "Curious Synthesizer",
+    4: "Intuitive Protector",
+    5: "Sovereign Anchor",
+    6: "Discerning Craftsman",
+    7: "Harmonious Architect",
+    8: "Unflinching Realist",
+    9: "Visionary Seeker",
+    10: "Stoic Foundation",
+    11: "Unconventional Systems-Thinker",
+    12: "Oceanic Mystic",
+}
+
+AK_ARCHETYPE_NOUN: Dict[str, str] = {
+    "Sun": "Sovereign Truth-Teller",
+    "Moon": "Empathetic Anchor",
+    "Mars": "Action Pioneer",
+    "Mercury": "Perceptive Analyst",
+    "Jupiter": "Ethical Mentor",
+    "Venus": "Creative Peacemaker",
+    "Saturn": "Patient Pillar of Endurance",
+    "Rahu": "Transformative Visionary",
+    "Ketu": "Transcendent Realist",
+}
+
+ASC_NATURAL_INSTINCT: Dict[int, str] = {
+    1: "Direct, action-oriented initiator who moves on instinct and cuts through hesitation",
+    2: "Patient, deliberate presence who takes time before speaking and anchors everyone around them",
+    3: "Quick-witted, perceptive observer who reads the room instantly and connects ideas effortlessly",
+    4: "Protective, receptive presence with an instinctive emotional radar that senses unspoken undercurrents",
+    5: "Warm, dignified natural presence who carries quiet authority and values honesty above all",
+    6: "Sharp, observant perfectionist who spots details others miss and brings immediate practical order",
+    7: "Diplomatic, gracious listener who seeks balance and defuses tension before conflict erupts",
+    8: "Intense, watchful guardian who keeps cards close to the chest and tests trust thoroughly",
+    9: "Direct, open-hearted truth-teller who seeks higher meaning and resists being constrained",
+    10: "Pragmatic, reserved builder who measures actions carefully and values competence over talk",
+    11: "Independent, unconventional thinker who evaluates things objectively and charts their own course",
+    12: "Gentle, imaginative soul who absorbs atmospheres deeply and moves by instinct rather than rigid logic",
+}
+
+MOON_HOUSE_EMOTIONAL_ANCHOR: Dict[int, str] = {
+    1: "Autonomous emotional compass needing personal breathing room and authentic self-expression to feel centered",
+    2: "Grounded domestic anchor that settles through material stability, familiar comforts, and quiet loyalty",
+    3: "Curious, agile emotional rhythm that processes feelings through mental exploration, writing, and direct dialogue",
+    4: "Deeply rooted private heart that requires a peaceful, undisturbed home sanctuary to recharge",
+    5: "Warm, expressive emotional core craving authentic joy, creative flow, and reciprocal appreciation",
+    6: "Conscientious, duty-driven nervous system that finds emotional relief through productive order and solving practical problems",
+    7: "Devoted, relational heart that needs mutual transparency, equality, and deep partnership to feel truly safe",
+    8: "Intense, subterranean emotional core that guards vulnerabilities fiercely and requires absolute trust before opening",
+    9: "Expansive, philosophically minded spirit that finds emotional calm in higher principles, travel, and perspective",
+    10: "Dignified, purpose-driven emotional compass that needs worldly competence and public self-respect to rest easy",
+    11: "Egalitarian, community-minded heart that feels calmest when contributing to shared ideals with trusted allies",
+    12: "Solitary, reflective soul sanctuary that requires deep sensory retreat, stillness, and emotional decompression to reset",
+}
+
+SUN_HOUSE_CORE_DRIVE: Dict[int, str] = {
+    1: "Claiming complete self-determination and building a life directed entirely by personal vision",
+    2: "Securing tangible enduring wealth and protecting the long-term well-being of family and lineage",
+    3: "Testing courage through hands-on mastery, persuasive initiative, and fearless personal enterprise",
+    4: "Cultivating unshakeable emotional peace, domestic security, and enduring personal roots",
+    5: "Leaving a distinct creative mark, exercising sovereign intellect, and mentoring future potential",
+    6: "Overcoming tangible obstacles through disciplined daily craft, resilience, and problem-solving mastery",
+    7: "Forging high-trust partnerships, earning public credibility, and excelling in the public arena",
+    8: "Mastering life's hidden levers, navigating high-stakes transformation, and achieving profound self-mastery",
+    9: "Living in unwavering alignment with higher wisdom, truth, and leaving behind an ethical legacy",
+    10: "Building recognized worldly achievement, institutional authority, and an enduring mark on your field",
+    11: "Realizing ambitious collective aspirations and mobilizing networks of mutual advancement",
+    12: "Transcending conventional ambition, seeking spiritual liberation, and serving a quiet purpose beyond ego",
+}
+
+AK_DEEPEST_HUNGER: Dict[str, str] = {
+    "Sun": "Living in uncompromising alignment with your inner truth without ever wearing a mask or seeking permission",
+    "Moon": "Experiencing unconditional emotional sanctuary and being truly seen and understood for who you are",
+    "Mars": "Channeling fierce purposeful drive into tangible victories without burning out on battles that do not matter",
+    "Mercury": "Achieving unclouded intellectual clarity, uncovering fundamental truths, and communicating with precision",
+    "Jupiter": "Anchoring life to deep spiritual wisdom, living with integrity, and guiding others toward higher understanding",
+    "Venus": "Experiencing profound devoted connection and bringing beauty, grace, and harmony into an imperfect world",
+    "Saturn": "Fulfilling your life's duty with unflinching integrity and leaving behind a foundation that outlasts you",
+    "Rahu": "Breaking past ancestral limitations, shattering stale conventions, and exploring uncharted frontiers",
+    "Ketu": "Releasing worldly attachments, achieving inner stillness, and resting in complete spiritual freedom",
+}
+
+LAGNA_LORD_GOLDEN_LEVER: Dict[str, str] = {
+    "Saturn": "Protecting one uninterrupted block of deep focus daily and trusting gradual, incremental compounding over rushed quick fixes.",
+    "Jupiter": "Anchoring major choices to your highest ethical standard and refusing compromises that trade peace of mind for quick approval.",
+    "Mars": "Channeling raw physical initiative into one decisive constructive action each morning before over-deliberation creates friction.",
+    "Venus": "Protecting your energetic boundaries and curating harmonious surroundings before people-pleasing drains your reservoir.",
+    "Mercury": "Externalizing mental clutter into written checklists and closing open cognitive tabs rather than holding everything in memory.",
+    "Sun": "Stepping into quiet authority without waiting for external permission, while mentoring others rather than carrying the whole burden alone.",
+    "Moon": "Honoring your natural emotional tides as valuable data rather than criticizing yourself for needing time to rest and reset.",
+}
+
+ELEMENT_GROUNDING_PRACTICE: Dict[str, str] = {
+    "Earth": "Daily tactile grounding: walking barefoot on grass, handling natural materials, keeping fixed meal and sleep hours, and completing one physical task.",
+    "Water": "Emotional hydration: warm evening baths, intentional daily hydration, listening to calming instrumental music, and releasing unexpressed grief.",
+    "Fire": "Morning vitality activation: brisk cardiovascular movement at sunrise, exposure to direct sunlight, and eating warm, lightly spiced nourishing meals.",
+    "Air": "Conscious breath and quiet space: uncluttering your immediate physical workspace, practicing 10 minutes of slow pranayama, and turning off screens.",
+}
+
+ASC_PARADOX_TRAITS: Dict[int, tuple] = {
+    1: ("Assertive Initiator", "direct urgency, pioneering momentum, and immediate candor"),
+    2: ("Grounded Realist", "deliberate patience, composure, and sensory steadiness"),
+    3: ("Curious Synthesizer", "quick agility, conversational charm, and mental adaptability"),
+    4: ("Protective Receptive Presence", "gentle empathy, instinctive sensitivity, and protective warmth"),
+    5: ("Dignified Sovereign", "natural poise, calm self-assurance, and quiet authority"),
+    6: ("Discerning Perfectionist", "analytical precision, observant modesty, and practical competence"),
+    7: ("Diplomatic Connector", "graceful diplomacy, balanced charm, and social poise"),
+    8: ("Watchful Guardian", "penetrating focus, intense composure, and guarded reserve"),
+    9: ("Visionary Seeker", "open-hearted optimism, philosophical candor, and enthusiastic reach"),
+    10: ("Pragmatic Builder", "deliberate composure, unshakeable patience, and pragmatic dependability"),
+    11: ("Unconventional Thinker", "objective detachment, intellectual uniqueness, and calm equality"),
+    12: ("Gentle Mystic", "fluid empathy, adaptable tolerance, and gentle intuition"),
+}
+
+MOON_HOUSE_PARADOX: Dict[int, tuple] = {
+    1: ("Autonomous Emotional Intensity", "needs complete personal autonomy and authentic expression, struggling whenever others try to dictate how you should feel"),
+    2: ("Deeply Guarded Material & Family Anchor", "is deeply anchored in material predictability and family safety, craving enduring emotional security behind your external interface"),
+    3: ("Restless Mental Processing & Active Inquiry", "operates at high intellectual speed—processing feelings through mental dialogue, writing, or debate, privately impatient with vague communication"),
+    4: ("Deep Private Sanctuary & Domestic Retreat", "craves an inviolable private home sanctuary to decompress, feeling deeply vulnerable whenever domestic harmony or emotional roots are disturbed"),
+    5: ("Creative Heart & Hunger for Authentic Joy", "carries intense creative passion and romantic vulnerability, feeling deeply stifled by dry bureaucratic routine or lack of heartfelt appreciation"),
+    6: ("High-Friction Troubleshooter & Duty-Driven Inspector", "operates as a relentless analytical troubleshooter—privately cataloging flaws, impatient with inefficiency, and quietly carrying the burden of solving messy friction"),
+    7: ("Relational Mirror & Craving for Equal Partnership", "is intensely attuned to partnership dynamics—feeling incomplete without mutual transparency and respect, yet vulnerable to over-absorbing a partner's mood"),
+    8: ("Subterranean Depths & Private Psychological Vault", "navigates intense, subterranean psychological currents—guarding vulnerabilities with fierce secrecy, demanding raw authenticity, and needing private space to process heavy transitions"),
+    9: ("Philosophical Seeker & Long-Range Idealist", "finds peace only in higher principles, freedom of movement, and long-range vision, feeling suffocated by small-minded pettiness or narrow dogmas"),
+    10: ("Severe Conscience & Public Accountability", "holds yourself to severe internal standards of competence and dignity, feeling privately uneasy unless your worldly contributions are undeniable and respected"),
+    11: ("Collective Visionary & Network Anchor", "feels called to large-scale ideals and group camaraderie, yet privately fears losing individual sovereignty within the crowd"),
+    12: ("Solitary Decompression & Sensory Retreat", "carries an acute need for solitary decompression and sensory silence—feeling chronically drained by everyday noise and needing regular retreat to restore peace"),
+}
+
 
 class TrinetriOrchestrator:
     """Manages multi-agent parallel execution, fact sheet slicing, and streaming synthesis."""
@@ -212,85 +343,58 @@ class TrinetriOrchestrator:
         else:
             prakriti_label = f"{d1_name.capitalize()}-{d2_name.capitalize()} Predominant ({d1_name.capitalize()} {d1_pct}%, {d2_name.capitalize()} {d2_pct}%)"
 
-        # 3. Psychological Paradox Signatures (Lagna vs Moon vs Rahu-Ketu)
+        # 3. Core Identity, Character Archetype & Triad Tags
         summary = data.get("summary", {})
         asc = summary.get("ascendant", {})
         moon = summary.get("moon", {})
+        sun = summary.get("sun", {})
         asc_sign_name = asc.get("sign", "")
         moon_sign_name = moon.get("sign", "")
+        sun_sign_name = sun.get("sign", "")
         
         asc_sid = next((p.get("sign_id") for p in planets_table if "Ascendant" in p.get("planet", "")), 1)
         moon_row = next((p for p in planets_table if "Moon" in p.get("planet", "")), {})
         moon_sid = moon_row.get("sign_id", 1)
         moon_nakshatra = moon_row.get("nakshatra") or moon.get("nakshatra", "")
+        sun_row = next((p for p in planets_table if "Sun" in p.get("planet", "")), {})
+        sun_sid = sun_row.get("sign_id", 1)
+        sun_house = sun_row.get("natal_house") or (((sun_sid - asc_sid) % 12) + 1)
 
-        asc_elem = ELEMENT_MAP.get(asc_sid, "Earth")
-        moon_elem = ELEMENT_MAP.get(moon_sid, "Air")
+        # Karakas (AK)
+        karakas = data.get("chara_karakas_7") or data.get("karakas") or data.get("jaimini", {}).get("chara_karakas", [])
+        ak_entry = next((k for k in karakas if (k.get("code") or k.get("karaka")) == "AK"), {})
+        ak_graha = ak_entry.get("planet") or "Sun"
 
-        # Moon distance from Lagna
+        # Ascendant Lord
+        asc_lord = asc.get("lord") or ZODIAC_SIGNS.get(asc_sid, {}).get("lord", "Saturn")
+        asc_lord_str = asc_lord.value if hasattr(asc_lord, "value") else str(asc_lord)
+
+        # 4. Core Character Archetype
+        arch_prefix = ASC_ARCHETYPE_PREFIX.get(asc_sid, "Grounded Realist")
+        arch_noun = AK_ARCHETYPE_NOUN.get(ak_graha, "Sovereign Truth-Teller")
+        character_archetype = f"The {arch_prefix} & {arch_noun}"
+
+        # 5. Triad Tags (Lagna, Moon, Sun, AK)
+        natural_instinct_tag = ASC_NATURAL_INSTINCT.get(asc_sid, "Patient, deliberate presence who takes time before speaking")
         moon_house_from_lagna = ((moon_sid - asc_sid) % 12) + 1
+        emotional_anchor_tag = MOON_HOUSE_EMOTIONAL_ANCHOR.get(moon_house_from_lagna, "Private emotional sanctuary requiring space to recharge")
+        core_drive_tag = SUN_HOUSE_CORE_DRIVE.get(sun_house, "Building unshakeable personal stability and purpose")
+        deepest_hunger_tag = AK_DEEPEST_HUNGER.get(ak_graha, "Living in uncompromising alignment with your inner truth")
 
-        # Identify planets conjunct Ascendant or Moon
-        planets_on_lagna = [p.get("planet") for p in planets_table if p.get("natal_house") == 1 and "Ascendant" not in p.get("planet", "")]
-        planets_with_moon = [p.get("planet") for p in planets_table if p.get("natal_house") == moon_house_from_lagna and "Moon" not in p.get("planet", "")]
+        # 6. Dynamic Inner Paradox (Lagna vs Moon House)
+        asc_title, asc_stance = ASC_PARADOX_TRAITS.get(asc_sid, ("Steadfast Presence", "deliberate composure and grounded dependability"))
+        moon_title, moon_need = MOON_HOUSE_PARADOX.get(moon_house_from_lagna, ("Private Inner World", "craves emotional safety and undisturbed peace"))
         
+        planets_on_lagna = [p.get("planet") for p in planets_table if p.get("natal_house") == 1 and "Ascendant" not in p.get("planet", "")]
         lagna_influence = f" with {', '.join(planets_on_lagna)}" if planets_on_lagna else ""
-        moon_influence = f" alongside {', '.join(planets_with_moon)}" if planets_with_moon else ""
 
-        # Rich elemental paradoxes
-        if asc_elem in ["Earth", "Water"] and moon_elem in ["Fire", "Air"]:
-            paradox_headline = f"Grounded Exterior Composure ({asc_sign_name}{lagna_influence}) vs. High-Velocity Inner Mind ({moon_sign_name} Moon in {moon_nakshatra}{moon_influence}, House {moon_house_from_lagna})"
-            paradox_narrative = (
-                f"Outwardly you project deliberate patience, composure, and grounded dependability ({asc_sign_name}). "
-                f"Inwardly, your mind ({moon_sign_name} in {moon_nakshatra}) operates at high speed, leaving you privately impatient "
-                f"with friction, delays, or people who take too long to arrive at the point."
-            )
-        elif asc_elem in ["Fire", "Air"] and moon_elem in ["Earth", "Water"]:
-            paradox_headline = f"Spontaneous Outward Spark ({asc_sign_name}{lagna_influence}) vs. Deeply Guarded Emotional Sanctuary ({moon_sign_name} Moon in {moon_nakshatra}{moon_influence}, House {moon_house_from_lagna})"
-            paradox_narrative = (
-                f"You step into rooms and initiate action with natural ease and expressive spark ({asc_sign_name}), "
-                f"yet your emotional core ({moon_sign_name} in {moon_nakshatra}) is deeply private, vulnerable, and slow to trust, "
-                f"requiring genuine emotional safety before letting anyone see behind your armor."
-            )
-        elif asc_elem == "Fire" and moon_elem == "Fire":
-            paradox_headline = f"Double Fire Catalyst ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna})"
-            paradox_narrative = (
-                f"Your outer instinct and inner emotional rhythm both operate on passion, creative urgency, and immediate truth. "
-                f"Your primary paradox is learning the difference between genuine urgency and restless exhaustion—giving yourself permission to slow down without feeling like you are stagnating."
-            )
-        elif asc_elem == "Earth" and moon_elem == "Earth":
-            paradox_headline = f"Double Earth Steadfastness ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna})"
-            paradox_narrative = (
-                f"Both your presentation and emotional anchor are deeply pragmatic, tangible, and steady. "
-                f"Your paradox lies in unshakeable reliability vs. carrying unexpressed burdens—you become the load-bearing pillar for everyone else while denying yourself the space to ask for help."
-            )
-        elif asc_elem == "Air" and moon_elem == "Air":
-            paradox_headline = f"Double Air Intellectual Mobility ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna})"
-            paradox_narrative = (
-                f"Your mind and persona thrive on ideas, nuance, and continuous synthesis. "
-                f"Your inner paradox is living so intensely in concepts, foresight, and possibility that grounding into the present physical body and quiet emotional stillness feels like an unfamiliar discipline."
-            )
-        elif asc_elem == "Water" and moon_elem == "Water":
-            paradox_headline = f"Double Water Empathic Depth ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna})"
-            paradox_narrative = (
-                f"You perceive atmospheres, unspoken tensions, and emotional shifts before anyone says a word. "
-                f"Your core paradox is an oceanic capacity to absorb others' emotional weather while struggling to maintain clear energetic boundaries between what belongs to you and what belongs to the world."
-            )
-        else:
-            if moon_house_from_lagna in [6, 8, 12]:
-                paradox_headline = f"Worldly Role ({asc_sign_name}) vs. Solitary Soul Need (House {moon_house_from_lagna} Moon in {moon_sign_name} / {moon_nakshatra})"
-                paradox_narrative = (
-                    f"The external demands that bring you worldly success and recognition ({asc_sign_name}) frequently run counter "
-                    f"to the quiet, solitary conditions your nervous system ({moon_sign_name} in House {moon_house_from_lagna}) actually needs to feel rested and psychologically safe."
-                )
-            else:
-                paradox_headline = f"Unified Purpose with Latent Over-Functioning ({asc_sign_name} Rising, {moon_sign_name} Moon in {moon_nakshatra})"
-                paradox_narrative = (
-                    f"Your outer demeanor and inner mind share purposeful harmony, giving you strong focus, but your primary vulnerability is "
-                    f"an inability to downshift or pause, frequently mistaking necessary recovery for wasted time."
-                )
+        paradox_headline = f"{asc_title} ({asc_sign_name}{lagna_influence}) vs. {moon_title} ({moon_sign_name} Moon in House {moon_house_from_lagna})"
+        paradox_narrative = (
+            f"Outwardly, you project {asc_stance} ({asc_sign_name}). "
+            f"Inwardly, however, your emotional center ({moon_sign_name} Moon in {moon_nakshatra}, House {moon_house_from_lagna}) {moon_need}."
+        )
 
-        # 4. Karmic Axis (Comfort Zone vs Growth Edge)
+        # 7. Karmic Axis (Comfort Zone vs Growth Edge)
         rahu_row = next((p for p in planets_table if "Rahu" in p.get("planet", "")), {})
         ketu_row = next((p for p in planets_table if "Ketu" in p.get("planet", "")), {})
         rahu_h = rahu_row.get("natal_house", 10)
@@ -301,11 +405,45 @@ class TrinetriOrchestrator:
         comfort_desc = KARMIC_COMFORT_MAP.get(ketu_h, f"Defaulting to habits of House {ketu_h} ({ketu_sign}).")
         growth_desc = KARMIC_GROWTH_MAP.get(rahu_h, f"Expanding into the potential of House {rahu_h} ({rahu_sign}).")
 
+        # 8. Deterministic Stress & Recovery Profile
+        dominant_dosha = sorted_doshas[0][0]
+        if dominant_dosha == "vata":
+            stress_trigger = "Unpredictable schedule disruptions, sensory clutter, rushed multi-tasking, and being forced into split-second commitments."
+            stress_reaction = "Mental scatter, shallow breathing, racing anxiety loops, and an urge to isolate or run away."
+        elif dominant_dosha == "pitta":
+            stress_trigger = "Incompetence or sloppiness in collaborators, avoidable procedural delays, and feeling micro-managed or stripped of control."
+            stress_reaction = "Sharp irritability, physical heat, biting sarcasm, and an urge to aggressively take over the whole task."
+        else:
+            stress_trigger = "Sudden unexpected disruptions to routine, emotional hostility, feeling taken for granted, and sensory stagnation."
+            stress_reaction = "Emotional shutdown, heavy lethargy, passive stubbornness, and retreating behind complete silence."
+
+        # Lowest element for antidote
+        sorted_elems_asc = sorted(elem_pcts.items(), key=lambda x: x[1])
+        lowest_elem = sorted_elems_asc[0][0]
+        stress_recovery = ELEMENT_GROUNDING_PRACTICE.get(lowest_elem, "Quiet stillness and intentional rest.")
+
+        # 9. Growth Levers
+        golden_lever = LAGNA_LORD_GOLDEN_LEVER.get(
+            asc_lord_str,
+            "Protecting one dedicated block of focused effort daily and prioritizing steady compounding over rushed quick fixes."
+        )
+        grounding_practice = ELEMENT_GROUNDING_PRACTICE.get(
+            lowest_elem,
+            "Daily quiet reflection and consistent routines to steady your vital energy."
+        )
+
         return {
             "element_pcts": elem_pcts,
             "element_label": element_label,
             "dosha_pcts": dosha_pcts,
             "prakriti_label": prakriti_label,
+            "character_archetype": character_archetype,
+            "triad_tags": {
+                "natural_instinct_tag": natural_instinct_tag,
+                "emotional_anchor_tag": emotional_anchor_tag,
+                "core_drive_tag": core_drive_tag,
+                "deepest_hunger_tag": deepest_hunger_tag,
+            },
             "paradox": {
                 "headline": paradox_headline,
                 "narrative": paradox_narrative,
@@ -315,22 +453,279 @@ class TrinetriOrchestrator:
                 "comfort_zone": comfort_desc,
                 "growth_edge": growth_desc,
             },
+            "stress_response": {
+                "trigger": stress_trigger,
+                "reaction": stress_reaction,
+                "recovery": stress_recovery,
+            },
+            "growth_levers": {
+                "golden_lever": golden_lever,
+                "habit_to_unlearn": comfort_desc,
+                "grounding_practice": grounding_practice,
+            },
         }
 
     @classmethod
     def build_constitutional_ground_truth(cls, data: Dict[str, Any]) -> str:
         """Formats the computed constitutional blueprint into an unambiguous ground-truth block for LLM synthesis."""
         prof = cls.compute_constitutional_blueprint(data)
+        triad = prof["triad_tags"]
+        stress = prof["stress_response"]
+        levers = prof["growth_levers"]
         lines = [
-            "### COMPUTED CONSTITUTIONAL BLUEPRINT & PSYCHOLOGICAL PARADOXES (GROUND TRUTH):",
+            "### COMPUTED CONSTITUTIONAL ENGINE & CHARACTER GROUND TRUTH (MATHEMATICAL FACT):",
+            f"- **Core Character Archetype (Immutable Identity)**: {prof['character_archetype']}",
             f"- **Elemental Balance (Exact Math)**: {prof['element_label']} [Fire: {prof['element_pcts']['Fire']}%, Earth: {prof['element_pcts']['Earth']}%, Air: {prof['element_pcts']['Air']}%, Water: {prof['element_pcts']['Water']}%]",
             f"- **Ayurvedic Prakriti (Exact Math)**: {prof['prakriti_label']} [Vata: {prof['dosha_pcts']['vata']}%, Pitta: {prof['dosha_pcts']['pitta']}%, Kapha: {prof['dosha_pcts']['kapha']}%]",
+            f"- **Outer Instinct (Lagna)**: {triad['natural_instinct_tag']}",
+            f"- **Emotional Core (Chandra)**: {triad['emotional_anchor_tag']}",
+            f"- **Core Drive (Surya)**: {triad['core_drive_tag']}",
+            f"- **Deepest Hunger (Atmakaraka)**: {triad['deepest_hunger_tag']}",
             f"- **Core Inner Paradox (Primary Tension)**: {prof['paradox']['headline']}",
             f"  *Psychological Dynamic*: {prof['paradox']['narrative']}",
             f"- **Karmic Axis (Soul Evolution)**: {prof['karmic_axis']['headline']}",
             f"  *Default Comfort Zone (When Tired/Cornered)*: {prof['karmic_axis']['comfort_zone']}",
             f"  *Active Growth Edge (Unlock Next Level)*: {prof['karmic_axis']['growth_edge']}",
-            "(CRITICAL INSTRUCTION: In your JSON output, use these exact computed constitutional labels and weave the native's specific Lagna, Moon, Nakshatra, and Karmic Axis houses into 'the_why.inner_paradox' and 'the_why.comfort_zone_vs_growth_edge' so the reading speaks directly to this unique human being!)",
+            f"- **Stress & Nervous System Dynamics**:",
+            f"  *Stress Trigger*: {stress['trigger']}",
+            f"  *Stress Reaction*: {stress['reaction']}",
+            f"  *Nervous System Reset*: {stress['recovery']}",
+            f"- **Daily Growth & Grounding Anchors**:",
+            f"  *Golden Habit Lever*: {levers['golden_lever']}",
+            f"  *Habit to Catch & Let Go*: {levers['habit_to_unlearn']}",
+            f"  *Elemental Grounding Practice*: {levers['grounding_practice']}",
+            "(CRITICAL INSTRUCTION: In your JSON output, you MUST adopt this computed 'character_archetype' into 'archetype', use the exact elemental/prakriti labels, and anchor 'constitution.natural_instinct_tag', 'constitution.emotional_anchor_tag', 'constitution.core_drive_tag', and 'constitution.deepest_hunger_tag' directly into the computed ground-truth tags. Weave the dynamic paradox into 'the_why.inner_paradox' without copying prompt examples!)",
+        ]
+        return "\n".join(lines)
+
+    @classmethod
+    def compute_vocational_blueprint(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculates deterministic vocational, enterprise, wealth, and authority alignments."""
+        planets_table = data.get("planets_table", [])
+        ashtakavarga = data.get("ashtakavarga", {})
+        sav_list = ashtakavarga.get("sarvashtakavarga", [])
+        sav_map = {entry.get("house_from_lagna"): entry.get("total_bindus", 28) for entry in sav_list if entry.get("house_from_lagna") is not None}
+
+        # 1. Ascendant & House Rulers
+        asc_sid = next((p.get("sign_id", 1) for p in planets_table if "Ascendant" in p.get("planet", "")), 1)
+
+        def house_sign_id(h_num: int) -> int:
+            return ((asc_sid - 1 + h_num - 1) % 12) + 1
+
+        def house_lord_name(h_num: int) -> str:
+            s_id = house_sign_id(h_num)
+            l = ZODIAC_SIGNS.get(s_id, {}).get("lord", "")
+            return l.value if hasattr(l, "value") else str(l)
+
+        lord_10 = house_lord_name(10)
+        lord_6 = house_lord_name(6)
+        lord_7 = house_lord_name(7)
+        lord_2 = house_lord_name(2)
+        lord_11 = house_lord_name(11)
+
+        pl_by_name = {p.get("planet"): p for p in planets_table}
+        pl_in_house: Dict[int, List[str]] = {h: [] for h in range(1, 13)}
+        for p in planets_table:
+            h = p.get("natal_house")
+            pl_name = p.get("planet")
+            if h and pl_name and "Ascendant" not in pl_name:
+                pl_in_house.setdefault(h, []).append(pl_name)
+
+        karakas = data.get("chara_karakas_7", []) or data.get("chara_karakas_8", [])
+        amk_entry = next((k for k in karakas if (k.get("code") or k.get("karaka")) == "AmK"), None)
+        amk_planet = amk_entry.get("planet", "") if amk_entry else lord_10
+
+        b3 = sav_map.get(3, 28)
+        b6 = sav_map.get(6, 28)
+        b7 = sav_map.get(7, 28)
+        b10 = sav_map.get(10, 28)
+        b11 = sav_map.get(11, 28)
+
+        h_lord10 = pl_by_name.get(lord_10, {}).get("natal_house", 0)
+        h_lord6 = pl_by_name.get(lord_6, {}).get("natal_house", 0)
+        h_lord7 = pl_by_name.get(lord_7, {}).get("natal_house", 0)
+        h_amk = pl_by_name.get(amk_planet, {}).get("natal_house", 0)
+
+        # 2. Score 3 Distinct Career Paths
+        # Track A: Independent Venture / Founder / Business Operator
+        score_venture = 50.0
+        if b7 >= 30: score_venture += 12.0
+        if b10 >= 30: score_venture += 10.0
+        if b3 >= 28: score_venture += 8.0
+        if b7 > b6: score_venture += 10.0
+        if len(pl_in_house.get(7, [])) > len(pl_in_house.get(6, [])): score_venture += 8.0
+        if h_lord10 in (1, 7, 10, 11): score_venture += 16.0
+        sun_h = pl_by_name.get("Sun", {}).get("natal_house", 0)
+        mars_h = pl_by_name.get("Mars", {}).get("natal_house", 0)
+        if sun_h == 10 or mars_h == 10: score_venture += 16.0
+        if sun_h == 1 or mars_h == 1: score_venture += 10.0
+        if "Rahu" in pl_in_house.get(10, []) or "Rahu" in pl_in_house.get(11, []) or "Rahu" in pl_in_house.get(3, []):
+            score_venture += 10.0
+        if h_amk in (1, 7, 10, 11): score_venture += 10.0
+
+        # Track B: Leading Within an Established Organization / Institutional Pillar
+        score_employment = 50.0
+        if b6 >= 30: score_employment += 15.0
+        if b6 > b7: score_employment += 12.0
+        if len(pl_in_house.get(6, [])) > len(pl_in_house.get(7, [])): score_employment += 8.0
+        if h_lord10 in (6, 2, 12): score_employment += 16.0
+        if h_lord6 in (10, 1): score_employment += 14.0
+        saturn_h = pl_by_name.get("Saturn", {}).get("natal_house", 0)
+        if saturn_h in (1, 4, 7, 10, 3, 6, 11): score_employment += 12.0
+        if h_amk == 6: score_employment += 14.0
+        if lord_10 == "Saturn" or amk_planet == "Saturn": score_employment += 10.0
+        if "Saturn" in pl_in_house.get(10, []) or "Saturn" in pl_in_house.get(6, []): score_employment += 10.0
+
+        # Track C: Specialized Independent Practice & Expert Advisory
+        score_advisory = 50.0
+        if h_lord10 in (9, 5, 8): score_advisory += 18.0
+        lord_9 = house_lord_name(9)
+        lord_5 = house_lord_name(5)
+        h_lord9 = pl_by_name.get(lord_9, {}).get("natal_house", 0)
+        h_lord5 = pl_by_name.get(lord_5, {}).get("natal_house", 0)
+        if h_lord9 == 10 or h_lord5 == 10: score_advisory += 16.0
+        if lord_10 in ("Jupiter", "Mercury") or amk_planet in ("Jupiter", "Mercury"): score_advisory += 16.0
+        jup_h = pl_by_name.get("Jupiter", {}).get("natal_house", 0)
+        merc_h = pl_by_name.get("Mercury", {}).get("natal_house", 0)
+        if jup_h in (10, 9, 1, 5) or merc_h in (10, 9, 1, 5): score_advisory += 12.0
+        if "Ketu" in pl_in_house.get(10, []) or "Ketu" in pl_in_house.get(9, []) or "Ketu" in pl_in_house.get(8, []):
+            score_advisory += 12.0
+
+        scores = [
+            ("venture", score_venture),
+            ("employment", score_employment),
+            ("advisory", score_advisory),
+        ]
+        scores.sort(key=lambda x: x[1], reverse=True)
+        top_track = scores[0][0]
+
+        if top_track == "venture":
+            rec_path = "Building Your Own Independent Venture (Founder / Business Operator)"
+            optimal_vehicle = "Independent enterprise, boutique founder, direct B2B venture, or commercial ownership"
+            rationale = (
+                f"Your 7th/10th houses of sovereignty and commerce (SAV: H7 {b7}, H10 {b10}) dominate over service sectors (H6 {b6}), "
+                f"with 10th lord {lord_10} placed in House {h_lord10}. You produce peak output when you have ultimate ownership "
+                f"of decisions; working under corporate bureaucracy or risk-averse managers suffocates your momentum."
+            )
+        elif top_track == "employment":
+            rec_path = "Leading Within an Established Organization (Executive / Institutional Pillar)"
+            optimal_vehicle = "Senior executive leadership, operational director, or mission-critical institutional pillar"
+            rationale = (
+                f"Your 6th house of competitive service and institutional stamina holds {b6} SAV bindus, with 10th lord {lord_10} "
+                f"anchoring organizational impact. You thrive when leveraging large organizational resources, scaling existing teams, "
+                f"and exercising authority within a structured corporate or institutional ecosystem."
+            )
+        else:
+            rec_path = "Specialized Independent Practice & Expert Advisory (Boutique Specialist / High-Trust Advisor)"
+            optimal_vehicle = "Boutique advisory practice, specialized expert consulting, intellectual property, or autonomous partner"
+            rationale = (
+                f"Your chart anchors career impact in dharmic and knowledge houses (House 9/5/8) with {amk_planet} and {lord_10} "
+                f"directing professional wisdom. You flourish when monetizing deep proprietary expertise and autonomy, rather than "
+                f"managing mass corporate bureaucracies or standard retail operations."
+            )
+
+        primary_carrier = amk_planet or lord_10
+        if primary_carrier == "Mars":
+            vocation_archetype = "The High-Impact Operator & Turnaround Leader"
+            craft_essence = "Cutting through organizational confusion, fixing broken execution pipelines under pressure, and delivering tangible results where others stall."
+            leadership_style = "Decisive command, leading from the front lines, setting a fast pace, and demanding concrete accountability."
+        elif primary_carrier == "Sun":
+            vocation_archetype = "The Sovereign Strategist & Institutional Commander"
+            craft_essence = "Setting high-level strategic direction, holding ultimate responsibility for vision and culture, and building enduring organizational reputation."
+            leadership_style = "Sovereign executive presence, leading by clear standards and integrity, and refusing to tolerate petty micromanagement."
+        elif primary_carrier == "Mercury":
+            vocation_archetype = "The Commercial Architect & Systems Dealmaker"
+            craft_essence = "Structuring complex commercial deals, analyzing information asymmetry, and designing scalable automated workflows."
+            leadership_style = "Agile collaboration, rapid problem-solving, transparent data-driven decisions, and sharp negotiations."
+        elif primary_carrier == "Jupiter":
+            vocation_archetype = "The Strategic Counselor & Governance Lead"
+            craft_essence = "Guiding complex operations with ethical foresight, long-term capital preservation, and mentoring high-calibre specialists."
+            leadership_style = "Wisdom-anchored guidance, building consensus through trust, and holding high moral authority."
+        elif primary_carrier == "Venus":
+            vocation_archetype = "The Creative Director & High-Trust Client Partner"
+            craft_essence = "Curating elite client relationships, designing high-value aesthetic and commercial offerings, and mastering the psychology of persuasion."
+            leadership_style = "Diplomatic mediation, inspiring creative brilliance, and elevating team morale through empathy and high standards."
+        elif primary_carrier == "Saturn":
+            vocation_archetype = "The Master Infrastructure Builder & Operational Anchor"
+            craft_essence = "Constructing durable, unshakeable operating systems, enduring unglamorous groundwork, and compounding value through patient discipline."
+            leadership_style = "Quiet technical competence, leading by example, unyielding quality control, and zero tolerance for superficial shortcuts."
+        else:
+            vocation_archetype = "The Intuitive Custodian & Public Impact Leader"
+            craft_essence = "Reading collective market and consumer needs instinctively, building emotionally resonant offerings, and fostering deep public loyalty."
+            leadership_style = "Empathetic leadership, community alignment, and attuning organizational goals to real human needs."
+
+        h_lord2 = pl_by_name.get(lord_2, {}).get("natal_house", 0)
+        h_lord11 = pl_by_name.get(lord_11, {}).get("natal_house", 0)
+        if h_lord2 in (1, 10) or h_lord11 in (1, 10):
+            wealth_channel = "Direct Profit-Sharing & Equity Value Creation"
+            wealth_desc = f"Wealth flows most cleanly through equity ownership, profit-sharing, and sovereign control of high-impact ventures (2nd/11th lords in H{h_lord2}/H{h_lord11})."
+        elif h_lord2 in (7, 3) or h_lord11 in (7, 3):
+            wealth_channel = "Direct Commercial Dealmaking & Client Contracts"
+            wealth_desc = f"Wealth flows through closing client deals, B2B commercial partnerships, and transaction-based trade (2nd/11th lords in H{h_lord2}/H{h_lord11})."
+        elif h_lord2 == 6 or h_lord11 == 6:
+            wealth_channel = "High-Tier Executive Compensation & Performance Bonuses"
+            wealth_desc = f"Wealth flows through competitive organizational compensation, performance bonuses, and solving high-value institutional problems (2nd/11th lords in H6)."
+        elif h_lord2 in (9, 5) or h_lord11 in (9, 5):
+            wealth_channel = "Advisory Retainers, Intellectual Property & Royalties"
+            wealth_desc = f"Wealth flows through proprietary expertise, high-ticket advisory retainers, and intellectual capital monetization (2nd/11th lords in H{h_lord2}/H{h_lord11})."
+        else:
+            wealth_channel = "Tangible Asset Holdings & Long-Term Compounding"
+            wealth_desc = f"Wealth flows through physical asset accumulation, real estate development, and patient capital compounding (2nd/11th lords in H{h_lord2}/H{h_lord11})."
+
+        s_12 = house_sign_id(12)
+        elem_12 = ELEMENT_MAP.get(s_12, "Earth")
+        if elem_12 == "Fire":
+            leak_headline = "Impetuous Capital Deployment & Speculative Rushes"
+            leak_pattern = "Deploying money impulsively into speculative ideas or high-risk ventures without rigorous due diligence."
+            leak_antidote = "Enforce a mandatory 72-hour cooling-off rule on capital allocations above a defined threshold."
+        elif elem_12 == "Air":
+            leak_headline = "Scattered Venture Bets & Unmonetized Diversions"
+            leak_pattern = "Spreading resources thin across multiple shiny new ideas, software, or unmonetized experiments."
+            leak_antidote = "Prune secondary projects; refuse to fund new ventures until the core engine hits its profit target."
+        elif elem_12 == "Water":
+            leak_headline = "Emotional Lending & Boundary Slippage"
+            leak_pattern = "Lending money out of emotional guilt or over-giving to peers, family, or partners without clear repayment terms."
+            leak_antidote = "Separate personal empathy from financial capital; never lend money expecting it back."
+        else:
+            leak_headline = "Underpricing Expertise & Excessive Self-Sacrifice"
+            leak_pattern = "Undercharging for specialized expertise, absorbing unexpected project costs yourself, or hesitating to demand premium compensation."
+            leak_antidote = "Anchor pricing directly to the economic value generated for the client, never to the hours worked."
+
+        return {
+            "recommended_path": rec_path,
+            "optimal_vehicle": optimal_vehicle,
+            "strategic_rationale": rationale,
+            "vocation_archetype": vocation_archetype,
+            "craft_essence": craft_essence,
+            "leadership_style": leadership_style,
+            "primary_carrier": primary_carrier,
+            "wealth_channel": wealth_channel,
+            "wealth_desc": wealth_desc,
+            "leak_headline": leak_headline,
+            "leak_pattern": leak_pattern,
+            "leak_antidote": leak_antidote,
+            "scores": {
+                "venture": round(score_venture),
+                "employment": round(score_employment),
+                "advisory": round(score_advisory),
+            },
+        }
+
+    @classmethod
+    def build_vocational_ground_truth(cls, data: Dict[str, Any]) -> str:
+        """Formats the computed vocational blueprint into an unambiguous ground-truth block for LLM synthesis."""
+        prof = cls.compute_vocational_blueprint(data)
+        lines = [
+            "### COMPUTED VOCATIONAL ENGINE & CAREER GROUND TRUTH (MATHEMATICAL FACT):",
+            f"- **Enterprise vs. Employment Verdict**: {prof['recommended_path']} [Scores: Venture {prof['scores']['venture']}, Employment {prof['scores']['employment']}, Advisory {prof['scores']['advisory']}]",
+            f"- **Strategic Vocational Rationale**: {prof['strategic_rationale']}",
+            f"- **Optimal Real-World Vehicle**: {prof['optimal_vehicle']}",
+            f"- **Primary Vocational Archetype (Derived from {prof['primary_carrier']})**: {prof['vocation_archetype']}",
+            f"- **Primary Craft Essence**: {prof['craft_essence']}",
+            f"- **Natural Leadership Stance**: {prof['leadership_style']}",
+            f"- **Primary Wealth Inflow Channel**: {prof['wealth_channel']} ({prof['wealth_desc']})",
+            f"- **Unconscious Financial Leak**: {prof['leak_headline']} — Pattern: {prof['leak_pattern']} | Antidote: {prof['leak_antidote']}",
+            f"(CRITICAL MANDATE: In your JSON output, you MUST set 'enterprise_vs_employment.recommended_path' to '{prof['recommended_path']}'. NEVER output 'Hybrid Path' or any generic compromise. In 'vocation_archetype', use '{prof['vocation_archetype']}' or a fresh bespoke variation matching {prof['primary_carrier']}. In 'work_genius', weave '{prof['craft_essence']}'. In 'wealth_engine.primary_inflow_channel', weave '{prof['wealth_channel']}'!)",
         ]
         return "\n".join(lines)
 
@@ -573,6 +968,9 @@ class TrinetriOrchestrator:
         # 0. Deterministic Constitutional Blueprint & Psychological Paradoxes
         sections.append(cls.build_constitutional_ground_truth(data))
 
+        # 0b. Deterministic Vocational Engine & Career Ground Truth
+        sections.append(cls.build_vocational_ground_truth(data))
+
         # 1. Core Angles & Functional Nature
         lines_core = ["### Natal Baseline & Functional Roles:"]
         summary = data.get("summary", {})
@@ -767,6 +1165,10 @@ class TrinetriOrchestrator:
         if transit_summary:
             lines.append(f"\n{transit_summary}")
 
+        # Constitutional & Vocational Ground Truth
+        lines.append(f"\n{cls.build_constitutional_ground_truth(data)}")
+        lines.append(f"\n{cls.build_vocational_ground_truth(data)}")
+
         return "\n".join(lines)
 
     @classmethod
@@ -805,6 +1207,10 @@ class TrinetriOrchestrator:
         # Active Dasha Significators
         ds = data.get("dasha_summary", {})
         lines.append(f"\n**Active Vimshottari Dasha Activation**: MD {ds.get('md')}, AD {ds.get('ad')}, PD {ds.get('pd')}")
+
+        # Constitutional & Vocational Ground Truth
+        lines.append(f"\n{cls.build_constitutional_ground_truth(data)}")
+        lines.append(f"\n{cls.build_vocational_ground_truth(data)}")
 
         return "\n".join(lines)
 
@@ -847,6 +1253,10 @@ class TrinetriOrchestrator:
             lines.append(f"- **Progression Order**: {cs.get('order')}")
             lines.append(f"- **Current Mahadasha**: {cs.get('active_md')} (Lord: {cs.get('active_md_lord')}) -> Dates: {cs.get('md_range')}")
             lines.append(f"- **Active Antardasha**: {cs.get('active_ad')} (Lord: {cs.get('active_ad_lord')}) -> Dates: {cs.get('ad_range')}")
+
+        # Constitutional & Vocational Ground Truth
+        lines.append(f"\n{cls.build_constitutional_ground_truth(data)}")
+        lines.append(f"\n{cls.build_vocational_ground_truth(data)}")
 
         return "\n".join(lines)
 
@@ -905,7 +1315,7 @@ class TrinetriOrchestrator:
                     user_prompt=user_prompt,
                     api_key=api_key,
                     model=model,
-                    temperature=0.3,
+                    temperature=0.5,
                     max_output_tokens=3000,
                 )
 
@@ -1109,7 +1519,7 @@ class TrinetriOrchestrator:
                 contents=contents,
                 api_key=api_key,
                 model=model,
-                temperature=0.4,
+                temperature=0.6,
                 max_output_tokens=6000,
             ):
                 yield f"event: token\ndata: {json.dumps({'token': token})}\n\n"
@@ -1167,7 +1577,7 @@ class TrinetriOrchestrator:
                 contents=contents,
                 api_key=api_key,
                 model=model,
-                temperature=0.5,
+                temperature=0.6,
                 max_output_tokens=4000,
             ):
                 yield f"event: token\ndata: {json.dumps({'token': token})}\n\n"

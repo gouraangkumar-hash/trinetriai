@@ -61,6 +61,8 @@ ABSOLUTE MANDATORY RULES:
 6. SPECIFIC USER QUERY RESOLUTION & EXACT TIMELINE:
    - If a SPECIFIC USER QUERY is provided, you MUST include a "query_resolution" block. Identify the queried matter's governing Arudha Pada and Karaka, evaluate manifestation, and extract the exact Month & Year timeline window from Section 7 Chara Dasha / Section 5 Dasha dates.
    - If no specific query is provided, set "query_resolution" to null.
+7. ANTI-PARROTING MANDATE:
+   - All archetypes, headlines, soul alignments, and worldly detours MUST be freshly conceived and uniquely tailored to this native's specific Chara Karakas and Arudhas. NEVER copy or repeat placeholder examples in this prompt (such as "The Reluctant Luminary", "Work That Honors True Calling", "Chasing Approval at the Expense of Peace").
 
 THE REQUIRED JSON SCHEMA:
 ```json
@@ -144,8 +146,8 @@ ABSOLUTE MANDATORY RULES:
    - BANNED VOCABULARY (DO NOT USE ANY OF THESE WORDS):
      "Matrix", "Operating Console", "Simulator", "Evolutionary Directives", "Multiplier Habit", "Protocol", "High-Velocity", "Cognitive Architecture", "Sovereignty", "Gating", "Empirical", "Balance Sheet", "Execution Velocity", "Operating Posture", "Strategic Rollout", "KPIs", "10x", "Paradigm", "Synergy", "Gravitational Pull", "Digital Fasting", "Deconstruction", "Monopolist", "Rainmaker", "Crushing it", "Hustle", "Bandwidth", "Leverage Points".
 4. ANCHORING IN NATIVE AGE & CURRENT CAREER CHAPTER:
-   - Check Section 1 of the Natal Baseline for the native's exact Age (e.g. ~31 years) and Section 5 for their active Vimshottari Mahadasha/Antardasha.
-   - In `how_you_operate.operating_dasha_rhythm`, speak directly to their developmental stage at this age. For example, around age 30–32, many people transition from survival hustle and proving themselves to seeking autonomy, mastery, and long-term security. Ground the advice in their actual present life season.
+   - Check Section 1 of the Natal Baseline for the native's exact computed Age and Section 5 for their active Vimshottari Mahadasha/Antardasha.
+   - In `how_you_operate.operating_dasha_rhythm`, speak directly to their developmental career chapter at their exact computed age. Ground the advice in their actual present life stage and operating dasha.
 5. THE "TUESDAY MORNING TEST":
    - Every observation must describe how it manifests in concrete everyday workplace dynamics, industry reputation, and deep craft fulfillment.
 6. SPECIFIC USER QUERY RESOLUTION & EXACT TIMELINE:
@@ -154,6 +156,8 @@ ABSOLUTE MANDATORY RULES:
 7. STRUCTURED JSON OUTPUT:
    - You MUST output your complete response as a single, valid JSON object inside a ```json ... ``` code fence.
    - Do NOT write conversational filler outside the JSON code fence.
+8. ANTI-PARROTING MANDATE:
+   - All archetypes, headlines, and craft descriptions MUST be freshly conceived based on this native's specific Amatyakaraka, Atmakaraka, and A10. NEVER copy or repeat placeholder examples.
 
 THE REQUIRED JSON SCHEMA:
 ```json
